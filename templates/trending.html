@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주간 트렌딩 이슈 - Blog Automation</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .trend-card {
+            transition: transform 0.2s;
+            border: 1px solid #e9ecef;
+        }
+        .trend-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .trend-type-hot { border-left: 4px solid #dc3545; }
+        .trend-type-rising { border-left: 4px solid #fd7e14; }
+        .trend-type-predicted { border-left: 4px solid #198754; }
+        .priority-high { background: linear-gradient(45deg, #ff6b6b, #ffa500); }
+        .priority-medium { background: linear-gradient(45deg, #4ecdc4, #45b7d1); }
+        .priority-low { background: linear-gradient(45deg, #95e1d3, #a8e6cf); }
+        .keyword-tag {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 15px;
+            padding: 2px 8px;
+            font-size: 0.8em;
+            margin: 2px;
+            display: inline-block;
+        }
+        .period-tab {
+            border-radius: 20px;
+            padding: 8px 20px;
+            margin: 0 5px;
+            transition: all 0.3s;
+        }
+        .period-tab.active {
+            background: #007bff;
+            color: white;
+        }
+        .site-section {
+            margin-bottom: 30px;
+        }
+        .site-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        .trend-stats {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/"><i class="fas fa-blog"></i> Blog Automation</a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/"><i class="fas fa-home"></i> 대시보드</a>
+                <a class="nav-link active" href="/trending"><i class="fas fa-chart-line"></i> 트렌딩</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2><i class="fas fa-chart-line text-primary"></i> 주간 트렌딩 이슈</h2>
+                    <button class="btn btn-outline-primary" onclick="initializeTrendingData()">
+                        <i class="fas fa-sync-alt"></i> 데이터 초기화
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 기간 선택 탭 -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn period-tab" data-period="last" onclick="selectPeriod('last')">
+                        <i class="fas fa-arrow-left"></i> 전주
+                    </button>
+                    <button type="button" class="btn period-tab active" data-period="current" onclick="selectPeriod('current')">
+                        <i class="fas fa-clock"></i> 이번주
+                    </button>
+                    <button type="button" class="btn period-tab" data-period="next" onclick="selectPeriod('next')">
+                        <i class="fas fa-arrow-right"></i> 다음주
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 트렌드 통계 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="trend-stats">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <h5 class="text-primary mb-1" id="total-trends">0</h5>
+                            <small class="text-muted">총 트렌드</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-danger mb-1" id="hot-trends">0</h5>
+                            <small class="text-muted">핫 이슈</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-warning mb-1" id="rising-trends">0</h5>
+                            <small class="text-muted">상승 토픽</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-success mb-1" id="predicted-trends">0</h5>
+                            <small class="text-muted">예상 이슈</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 트렌딩 데이터 표시 영역 -->
+        <div id="trending-content">
+            <!-- 동적으로 로드됨 -->
+        </div>
+
+        <!-- 로딩 스피너 -->
+        <div class="text-center my-5" id="loading-spinner" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="mt-2">트렌딩 데이터 로딩 중...</div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentPeriod = 'current';
+
+        // 페이지 로드 시 현재 주 트렌드 로드
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTrendingData('current');
+        });
+
+        // 기간 선택
+        function selectPeriod(period) {
+            currentPeriod = period;
+            
+            // 탭 스타일 업데이트
+            document.querySelectorAll('.period-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`[data-period="${period}"]`).classList.add('active');
+            
+            // 데이터 로드
+            loadTrendingData(period);
+        }
+
+        // 트렌딩 데이터 로드
+        async function loadTrendingData(period) {
+            showLoading();
+            
+            try {
+                const response = await fetch(`/api/trending/${period}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    displayTrendingData(result.data);
+                    updateStats(result.data);
+                } else {
+                    showError('트렌딩 데이터 로드 실패: ' + result.error);
+                }
+            } catch (error) {
+                showError('트렌딩 데이터 로드 오류: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 트렌딩 데이터 표시
+        function displayTrendingData(data) {
+            const content = document.getElementById('trending-content');
+            
+            if ((!data.site_trends || Object.keys(data.site_trends).length === 0) && 
+                (!data.cross_category_issues || data.cross_category_issues.length === 0)) {
+                content.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h5>트렌딩 데이터가 없습니다</h5>
+                        <p class="text-muted">${data.period || '해당 기간'}에 대한 트렌딩 정보가 없습니다.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `<h4 class="mb-4">${data.period} (${data.week_start}) 트렌딩 이슈</h4>`;
+
+            // 공통 실시간 이슈 섹션 (최상단)
+            if (data.cross_category_issues && data.cross_category_issues.length > 0) {
+                html += `
+                    <div class="site-section mb-5">
+                        <div class="site-header" style="background: linear-gradient(45deg, #ff6b6b, #ffa500); color: white;">
+                            <h5 class="mb-0">
+                                <i class="fas fa-fire"></i> 실시간 주요 이슈
+                                <span class="badge bg-light text-dark ms-2">${data.cross_category_issues.length}개</span>
+                            </h5>
+                            <small class="opacity-75">모든 분야에서 관심받고 있는 핫이슈</small>
+                        </div>
+                        <div class="row">
+                `;
+
+                data.cross_category_issues.forEach(issue => {
+                    const priorityClass = issue.priority >= 9 ? 'priority-high' : 
+                                         issue.priority >= 7 ? 'priority-medium' : 'priority-low';
+                    
+                    html += `
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card trend-card trend-type-${issue.trend_type} h-100">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span class="badge ${priorityClass} text-white">${issue.category}</span>
+                                    <div>
+                                        <span class="badge bg-secondary">${issue.trend_type}</span>
+                                        <span class="badge bg-info">${issue.priority}/10</span>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <h6 class="card-title">${issue.title}</h6>
+                                    <p class="card-text text-muted small">${issue.description || '설명 없음'}</p>
+                                    <div class="keywords-container">
+                                        ${(issue.keywords || []).map(keyword => 
+                                            `<span class="keyword-tag">#${keyword}</span>`
+                                        ).join('')}
+                                    </div>
+                                </div>
+                                ${issue.source_url ? `
+                                    <div class="card-footer">
+                                        <a href="${issue.source_url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-external-link-alt"></i> 소스 보기
+                                        </a>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+
+                // 구분선 추가
+                if (data.site_trends && Object.keys(data.site_trends).length > 0) {
+                    html += `
+                        <hr class="my-5" style="border-top: 3px solid #dee2e6;">
+                        <div class="text-center mb-4">
+                            <h4 class="text-muted">사이트별 전용 트렌드</h4>
+                            <p class="text-muted small">각 사이트의 전문 분야별 트렌딩 이슈</p>
+                        </div>
+                    `;
+                }
+            }
+
+            // 사이트별 트렌드 표시
+            if (data.site_trends) {
+                const siteNames = {
+                    'unpre': '개발 & IT (unpre.co.kr)',
+                    'untab': '부동산 & 정책 (untab.co.kr)',
+                    'skewese': '역사 & 라이프 (skewese.com)'
+                };
+
+                for (const [site, trends] of Object.entries(data.site_trends)) {
+                    if (trends.length === 0) continue;
+                    
+                    html += `
+                        <div class="site-section">
+                            <div class="site-header">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-globe"></i> ${siteNames[site] || site}
+                                    <span class="badge bg-light text-dark ms-2">${trends.length}개</span>
+                                </h5>
+                            </div>
+                            <div class="row">
+                    `;
+                    
+                    trends.forEach(trend => {
+                        const priorityClass = trend.priority >= 8 ? 'priority-high' : 
+                                            trend.priority >= 6 ? 'priority-medium' : 'priority-low';
+                        
+                        html += `
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card trend-card trend-type-${trend.trend_type} h-100">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <span class="badge ${priorityClass} text-white">${trend.category}</span>
+                                        <div>
+                                            <span class="badge bg-secondary">${trend.trend_type}</span>
+                                            <span class="badge bg-info">${trend.priority}/10</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body">
+                                        <h6 class="card-title">${trend.title}</h6>
+                                        <p class="card-text text-muted small">${trend.description || '설명 없음'}</p>
+                                        <div class="keywords-container">
+                                            ${(trend.keywords || []).map(keyword => 
+                                                `<span class="keyword-tag">#${keyword}</span>`
+                                            ).join('')}
+                                        </div>
+                                    </div>
+                                    ${trend.source_url ? `
+                                        <div class="card-footer">
+                                            <a href="${trend.source_url}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-external-link-alt"></i> 소스 보기
+                                            </a>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            content.innerHTML = html;
+        }
+
+        // 통계 업데이트
+        function updateStats(data) {
+            if (!data.site_trends && !data.cross_category_issues) return;
+            
+            let totalTrends = 0;
+            let hotTrends = 0;
+            let risingTrends = 0;
+            let predictedTrends = 0;
+            
+            // 사이트별 트렌드 계산
+            if (data.site_trends) {
+                for (const trends of Object.values(data.site_trends)) {
+                    totalTrends += trends.length;
+                    
+                    trends.forEach(trend => {
+                        switch (trend.trend_type) {
+                            case 'hot': hotTrends++; break;
+                            case 'rising': risingTrends++; break;
+                            case 'predicted': predictedTrends++; break;
+                        }
+                    });
+                }
+            }
+            
+            // 공통 이슈 계산
+            if (data.cross_category_issues) {
+                totalTrends += data.cross_category_issues.length;
+                
+                data.cross_category_issues.forEach(issue => {
+                    switch (issue.trend_type) {
+                        case 'hot': hotTrends++; break;
+                        case 'rising': risingTrends++; break;
+                        case 'predicted': predictedTrends++; break;
+                    }
+                });
+            }
+            
+            document.getElementById('total-trends').textContent = totalTrends;
+            document.getElementById('hot-trends').textContent = hotTrends;
+            document.getElementById('rising-trends').textContent = risingTrends;
+            document.getElementById('predicted-trends').textContent = predictedTrends;
+        }
+
+        // 트렌딩 데이터 초기화
+        async function initializeTrendingData() {
+            if (!confirm('트렌딩 데이터를 초기화하시겠습니까?')) return;
+            
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/trending/initialize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showSuccess('트렌딩 데이터가 초기화되었습니다.');
+                    loadTrendingData(currentPeriod);
+                } else {
+                    showError('초기화 실패: ' + result.error);
+                }
+            } catch (error) {
+                showError('초기화 오류: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 유틸리티 함수들
+        function showLoading() {
+            document.getElementById('loading-spinner').style.display = 'block';
+            document.getElementById('trending-content').style.opacity = '0.5';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-spinner').style.display = 'none';
+            document.getElementById('trending-content').style.opacity = '1';
+        }
+
+        function showError(message) {
+            alert('오류: ' + message);
+        }
+
+        function showSuccess(message) {
+            alert('성공: ' + message);
+        }
+    </script>
+</body>
+</html>

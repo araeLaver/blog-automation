@@ -1,0 +1,24 @@
+{
+  "site": "unpre",
+  "title": "JavaScript ES6+ 핵심 기능 완벽 가이드: 모던 자바스크립트 마스터하기",
+  "tags": [
+    "JavaScript",
+    "ES6",
+    "화살표함수",
+    "Promise",
+    "async/await",
+    "구조분해할당"
+  ],
+  "categories": [],
+  "keywords": [
+    "자바스크립트 ES6",
+    "모던 자바스크립트",
+    "자바스크립트 신문법"
+  ],
+  "meta_description": "ES6 이후 추가된 JavaScript의 새로운 기능들을 상세히 알아봅니다. 화살표 함수, 구조 분해 할당, Promise, async/await 등 실무에서 꼭 필요한 최신 문법을 예제와 함께 설명합니다.",
+  "created_at": "2025-08-12T13:42:11.038057",
+  "file_path": "data\\wordpress_posts\\unpre\\20250812_134211_JavaScript ES6 핵심 기능 완벽 가이드 모던 자바스크립트 마스터하기.html",
+  "status": "draft",
+  "word_count": 3716,
+  "estimated_reading_time": 12
+}

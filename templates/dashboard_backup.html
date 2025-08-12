@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="timestamp" content="2025-08-11-01-05">
+    <meta name="version" content="bulk-delete-v2.1">
+    <script>
+        // 캐시 무효화를 위한 강제 새로고침
+        if (performance.navigation.type !== 1) {
+            console.log("강제 캐시 새로고침 실행");
+        }
+    </script>
+    <title>블로그 자동화 대시보드 v2.1 (선택삭제 기능 추가)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-card {
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255,255,255,0.1);
+            transform: rotate(45deg);
+        }
+        .stat-card h3 {
+            font-size: 2.5rem;
+            font-weight: bold;
+        }
+        .stat-card p {
+            margin: 0;
+            opacity: 0.9;
+        }
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .bg-gradient-success {
+            background: linear-gradient(135deg, #48c774 0%, #3ec46d 100%);
+        }
+        .bg-gradient-info {
+            background: linear-gradient(135deg, #4fc3f7 0%, #29b6f6 100%);
+        }
+        .bg-gradient-warning {
+            background: linear-gradient(135deg, #ffb74d 0%, #ffa726 100%);
+        }
+        .site-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 2px;
+        }
+        .site-unpre { background-color: #e3f2fd; color: #1976d2; }
+        .site-untab { background-color: #e8f5e9; color: #388e3c; }
+        .site-skewese { background-color: #fff3e0; color: #f57c00; }
+        .site-tistory { background-color: #fce4ec; color: #c2185b; }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .status-online { background-color: #4caf50; }
+        .status-offline { background-color: #f44336; }
+        
+        .log-entry {
+            padding: 10px;
+            border-left: 3px solid #667eea;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        
+        .schedule-item {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: white;
+            border-left: 4px solid #667eea;
+        }
+        
+        #loader {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .tistory-file {
+            padding: 15px;
+            margin-bottom: 10px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        .refresh-btn {
+            animation: rotate 2s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+        
+        /* 스핀 애니메이션 추가 */
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 중앙 진행 과정 오버레이 */
+        .progress-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .progress-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            min-width: 400px;
+            max-width: 500px;
+        }
+        
+        .progress-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        
+        .progress-steps-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+        }
+        
+        .progress-step-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.3s ease;
+        }
+        
+        .progress-step-item:last-child {
+            border-bottom: none;
+        }
+        
+        .progress-step-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .progress-step-icon.waiting {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            color: #6c757d;
+        }
+        
+        .progress-step-icon.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        .progress-step-icon.completed {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+        }
+        
+        .progress-step-text {
+            flex: 1;
+            text-align: left;
+            font-size: 1rem;
+        }
+        
+        .progress-step-text.active {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .progress-step-text.completed {
+            color: #28a745;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(102, 126, 234, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(102, 126, 234, 0); }
+        }
+        
+        /* 로딩 스피너 개선 */
+        .loading-spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        /* 업데이트 인디케이터 개선 */
+        .update-indicator {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 15px 20px;
+            margin: 10px 0;
+            font-size: 1rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .update-indicator .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        /* 선택삭제 기능 스타일 */
+        .bulk-actions {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .bulk-actions.show {
+            display: flex;
+        }
+        
+        .bulk-info {
+            display: flex;
+            align-items: center;
+        }
+        
+        .bulk-count {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 10px;
+            border-radius: 15px;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+        
+        .content-item {
+            transition: all 0.3s ease;
+        }
+        
+        .content-item.selected {
+            background-color: #f8f9ff !important;
+            border-color: #667eea !important;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+        
+        .content-checkbox {
+            transform: scale(1.2);
+            margin-right: 10px;
+            display: inline-block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            width: 16px !important;
+            height: 16px !important;
+        }
+        
+        .select-all-checkbox {
+            transform: scale(1.3);
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            width: 20px !important;
+            height: 20px !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-dark">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-robot"></i> 블로그 자동화 대시보드
+            </span>
+            <div class="text-white">
+                <span id="current-time"></span>
+                <button class="btn btn-light btn-sm ms-3" onclick="refreshData()">
+                    <i class="bi bi-arrow-clockwise"></i> 새로고침
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid mt-4">
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="stat-card bg-gradient-primary">
+                    <h3 id="total-posts">0</h3>
+                    <p>전체 포스트</p>
+                    <i class="bi bi-file-text" style="position: absolute; right: 20px; top: 20px; font-size: 2rem; opacity: 0.3;"></i>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-gradient-success">
+                    <h3 id="today-posts">0</h3>
+                    <p>오늘 발행</p>
+                    <i class="bi bi-calendar-check" style="position: absolute; right: 20px; top: 20px; font-size: 2rem; opacity: 0.3;"></i>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-gradient-info">
+                    <h3 id="total-views">0</h3>
+                    <p>총 조회수</p>
+                    <i class="bi bi-eye" style="position: absolute; right: 20px; top: 20px; font-size: 2rem; opacity: 0.3;"></i>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card bg-gradient-warning">
+                    <h3 id="total-revenue">₩0</h3>
+                    <p>예상 수익</p>
+                    <i class="bi bi-currency-dollar" style="position: absolute; right: 20px; top: 20px; font-size: 2rem; opacity: 0.3;"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Status -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-activity"></i> 시스템 상태</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="system-status">
+                            <div class="col-md-3">
+                                <span class="status-indicator status-offline"></span> unpre.co.kr
+                            </div>
+                            <div class="col-md-3">
+                                <span class="status-indicator status-offline"></span> untab.co.kr
+                            </div>
+                            <div class="col-md-3">
+                                <span class="status-indicator status-offline"></span> skewese.com
+                            </div>
+                            <div class="col-md-3">
+                                <span class="status-indicator status-offline"></span> Database
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-graph-up"></i> 일별 발행 현황</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="dailyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-pie-chart"></i> 사이트별 통계</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="siteChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Posts & Schedule -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-clock-history"></i> 최근 포스트</h5>
+                    </div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        <div id="recent-posts"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-calendar3"></i> 발행 일정</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="schedule"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Management -->
+        <div class="row mb-4">
+            <!-- WordPress Files -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <input type="checkbox" class="form-check-input select-all-checkbox me-2" 
+                                   id="select-all-wordpress" onchange="toggleSelectAll('wordpress')">
+                            <h5 class="mb-0"><i class="bi bi-wordpress"></i> WordPress 콘텐츠</h5>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-plus-circle"></i> 새 콘텐츠
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="showWordPressModal('unpre')">unpre 콘텐츠 생성</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="showWordPressModal('untab')">untab 콘텐츠 생성</a></li>
+                                <li><a class="dropdown-item" href="#" onclick="showWordPressModal('skewese')">skewese 콘텐츠 생성</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- WordPress 선택삭제 액션 바 -->
+                    <div id="wordpress-bulk-actions" class="bulk-actions">
+                        <div class="bulk-info">
+                            <div class="bulk-count" id="wordpress-selected-count">0개 선택됨</div>
+                            <span>선택된 WordPress 콘텐츠를 관리하세요</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-light btn-sm me-2" onclick="deselectAll('wordpress')">
+                                <i class="bi bi-x"></i> 선택 해제
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="bulkDelete('wordpress')">
+                                <i class="bi bi-trash"></i> 선택 삭제
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        <div id="wordpress-files"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tistory Files -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <input type="checkbox" class="form-check-input select-all-checkbox me-2" 
+                                   id="select-all-tistory" onchange="toggleSelectAll('tistory')">
+                            <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Tistory 콘텐츠</h5>
+                        </div>
+                        <button class="btn btn-sm btn-primary" onclick="showTistoryModal()">
+                            <i class="bi bi-plus-circle"></i> 새 콘텐츠 생성
+                        </button>
+                    </div>
+                    
+                    <!-- Tistory 선택삭제 액션 바 -->
+                    <div id="tistory-bulk-actions" class="bulk-actions">
+                        <div class="bulk-info">
+                            <div class="bulk-count" id="tistory-selected-count">0개 선택됨</div>
+                            <span>선택된 Tistory 콘텐츠를 관리하세요</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-light btn-sm me-2" onclick="deselectAll('tistory')">
+                                <i class="bi bi-x"></i> 선택 해제
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="bulkDelete('tistory')">
+                                <i class="bi bi-trash"></i> 선택 삭제
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                        <div id="tistory-files"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Topic Pool Status -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="bi bi-collection"></i> 주제 풀 상태</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="topic-stats" class="row"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loader -->
+    <div id="loader">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <script>
+        // 차트 변수
+        let dailyChart = null;
+        let siteChart = null;
+
+        // 시간 업데이트
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').innerText = now.toLocaleString('ko-KR');
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
+
+        // 데이터 새로고침
+        async function refreshData() {
+            document.getElementById('loader').style.display = 'block';
+            
+            try {
+                // 통계 데이터
+                const statsRes = await fetch('/api/stats');
+                const stats = await statsRes.json();
+                
+                document.getElementById('total-posts').innerText = stats.total_posts;
+                document.getElementById('today-posts').innerText = stats.today_posts;
+                document.getElementById('total-views').innerText = (stats.revenue?.total_views || 0).toLocaleString();
+                document.getElementById('total-revenue').innerText = '₩' + ((stats.revenue?.total_revenue || 0) * 1400).toLocaleString();
+                
+                // 주제 풀 상태 가져오기
+                const topicRes = await fetch('/api/topic_stats');
+                const topicStats = await topicRes.json();
+                updateTopicStats(topicStats);
+                
+                // 시스템 상태
+                const statusRes = await fetch('/api/system_status');
+                const status = await statusRes.json();
+                updateSystemStatus(status);
+                
+                // 최근 포스트
+                const postsRes = await fetch('/api/recent_posts');
+                const posts = await postsRes.json();
+                updateRecentPosts(posts);
+                
+                // 발행 일정
+                const scheduleRes = await fetch('/api/schedule');
+                const schedule = await scheduleRes.json();
+                updateSchedule(schedule);
+                
+                // WordPress 파일
+                const wordpressRes = await fetch('/api/wordpress_files');
+                const wordpressFiles = await wordpressRes.json();
+                updateWordPressFiles(wordpressFiles);
+                
+                // Tistory 파일
+                const tistoryRes = await fetch('/api/tistory_files');
+                const tistoryFiles = await tistoryRes.json();
+                updateTistoryFiles(tistoryFiles);
+                
+                // 차트 업데이트
+                await updateCharts();
+                
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        // 시스템 상태 업데이트
+        function updateSystemStatus(status) {
+            let html = '';
+            
+            // WordPress 사이트들
+            for (const [site, isOnline] of Object.entries(status.wordpress)) {
+                const statusClass = isOnline ? 'status-online' : 'status-offline';
+                const statusText = isOnline ? '정상' : '오프라인';
+                html += `
+                    <div class="col-md-3 mb-2">
+                        <span class="status-indicator ${statusClass}"></span>
+                        ${site}.co.kr <small class="text-muted">(${statusText})</small>
+                    </div>
+                `;
+            }
+            
+            // 데이터베이스
+            const dbClass = status.postgresql ? 'status-online' : 'status-offline';
+            html += `
+                <div class="col-md-3 mb-2">
+                    <span class="status-indicator ${dbClass}"></span>
+                    Database <small class="text-muted">(${status.postgresql ? '정상' : '오류'})</small>
+                </div>
+            `;
+            
+            document.getElementById('system-status').innerHTML = html;
+        }
+
+        // 최근 포스트 업데이트
+        function updateRecentPosts(posts) {
+            let html = '';
+            
+            posts.forEach(post => {
+                const siteClass = `site-${post.site}`;
+                const date = new Date(post.published_date).toLocaleDateString('ko-KR');
+                
+                html += `
+                    <div class="log-entry">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <span class="site-badge ${siteClass}">${post.site}</span>
+                                <strong>${post.title}</strong>
+                                <div class="text-muted small mt-1">
+                                    <i class="bi bi-calendar"></i> ${date}
+                                    <span class="ms-2"><i class="bi bi-folder"></i> ${post.category}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('recent-posts').innerHTML = html || '<p class="text-muted">포스트가 없습니다.</p>';
+        }
+
+        // 발행 일정 업데이트
+        function updateSchedule(schedule) {
+            let html = '';
+            
+            schedule.forEach(item => {
+                const siteClass = `site-${item.site}`;
+                const daysKor = item.days.map(d => {
+                    const dayMap = {mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토', sun: '일'};
+                    return dayMap[d] || d;
+                }).join(', ');
+                
+                html += `
+                    <div class="schedule-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="site-badge ${siteClass}">${item.site}</span>
+                                <strong class="ms-2">${item.time}</strong>
+                            </div>
+                            <span class="text-muted">${daysKor}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('schedule').innerHTML = html;
+        }
+
+        // WordPress 파일 업데이트
+        function updateWordPressFiles(files) {
+            // 임시 콘텐츠 제거
+            const tempContent = document.getElementById('temp-content');
+            if (tempContent) {
+                tempContent.remove();
+            }
+            
+            let html = '';
+            
+            files.forEach(file => {
+                // 날짜와 시간을 상세하게 표시
+                let dateTimeString = '';
+                if (file.created_at) {
+                    const dateObj = new Date(file.created_at);
+                    const date = dateObj.toLocaleDateString('ko-KR');
+                    const time = dateObj.toLocaleTimeString('ko-KR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false 
+                    });
+                    dateTimeString = `${date} ${time}`;
+                }
+                
+                const site = file.site || 'unknown';
+                const siteClass = `site-${site}`;
+                
+                // 제목 정리 (JSX 코드나 이상한 내용 필터링)
+                let cleanTitle = file.title || '제목 없음';
+                
+                // JSX나 특수 문자가 포함된 제목 처리
+                if (cleanTitle.includes('jsx') || cleanTitle.includes('const') || cleanTitle.includes('element') || cleanTitle.includes('<') || cleanTitle.includes('{')) {
+                    cleanTitle = '올바르지 않은 콘텐츠';
+                }
+                
+                // 제목 길이 제한 (최대 50자)
+                if (cleanTitle.length > 50) {
+                    cleanTitle = cleanTitle.substring(0, 50) + '...';
+                }
+                
+                // 키워드/태그 처리 (WordPress)
+                let keywords = [];
+                if (file.tags && Array.isArray(file.tags)) {
+                    keywords = file.tags;
+                } else if (file.metadata && file.metadata.keywords) {
+                    keywords = file.metadata.keywords;
+                } else if (file.metadata && file.metadata.tags) {
+                    keywords = file.metadata.tags;
+                }
+                
+                const keywordTags = keywords.slice(0, 5).map(keyword => 
+                    `<span class="badge bg-primary me-1">${keyword}</span>`
+                ).join('');
+                
+                const category = file.category || '카테고리 없음';
+                
+                html += `
+                    <div class="wordpress-file content-item mb-3 p-2 border rounded" data-file-id="${file.id}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="d-flex align-items-start flex-grow-1">
+                                <input type="checkbox" class="form-check-input content-checkbox me-2" 
+                                       onchange="toggleItemSelection('wordpress', ${file.id})" data-file-id="${file.id}"
+                                       style="display: inline-block !important; visibility: visible !important; opacity: 1 !important; width: 16px !important; height: 16px !important; transform: scale(1.2);">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="site-badge ${siteClass}">${site.toUpperCase()}</span>
+                                        <span class="badge bg-secondary ms-2">${category}</span>
+                                    </div>
+                                    <strong>${cleanTitle}</strong>
+                                    ${keywordTags ? `<div class="mt-2">${keywordTags}</div>` : ''}
+                                    <div class="text-muted small mt-1">
+                                        <i class="bi bi-calendar"></i> ${dateTimeString}
+                                        ${file.word_count ? `<span class="ms-3"><i class="bi bi-file-text"></i> ${file.word_count.toLocaleString()}자</span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="btn-group-vertical btn-group-sm">
+                                <a href="/api/download_file/${encodeURIComponent(file.file_path)}" class="btn btn-outline-primary btn-sm" title="다운로드">
+                                    <i class="bi bi-download"></i> 다운로드
+                                </a>
+                                <button class="btn btn-outline-success btn-sm" onclick="publishToWordPress(${file.id}, '${site}')" title="WordPress에 발행">
+                                    <i class="bi bi-upload"></i> 발행
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteFile('${file.id}', 'wordpress')" title="파일 삭제">
+                                    <i class="bi bi-trash"></i> 삭제
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('wordpress-files').innerHTML = html || '<p class="text-muted">생성된 파일이 없습니다.</p>';
+        }
+
+        // Tistory 파일 업데이트
+        function updateTistoryFiles(files) {
+            let html = '';
+            
+            files.forEach(file => {
+                // 날짜와 시간을 상세하게 표시
+                let dateTimeString = '';
+                if (file.created_at) {
+                    const dateObj = new Date(file.created_at);
+                    const date = dateObj.toLocaleDateString('ko-KR');
+                    const time = dateObj.toLocaleTimeString('ko-KR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit',
+                        hour12: false 
+                    });
+                    dateTimeString = `${date} ${time}`;
+                }
+                const tags = (file.tags || []).map(tag => `<span class="badge bg-secondary">${tag}</span>`).join(' ');
+                
+                html += `
+                    <div class="tistory-file content-item mb-3 p-2 border rounded" data-file-id="${file.id}">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="d-flex align-items-start flex-grow-1">
+                                <input type="checkbox" class="form-check-input content-checkbox me-2" 
+                                       onchange="toggleItemSelection('tistory', ${file.id})" data-file-id="${file.id}"
+                                       style="display: inline-block !important; visibility: visible !important; opacity: 1 !important; width: 16px !important; height: 16px !important; transform: scale(1.2);">
+                                <div class="flex-grow-1">
+                                    <strong>${file.title}</strong>
+                                    <div class="mt-1">${tags}</div>
+                                    <div class="text-muted small mt-1">
+                                        <i class="bi bi-calendar"></i> ${dateTimeString}
+                                        ${file.word_count ? `<span class="ms-3"><i class="bi bi-file-text"></i> ${file.word_count.toLocaleString()}자</span>` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="btn-group-vertical btn-group-sm">
+                                <a href="/api/download_file/${encodeURIComponent(file.file_path)}" class="btn btn-outline-primary btn-sm">
+                                    <i class="bi bi-download"></i> 다운로드
+                                </a>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteFile('${file.id}')">
+                                    <i class="bi bi-trash"></i> 삭제
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('tistory-files').innerHTML = html || '<p class="text-muted">생성된 파일이 없습니다.</p>';
+        }
+
+        // 주제 풀 상태 업데이트
+        function updateTopicStats(topicStats) {
+            let html = '';
+            
+            for (const [site, stats] of Object.entries(topicStats)) {
+                const total = stats.used + stats.unused;
+                const percentage = total > 0 ? Math.round((stats.used / total) * 100) : 0;
+                
+                html += `
+                    <div class="col-md-4 mb-3">
+                        <h6>${site}</h6>
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar bg-success" style="width: ${percentage}%">
+                                사용: ${stats.used}
+                            </div>
+                            <div class="progress-bar bg-info" style="width: ${100-percentage}%">
+                                미사용: ${stats.unused}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('topic-stats').innerHTML = html;
+        }
+
+        // 차트 업데이트
+        async function updateCharts() {
+            // 일별 차트
+            const dailyRes = await fetch('/api/chart/daily');
+            const dailyData = await dailyRes.json();
+            
+            const ctx1 = document.getElementById('dailyChart').getContext('2d');
+            if (dailyChart) dailyChart.destroy();
+            
+            dailyChart = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: dailyData.labels,
+                    datasets: [{
+                        label: '발행 포스트',
+                        data: dailyData.data,
+                        borderColor: 'rgb(102, 126, 234)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+            
+            // 사이트별 차트
+            const siteRes = await fetch('/api/chart/site');
+            const siteData = await siteRes.json();
+            
+            const ctx2 = document.getElementById('siteChart').getContext('2d');
+            if (siteChart) siteChart.destroy();
+            
+            siteChart = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: siteData.labels,
+                    datasets: [{
+                        data: siteData.data,
+                        backgroundColor: [
+                            'rgba(102, 126, 234, 0.8)',
+                            'rgba(72, 199, 116, 0.8)',
+                            'rgba(255, 183, 77, 0.8)',
+                            'rgba(255, 107, 107, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+
+        // WordPress 콘텐츠 생성
+        async function generateWordPressContent() {
+            // 모달에서 입력값 가져오기
+            const site = selectedWpSite;
+            const topic = document.getElementById('wpContentTopic').value.trim();
+            const keywordsInput = document.getElementById('wpContentKeywords').value.trim();
+            let category = document.getElementById('wpContentCategory').value;
+            
+            if (!topic) {
+                showNotification('주제를 입력해주세요.', 'error');
+                return;
+            }
+            
+            // 직접입력 카테고리 처리
+            if (category === '직접입력') {
+                const customCategory = document.getElementById('wpCustomCategory').value.trim();
+                if (!customCategory) {
+                    showNotification('직접입력 카테고리를 입력해주세요.', 'error');
+                    return;
+                }
+                category = customCategory;
+            }
+            
+            // 키워드 처리 (콤마로 분리)
+            const keywords = keywordsInput ? 
+                keywordsInput.split(',').map(k => k.trim()).filter(k => k.length > 0) : 
+                getDefaultKeywordsByCategory(category);
+            
+            // 모달 닫기
+            const modal = bootstrap.Modal.getInstance(document.getElementById('wordpressModal'));
+            modal.hide();
+            
+            // 진행 상황 상세 표시
+            showNotification(`🚀 ${site.toUpperCase()} 콘텐츠 생성 시작...`, 'info');
+            showProgressSteps([
+                '✨ AI가 콘텐츠를 작성하고 있습니다...',
+                '🔍 SEO 최적화 진행 중...',
+                '📝 파일 저장 중...',
+                '💾 데이터베이스 등록 중...'
+            ]);
+            
+            try {
+                const res = await fetch('/api/generate_wordpress', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        site: site, 
+                        topic: topic,
+                        keywords: keywords,
+                        category: category
+                    })
+                });
+                
+                const result = await res.json();
+                hideProgressSteps();
+                
+                if (result.success) {
+                    showNotification(`✅ ${site.toUpperCase()} 콘텐츠 생성 완료! 목록을 업데이트하고 있습니다...`, 'success');
+                    
+                    // 업데이트 중 표시 (새로운 디자인)
+                    const wpFilesContainer = document.getElementById('wordpress-files');
+                    wpFilesContainer.insertAdjacentHTML('afterbegin', 
+                        `<div id="updating-indicator" class="update-indicator">
+                            <div class="spinner"></div>
+                            목록을 업데이트하고 있습니다...
+                            <small style="display: block; margin-top: 5px; opacity: 0.8;">
+                                새로 생성된 콘텐츠를 불러오는 중 (최대 5초)
+                            </small>
+                        </div>`
+                    );
+                    
+                    // 즉시 목록에 새 콘텐츠 표시 (임시)
+                    addTemporaryContent('wordpress', {
+                        title: result.title || topic,
+                        site: site,
+                        category: category,
+                        keywords: keywords.slice(0, 3),
+                        created_at: new Date().toISOString(),
+                        isNew: true
+                    });
+                    
+                    // 여러 번 시도해서 목록 갱신 보장
+                    let retryCount = 0;
+                    const maxRetries = 5;
+                    
+                    const updateList = async () => {
+                        try {
+                            const wordpressRes = await fetch('/api/wordpress_files');
+                            const wordpressFiles = await wordpressRes.json();
+                            
+                            // 새로 생성된 콘텐츠가 목록에 있는지 확인
+                            const hasNewContent = wordpressFiles.some(f => 
+                                f.title.includes(result.title.substring(0, 10)) || 
+                                new Date(f.created_at).getTime() > Date.now() - 60000 // 1분 이내 생성
+                            );
+                            
+                            updateWordPressFiles(wordpressFiles);
+                            
+                            if (hasNewContent || retryCount >= maxRetries) {
+                                // 업데이트 중 인디케이터 제거
+                                const indicator = document.getElementById('updating-indicator');
+                                if (indicator) indicator.remove();
+                                
+                                showNotification(`🎉 목록이 업데이트되었습니다! 새 콘텐츠를 확인하세요.`, 'info');
+                                // 전체 데이터도 갱신
+                                refreshData();
+                            } else {
+                                retryCount++;
+                                setTimeout(updateList, 1000); // 1초 후 재시도
+                            }
+                        } catch (error) {
+                            if (retryCount < maxRetries) {
+                                retryCount++;
+                                setTimeout(updateList, 1000);
+                            } else {
+                                // 업데이트 중 인디케이터 제거
+                                const indicator = document.getElementById('updating-indicator');
+                                if (indicator) indicator.remove();
+                                
+                                showNotification('목록 갱신 중 오류가 발생했습니다. 페이지를 새로고침해주세요.', 'error');
+                            }
+                        }
+                    };
+                    
+                    // 즉시 첫 번째 갱신 시도
+                    setTimeout(updateList, 500);
+                    
+                    // 폼 리셋
+                    document.getElementById('wordpressForm').reset();
+                } else {
+                    showNotification(`❌ 생성 실패: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                hideProgressSteps();
+                showNotification(`❌ 오류: ${error.message}`, 'error');
+            }
+        }
+        
+        // 카테고리별 기본 키워드 반환
+        function getDefaultKeywordsByCategory(category) {
+            const defaultKeywords = {
+                '프로그래밍': ['프로그래밍', '코딩', '개발', '알고리즘', '자료구조'],
+                '웹개발': ['웹개발', 'HTML', 'CSS', 'JavaScript', '프론트엔드'],
+                '데이터사이언스': ['데이터분석', 'Python', '머신러닝', '통계', '빅데이터'],
+                'AI/ML': ['인공지능', '머신러닝', '딥러닝', 'AI', '신경망'],
+                'DevOps': ['DevOps', '배포', 'CI/CD', 'Docker', 'Kubernetes'],
+                '모바일개발': ['모바일', '앱개발', 'React Native', 'Flutter', 'iOS'],
+                '게임개발': ['게임개발', 'Unity', '게임엔진', '3D', '게임디자인'],
+                '기타': ['개발', '프로그래밍', '기술', 'IT', '소프트웨어']
+            };
+            return defaultKeywords[category] || defaultKeywords['기타'];
+        }
+
+        // WordPress 발행
+        async function publishToWordPress(fileId, site) {
+            if (!confirm(`${site}에 이 콘텐츠를 발행하시겠습니까?`)) return;
+            
+            showNotification('발행 중...', 'info');
+            
+            try {
+                const res = await fetch('/api/publish_to_wordpress', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({file_id: fileId, site: site})
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    showNotification('발행 완료!', 'success');
+                    refreshData();
+                } else {
+                    showNotification(`발행 실패: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`오류: ${error.message}`, 'error');
+            }
+        }
+
+        // 파일 삭제
+        async function deleteFile(fileId) {
+            if (!confirm('이 파일을 삭제하시겠습니까?')) return;
+            
+            console.log('Deleting file with ID:', fileId);
+            showNotification('파일 삭제 중...', 'info');
+            
+            try {
+                const response = await fetch('/api/delete_file', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({file_id: fileId})
+                });
+                
+                console.log('Delete response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Delete failed with status:', response.status, 'Error:', errorText);
+                    showNotification(`삭제 실패 (${response.status}): ${errorText}`, 'error');
+                    return;
+                }
+                
+                const result = await response.json();
+                console.log('Delete result:', result);
+                
+                if (result.success) {
+                    showNotification('파일이 성공적으로 삭제되었습니다.', 'success');
+                    await refreshData(); // 데이터 새로고침 대기
+                } else {
+                    showNotification(`삭제 실패: ${result.error || '알 수 없는 오류'}`, 'error');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                showNotification(`네트워크 오류: ${error.message}`, 'error');
+            }
+        }
+
+        // Tistory 콘텐츠 생성
+        async function generateTistoryContent() {
+            // 모달에서 입력값 가져오기
+            const topic = document.getElementById('contentTopic').value.trim();
+            const keywordsInput = document.getElementById('contentKeywords').value.trim();
+            const category = document.getElementById('contentCategory').value;
+            
+            if (!topic) {
+                showNotification('주제를 입력해주세요.', 'error');
+                return;
+            }
+            
+            // 키워드 처리 (콤마로 분리)
+            const keywords = keywordsInput ? 
+                keywordsInput.split(',').map(k => k.trim()).filter(k => k.length > 0) : 
+                ['토익', '영어학습', '어학시험', '고득점', '학습법'];
+            
+            // 모달 닫기
+            const modal = bootstrap.Modal.getInstance(document.getElementById('tistoryModal'));
+            modal.hide();
+            
+            // Tistory 진행 상황 표시
+            showNotification('🚀 Tistory 콘텐츠 생성 시작...', 'info');
+            showProgressSteps([
+                '✨ AI가 Tistory 콘텐츠를 작성하고 있습니다...',
+                '🎨 HTML 형식으로 변환 중...',
+                '📝 파일 저장 중...',
+                '💾 데이터베이스 등록 중...'
+            ]);
+            
+            try {
+                const res = await fetch('/api/generate_tistory', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        topic: topic,
+                        keywords: keywords,
+                        category: category
+                    })
+                });
+                
+                const result = await res.json();
+                hideProgressSteps();
+                
+                if (result.success) {
+                    showNotification(`✅ Tistory 콘텐츠 생성 완료!`, 'success');
+                    
+                    // 즉시 목록에 새 콘텐츠 표시 (임시)
+                    addTemporaryContent('tistory', {
+                        title: result.title || topic,
+                        category: category,
+                        keywords: keywords.slice(0, 3),
+                        created_at: new Date().toISOString(),
+                        isNew: true
+                    });
+                    
+                    // 3초 후 실제 데이터로 새로고침
+                    setTimeout(() => {
+                        refreshData();
+                    }, 3000);
+                    
+                    // 폼 리셋
+                    document.getElementById('tistoryForm').reset();
+                } else {
+                    if (result.error && result.error.includes('API key')) {
+                        showNotification(`❌ Claude API 키 설정이 필요합니다!\n\n1. https://console.anthropic.com 에서 API 키 발급\n2. .env 파일의 ANTHROPIC_API_KEY 설정\n3. 서버 재시작\n\n오류: ${result.error}`, 'error');
+                    } else {
+                        showNotification(`❌ 생성 실패: ${result.error}`, 'error');
+                    }
+                }
+            } catch (error) {
+                hideProgressSteps();
+                showNotification(`❌ 오류: ${error.message}`, 'error');
+            }
+        }
+
+        // 알림 표시
+        function showNotification(message, type = 'info') {
+            // 기존 알림 제거
+            const existing = document.querySelector('.notification-toast');
+            if (existing) existing.remove();
+            
+            const colors = {
+                success: '#28a745',
+                error: '#dc3545', 
+                info: '#17a2b8',
+                warning: '#ffc107'
+            };
+            
+            const toast = document.createElement('div');
+            toast.className = 'notification-toast';
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${colors[type] || colors.info};
+                color: white;
+                padding: 15px 20px;
+                border-radius: 5px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 9999;
+                max-width: 300px;
+                font-weight: 500;
+                animation: slideIn 0.3s ease-out;
+            `;
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            // 3초 후 자동 제거
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.3s ease-in forwards';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // 초기 로드
+        refreshData();
+        
+        // 30초마다 자동 새로고침
+        setInterval(refreshData, 30000);
+    </script>
+
+    <!-- Tistory 콘텐츠 생성 모달 -->
+    <div class="modal fade" id="tistoryModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-file-earmark-text"></i> Tistory 콘텐츠 생성</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="tistoryForm">
+                        <div class="mb-3">
+                            <label for="contentTopic" class="form-label">콘텐츠 주제 *</label>
+                            <input type="text" class="form-control" id="contentTopic" 
+                                   placeholder="예: 토익 900점 달성 전략" required>
+                            <div class="form-text">생성할 콘텐츠의 주요 주제를 입력하세요</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="contentKeywords" class="form-label">필수 키워드</label>
+                            <input type="text" class="form-control" id="contentKeywords" 
+                                   placeholder="예: 토익, 영어학습, 고득점, 시험준비">
+                            <div class="form-text">콤마(,)로 구분하여 입력 (최대 10개)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="contentCategory" class="form-label">카테고리</label>
+                            <select class="form-select" id="contentCategory">
+                                <option value="언어학습">언어학습</option>
+                                <option value="자격증">자격증</option>
+                                <option value="취업">취업</option>
+                                <option value="여행">여행</option>
+                                <option value="라이프스타일">라이프스타일</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="button" class="btn btn-primary" onclick="generateTistoryContent()">
+                        <i class="bi bi-magic"></i> 콘텐츠 생성
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WordPress 콘텐츠 생성 모달 -->
+    <div class="modal fade" id="wordpressModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-wordpress"></i> <span id="wpSiteName">WordPress</span> 콘텐츠 생성</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="wordpressForm">
+                        <div class="mb-3">
+                            <label for="wpSite" class="form-label">사이트 선택</label>
+                            <input type="text" class="form-control" id="wpSite" readonly>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="wpContentTopic" class="form-label">콘텐츠 주제 *</label>
+                            <input type="text" class="form-control" id="wpContentTopic" 
+                                   placeholder="예: React 프로그래밍 완전정복" required>
+                            <div class="form-text">생성할 콘텐츠의 주요 주제를 입력하세요</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="wpContentKeywords" class="form-label">필수 키워드</label>
+                            <input type="text" class="form-control" id="wpContentKeywords" 
+                                   placeholder="예: React, JavaScript, 프론트엔드, 웹개발">
+                            <div class="form-text">콤마(,)로 구분하여 입력 (최대 10개)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="wpContentCategory" class="form-label">카테고리</label>
+                            <select class="form-select" id="wpContentCategory" onchange="toggleCustomCategory()">
+                                <!-- 사이트별 카테고리가 JavaScript로 동적 생성됩니다 -->
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3" id="customCategoryDiv" style="display: none;">
+                            <label for="wpCustomCategory" class="form-label">직접 입력 카테고리</label>
+                            <input type="text" class="form-control" id="wpCustomCategory" 
+                                   placeholder="카테고리를 직접 입력하세요">
+                            <div class="form-text">직접 카테고리를 입력할 수 있습니다</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="button" class="btn btn-success" onclick="generateWordPressContent()">
+                        <i class="bi bi-magic"></i> 콘텐츠 생성
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WordPress 모달 표시
+        let selectedWpSite = '';
+        
+        // 사이트별 카테고리 정의
+        const siteCategories = {
+            'unpre': [
+                '개발', 'IT', '프로그래밍', 'JavaScript', 'Python', 'React', 'Node.js',
+                '데이터베이스', '웹개발', 'DevOps', 'AI/ML', '정보처리기사', '언어학습',
+                '토익', 'JLPT', '영어회화', '직접입력'
+            ],
+            'untab': [
+                '부동산', '경매', '공매', '정책/제도', '투자전략', '시장분석',
+                '권리분석', '임대수익', '재개발', '재건축', '법률정보', '세금',
+                '대출', '투자리스크', '직접입력'
+            ],
+            'skewese': [
+                '세계사', '한국사', '고대사', '근현대사', '역사인물', '문화사',
+                '전쟁사', '정치사', '사회사', '문화재', '박물관', '역사여행',
+                '역사드라마', '문화유산', '직접입력'
+            ]
+        };
+        
+        function showWordPressModal(site) {
+            selectedWpSite = site;
+            document.getElementById('wpSite').value = site;
+            document.getElementById('wpSiteName').textContent = site.toUpperCase();
+            
+            // 사이트별 카테고리 업데이트
+            updateCategoriesForSite(site);
+            
+            // 커스텀 카테고리 입력창 숨기기
+            document.getElementById('customCategoryDiv').style.display = 'none';
+            document.getElementById('wpCustomCategory').value = '';
+            
+            const modal = new bootstrap.Modal(document.getElementById('wordpressModal'));
+            modal.show();
+        }
+        
+        function updateCategoriesForSite(site) {
+            const categorySelect = document.getElementById('wpContentCategory');
+            const categories = siteCategories[site] || ['기타', '직접입력'];
+            
+            // 기존 옵션 제거
+            categorySelect.innerHTML = '';
+            
+            // 사이트별 카테고리 추가
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                categorySelect.appendChild(option);
+            });
+        }
+        
+        function toggleCustomCategory() {
+            const categorySelect = document.getElementById('wpContentCategory');
+            const customDiv = document.getElementById('customCategoryDiv');
+            
+            if (categorySelect.value === '직접입력') {
+                customDiv.style.display = 'block';
+                document.getElementById('wpCustomCategory').focus();
+            } else {
+                customDiv.style.display = 'none';
+                document.getElementById('wpCustomCategory').value = '';
+            }
+        }
+        
+        // Tistory 모달 표시
+        function showTistoryModal() {
+            const modal = new bootstrap.Modal(document.getElementById('tistoryModal'));
+            modal.show();
+        }
+        
+        // 진행 단계 표시 (중앙 오버레이)
+        function showProgressSteps(steps) {
+            console.log('🎬 중앙 진행 오버레이 시작:', steps);
+            
+            // 기존 오버레이 제거
+            const existingOverlay = document.getElementById('progress-overlay');
+            if (existingOverlay) {
+                existingOverlay.remove();
+            }
+            
+            // 중앙 오버레이 생성
+            const overlay = document.createElement('div');
+            overlay.className = 'progress-overlay';
+            overlay.id = 'progress-overlay';
+            
+            const container = document.createElement('div');
+            container.className = 'progress-container';
+            
+            container.innerHTML = `
+                <div class="progress-title">
+                    <i class="bi bi-magic" style="color: #667eea; margin-right: 10px;"></i>
+                    콘텐츠 생성 중
+                </div>
+                <ul class="progress-steps-list" id="progress-steps-list">
+                    ${steps.map((step, index) => `
+                        <li class="progress-step-item" id="step-${index}">
+                            <div class="progress-step-icon waiting" id="icon-${index}">
+                                <i class="bi bi-circle"></i>
+                            </div>
+                            <div class="progress-step-text" id="text-${index}">
+                                ${step}
+                            </div>
+                        </li>
+                    `).join('')}
+                </ul>
+                <div style="margin-top: 20px; color: #6c757d;">
+                    <small>잠시만 기다려주세요...</small>
+                </div>
+            `;
+            
+            overlay.appendChild(container);
+            document.body.appendChild(overlay);
+            
+            // 단계별 진행 애니메이션
+            let currentStep = 0;
+            const progressInterval = setInterval(() => {
+                if (currentStep < steps.length) {
+                    // 현재 단계 활성화
+                    const icon = document.getElementById(`icon-${currentStep}`);
+                    const text = document.getElementById(`text-${currentStep}`);
+                    
+                    if (icon && text) {
+                        icon.className = 'progress-step-icon active';
+                        icon.innerHTML = '<div class="loading-spinner" style="width: 20px; height: 20px; border-width: 2px;"></div>';
+                        text.className = 'progress-step-text active';
+                    }
+                    
+                    // 이전 단계들 완료 표시
+                    for (let i = 0; i < currentStep; i++) {
+                        const prevIcon = document.getElementById(`icon-${i}`);
+                        const prevText = document.getElementById(`text-${i}`);
+                        if (prevIcon && prevText) {
+                            prevIcon.className = 'progress-step-icon completed';
+                            prevIcon.innerHTML = '<i class="bi bi-check-lg"></i>';
+                            prevText.className = 'progress-step-text completed';
+                        }
+                    }
+                    
+                    currentStep++;
+                } else {
+                    // 모든 단계 완료
+                    for (let i = 0; i < steps.length; i++) {
+                        const icon = document.getElementById(`icon-${i}`);
+                        const text = document.getElementById(`text-${i}`);
+                        if (icon && text) {
+                            icon.className = 'progress-step-icon completed';
+                            icon.innerHTML = '<i class="bi bi-check-lg"></i>';
+                            text.className = 'progress-step-text completed';
+                        }
+                    }
+                    clearInterval(progressInterval);
+                }
+            }, 1200); // 1.2초마다 다음 단계
+            
+            window.currentProgressInterval = progressInterval;
+        }
+        
+        function hideProgressSteps() {
+            const overlay = document.getElementById('progress-overlay');
+            if (overlay) {
+                overlay.remove();
+            }
+            
+            if (window.currentProgressInterval) {
+                clearInterval(window.currentProgressInterval);
+                window.currentProgressInterval = null;
+            }
+        }
+        
+        // 파일 삭제 기능
+        async function deleteFile(fileId, type) {
+            if (!confirm('이 파일을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+            
+            showNotification('파일 삭제 중...', 'info');
+            
+            try {
+                const res = await fetch('/api/delete_file', {
+                    method: 'DELETE',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({file_id: fileId, type: type})
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    showNotification('✅ 파일이 삭제되었습니다', 'success');
+                    refreshData();
+                } else {
+                    showNotification(`❌ 삭제 실패: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showNotification(`❌ 삭제 오류: ${error.message}`, 'error');
+            }
+        }
+        
+        // 임시로 새 콘텐츠를 목록에 추가 (즉시 피드백용)
+        function addTemporaryContent(type, contentData) {
+            console.log('📝 임시 콘텐츠 추가:', type, contentData);
+            
+            const containerId = type === 'wordpress' ? 'wordpress-files' : 'tistory-files';
+            const container = document.getElementById(containerId);
+            
+            const date = new Date(contentData.created_at).toLocaleDateString('ko-KR');
+            const siteClass = `site-${contentData.site}`;
+            
+            let tempHtml = '';
+            if (type === 'wordpress') {
+                const keywordTags = contentData.keywords.map(keyword => 
+                    `<span class="badge bg-primary me-1">${keyword}</span>`
+                ).join('');
+                
+                tempHtml = `
+                    <div class="wordpress-file mb-3 p-2 border rounded bg-light" id="temp-content">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center mb-1">
+                                    <span class="site-badge ${siteClass}">${contentData.site.toUpperCase()}</span>
+                                    <span class="badge bg-secondary ms-2">${contentData.category}</span>
+                                    <span class="badge bg-success ms-2">새로 생성됨</span>
+                                </div>
+                                <strong>📝 ${contentData.title}</strong>
+                                <div class="mt-2">${keywordTags}</div>
+                                <div class="text-muted small mt-1">
+                                    <i class="bi bi-calendar"></i> ${date} (방금 전)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const keywordTags = contentData.keywords.map(keyword => 
+                    `<span class="badge bg-secondary">${keyword}</span>`
+                ).join(' ');
+                
+                tempHtml = `
+                    <div class="tistory-file mb-3 p-2 border rounded bg-light" id="temp-content">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="d-flex align-items-center mb-1">
+                                    <span class="badge bg-success">새로 생성됨</span>
+                                </div>
+                                <strong>📝 ${contentData.title}</strong>
+                                <div class="mt-1">${keywordTags}</div>
+                                <div class="text-muted small mt-1">
+                                    <i class="bi bi-calendar"></i> ${date} (방금 전)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 기존 내용 맨 위에 추가 (즉시 보이도록)
+            console.log('📌 임시 콘텐츠를 목록 맨 위에 추가');
+            container.insertAdjacentHTML('afterbegin', tempHtml);
+        }
+        
+        // 선택삭제 기능
+        const selectedFiles = {
+            wordpress: new Set(),
+            tistory: new Set()
+        };
+        
+        // 전체 선택/해제 토글
+        function toggleSelectAll(type) {
+            const selectAllCheckbox = document.getElementById(`select-all-${type}`);
+            const containerId = type === 'wordpress' ? 'wordpress-files' : 'tistory-files';
+            const container = document.getElementById(containerId);
+            const contentCheckboxes = container.querySelectorAll('.content-checkbox[data-file-id]');
+            const isChecked = selectAllCheckbox.checked;
+            
+            selectedFiles[type].clear();
+            
+            contentCheckboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+                if (isChecked) {
+                    const fileId = parseInt(checkbox.dataset.fileId);
+                    selectedFiles[type].add(fileId);
+                }
+            });
+            
+            updateBulkActionBar(type);
+        }
+        
+        // 개별 아이템 선택/해제 토글
+        function toggleItemSelection(type, fileId) {
+            const checkbox = document.querySelector(`.content-checkbox[data-file-id="${fileId}"]`);
+            
+            if (checkbox.checked) {
+                selectedFiles[type].add(fileId);
+            } else {
+                selectedFiles[type].delete(fileId);
+            }
+            
+            // 전체 선택 체크박스 상태 업데이트
+            const selectAllCheckbox = document.getElementById(`select-all-${type}`);
+            const containerId = type === 'wordpress' ? 'wordpress-files' : 'tistory-files';
+            const container = document.getElementById(containerId);
+            const totalCheckboxes = container.querySelectorAll('.content-checkbox[data-file-id]').length;
+            const checkedCount = selectedFiles[type].size;
+            
+            selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < totalCheckboxes;
+            selectAllCheckbox.checked = checkedCount === totalCheckboxes && totalCheckboxes > 0;
+            
+            updateBulkActionBar(type);
+        }
+        
+        // 벌크 액션 바 업데이트
+        function updateBulkActionBar(type) {
+            const bulkActions = document.getElementById(`${type}-bulk-actions`);
+            const selectedCount = document.getElementById(`${type}-selected-count`);
+            const count = selectedFiles[type].size;
+            
+            selectedCount.textContent = `${count}개 선택됨`;
+            
+            if (count > 0) {
+                bulkActions.style.display = 'flex';
+            } else {
+                bulkActions.style.display = 'none';
+            }
+        }
+        
+        // 모든 선택 해제
+        function deselectAll(type) {
+            selectedFiles[type].clear();
+            
+            // 해당 타입의 모든 체크박스 해제
+            const containerId = type === 'wordpress' ? 'wordpress-files' : 'tistory-files';
+            const container = document.getElementById(containerId);
+            const checkboxes = container.querySelectorAll('.content-checkbox[data-file-id]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            
+            // 전체 선택 체크박스 해제
+            const selectAllCheckbox = document.getElementById(`select-all-${type}`);
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.indeterminate = false;
+            
+            updateBulkActionBar(type);
+        }
+        
+        // 벌크 삭제 실행
+        async function bulkDelete(type) {
+            const selectedIds = Array.from(selectedFiles[type]);
+            
+            if (selectedIds.length === 0) {
+                showNotification('삭제할 파일을 선택해주세요', 'warning');
+                return;
+            }
+            
+            const confirmMessage = `선택한 ${selectedIds.length}개의 ${type === 'wordpress' ? 'WordPress' : 'Tistory'} 파일을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`;
+            
+            if (!confirm(confirmMessage)) return;
+            
+            showNotification(`${selectedIds.length}개 파일 삭제 중...`, 'info');
+            
+            try {
+                const res = await fetch('/api/bulk_delete_files', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        file_ids: selectedIds
+                    })
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    showNotification(`✅ ${result.deleted_count}개 파일이 삭제되었습니다`, 'success');
+                    
+                    if (result.failed_ids && result.failed_ids.length > 0) {
+                        showNotification(`⚠️ ${result.failed_ids.length}개 파일 삭제 실패`, 'warning');
+                    }
+                    
+                    // 선택 상태 초기화
+                    deselectAll(type);
+                    
+                    // 데이터 새로고침
+                    refreshData();
+                } else {
+                    showNotification(`❌ 삭제 실패: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('벌크 삭제 오류:', error);
+                showNotification(`❌ 삭제 오류: ${error.message}`, 'error');
+            }
+        }
+        
+        // 페이지 로드 시 체크박스 강제 추가
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('💡 체크박스 강제 추가 시작');
+            
+            // WordPress 헤더에 체크박스 추가
+            setTimeout(function() {
+                const wpHeader = document.querySelector('.card-header h5');
+                if (wpHeader && wpHeader.textContent.includes('WordPress')) {
+                    const parent = wpHeader.parentElement;
+                    if (!parent.querySelector('#select-all-wordpress')) {
+                        const checkboxContainer = document.createElement('div');
+                        checkboxContainer.className = 'd-flex align-items-center';
+                        checkboxContainer.innerHTML = `
+                            <input type="checkbox" class="form-check-input select-all-checkbox me-2" 
+                                   id="select-all-wordpress" onchange="toggleSelectAll('wordpress')" 
+                                   style="display: block !important; visibility: visible !important; opacity: 1 !important; width: 20px; height: 20px;">
+                        `;
+                        parent.insertBefore(checkboxContainer.firstElementChild, wpHeader);
+                        console.log('✅ WordPress 헤더 체크박스 추가됨');
+                        
+                        // 대량 작업 바 추가
+                        addBulkActionBar('wordpress', wpHeader.closest('.card'));
+                    }
+                }
+                
+                // Tistory 헤더에 체크박스 추가
+                const allCards = document.querySelectorAll('.card');
+                allCards.forEach(card => {
+                    const header = card.querySelector('h5');
+                    if (header && header.textContent.includes('Tistory')) {
+                        const parent = header.parentElement;
+                        if (!parent.querySelector('#select-all-tistory')) {
+                            const checkboxContainer = document.createElement('div');
+                            checkboxContainer.className = 'd-flex align-items-center';
+                            checkboxContainer.innerHTML = `
+                                <input type="checkbox" class="form-check-input select-all-checkbox me-2" 
+                                       id="select-all-tistory" onchange="toggleSelectAll('tistory')" 
+                                       style="display: block !important; visibility: visible !important; opacity: 1 !important; width: 20px; height: 20px;">
+                            `;
+                            parent.insertBefore(checkboxContainer.firstElementChild, header);
+                            console.log('✅ Tistory 헤더 체크박스 추가됨');
+                            
+                            // 대량 작업 바 추가
+                            addBulkActionBar('tistory', header.closest('.card'));
+                        }
+                    }
+                });
+            }, 1000); // 1초 후 실행
+        });
+        
+        // 대량 작업 바 추가
+        function addBulkActionBar(type, cardElement) {
+            if (cardElement.querySelector(`#${type}-bulk-actions`)) return;
+            
+            const bulkActionBar = document.createElement('div');
+            bulkActionBar.id = `${type}-bulk-actions`;
+            bulkActionBar.className = 'bulk-actions';
+            bulkActionBar.style.cssText = `
+                background: linear-gradient(135deg, #667eea, #764ba2);
+                color: white;
+                border-radius: 10px;
+                padding: 15px;
+                margin-bottom: 20px;
+                display: none;
+                align-items: center;
+                justify-content: space-between;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            `;
+            
+            bulkActionBar.innerHTML = `
+                <div class="bulk-info">
+                    <div class="bulk-count" id="${type}-selected-count" style="background: rgba(255, 255, 255, 0.2); border-radius: 15px; padding: 5px 12px; font-weight: bold;">0개 선택됨</div>
+                    <span style="margin-left: 15px;">선택된 ${type === 'wordpress' ? 'WordPress' : 'Tistory'} 콘텐츠를 관리하세요</span>
+                </div>
+                <div>
+                    <button class="btn btn-light btn-sm me-2" onclick="deselectAll('${type}')" style="font-weight: bold;">
+                        <i class="bi bi-x"></i> 선택 해제
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="bulkDelete('${type}')" style="font-weight: bold;">
+                        <i class="bi bi-trash"></i> 선택 삭제
+                    </button>
+                </div>
+            `;
+            
+            const cardBody = cardElement.querySelector('.card-body');
+            cardBody.parentNode.insertBefore(bulkActionBar, cardBody);
+            console.log(`✅ ${type} 대량 작업 바 추가됨`);
+        }
+    </script>
+</body>
+</html>

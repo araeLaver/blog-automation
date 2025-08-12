@@ -1,0 +1,64 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+VENV/
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+database/*.db
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+test_*.jpg
+test_*.png
+test_*.gif
+
+# Temporary files
+*.tmp
+temp/
+tmp/
+
+# Data files (but keep directory structure)
+data/*.json
+data/*.csv
+!data/.gitkeep
+
+# Static uploaded files
+static/uploads/
+!static/uploads/.gitkeep
+
+# Claude AI
+.claude/
