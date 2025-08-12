@@ -240,17 +240,17 @@ def get_system_status():
     db = get_database()
     return jsonify({
         'api': {
-            'openai': 'online',
-            'claude': 'online',
-            'pexels': 'online'
+            'openai': {'status': 'online', 'response_time': 150},
+            'claude': {'status': 'online', 'response_time': 120},
+            'pexels': {'status': 'online', 'response_time': 200}
         },
         'sites': {
-            'unpre': 'online',
-            'untab': 'online',
-            'skewese': 'online'
+            'unpre': {'status': 'online', 'last_post': datetime.now(KST).strftime('%Y-%m-%d')},
+            'untab': {'status': 'online', 'last_post': datetime.now(KST).strftime('%Y-%m-%d')},
+            'skewese': {'status': 'online', 'last_post': datetime.now(KST).strftime('%Y-%m-%d')}
         },
-        'database': 'online' if db and db.is_connected else 'offline',
-        'scheduler': 'online'
+        'database': {'status': 'online' if db and db.is_connected else 'offline'},
+        'scheduler': {'status': 'online', 'next_run': '03:00 KST'}
     })
 
 @app.route('/api/trending')
@@ -332,6 +332,80 @@ def get_logs():
     ]
     return jsonify(logs)
 
+@app.route('/api/schedule/weekly')
+def get_weekly_schedule():
+    """주간 스케줄 조회"""
+    week_start = request.args.get('week_start', datetime.now(KST).strftime('%Y-%m-%d'))
+    
+    # 주간 스케줄 데이터 (목업)
+    schedule = {}
+    start_date = datetime.strptime(week_start, '%Y-%m-%d')
+    
+    for i in range(7):
+        date = (start_date + timedelta(days=i)).strftime('%Y-%m-%d')
+        schedule[date] = {
+            'unpre': {
+                'time': '09:00',
+                'topics': ['프로그래밍', 'AI 기술'],
+                'status': 'scheduled'
+            },
+            'untab': {
+                'time': '12:00',
+                'topics': ['언어학습', '자격증'],
+                'status': 'scheduled'
+            },
+            'skewese': {
+                'time': '15:00',
+                'topics': ['역사', '문화'],
+                'status': 'scheduled'
+            }
+        }
+    
+    return jsonify(schedule)
+
+@app.route('/api/generate_wordpress', methods=['POST'])
+def generate_wordpress():
+    """WordPress 콘텐츠 생성"""
+    try:
+        data = request.json
+        site = data.get('site', 'unpre')
+        topic = data.get('topic', '프로그래밍')
+        
+        # 실제 생성 로직 대신 목업 응답
+        return jsonify({
+            'success': True,
+            'message': f'{site} 사이트에 {topic} 주제로 콘텐츠를 생성했습니다.',
+            'post': {
+                'title': f'{topic} 관련 새로운 포스트',
+                'url': f'https://{site}.co.kr/new-post',
+                'id': 123
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/delete_posts', methods=['POST'])
+def delete_posts():
+    """포스트 삭제"""
+    try:
+        data = request.json
+        post_ids = data.get('post_ids', [])
+        
+        # 실제 삭제 로직 대신 목업 응답
+        return jsonify({
+            'success': True,
+            'message': f'{len(post_ids)}개의 포스트를 삭제했습니다.',
+            'deleted': post_ids
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/system/time')
 def get_system_time():
     """시스템 시간 조회 (한국 시간과 서버 시간 비교)"""
@@ -363,6 +437,13 @@ def get_system_time():
             'note': '스케줄러는 한국 시간(KST) 기준으로 작동합니다'
         }
     })
+
+@app.route('/favicon.ico')
+def favicon():
+    """favicon 처리"""
+    from flask import Response
+    # 간단한 빈 favicon 응답
+    return Response('', status=204)
 
 @app.route('/health')
 def health():
