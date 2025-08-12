@@ -1,0 +1,77 @@
+name: Scheduled Blog Posts
+
+on:
+  schedule:
+    # 매일 오전 9시 (UTC 0시 = KST 9시)
+    - cron: '0 0 * * *'
+    # 매일 오후 2시 (UTC 5시 = KST 14시)
+    - cron: '0 5 * * *'
+    # 매일 저녁 8시 (UTC 11시 = KST 20시)
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 'Site to publish (unpre/untab/skewese/all)'
+        required: false
+        default: 'all'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Generate and Publish Posts
+      env:
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        UNPRE_URL: ${{ secrets.UNPRE_URL }}
+        UNPRE_USERNAME: ${{ secrets.UNPRE_USERNAME }}
+        UNPRE_PASSWORD: ${{ secrets.UNPRE_PASSWORD }}
+        UNTAB_URL: ${{ secrets.UNTAB_URL }}
+        UNTAB_USERNAME: ${{ secrets.UNTAB_USERNAME }}
+        UNTAB_PASSWORD: ${{ secrets.UNTAB_PASSWORD }}
+        SKEWESE_URL: ${{ secrets.SKEWESE_URL }}
+        SKEWESE_USERNAME: ${{ secrets.SKEWESE_USERNAME }}
+        SKEWESE_PASSWORD: ${{ secrets.SKEWESE_PASSWORD }}
+        TISTORY_APP_ID: ${{ secrets.TISTORY_APP_ID }}
+        TISTORY_SECRET_KEY: ${{ secrets.TISTORY_SECRET_KEY }}
+        TISTORY_ACCESS_TOKEN: ${{ secrets.TISTORY_ACCESS_TOKEN }}
+        TISTORY_BLOG_NAME: ${{ secrets.TISTORY_BLOG_NAME }}
+      run: |
+        if [ "${{ github.event.inputs.site }}" == "" ]; then
+          echo "Running scheduled posts for all sites..."
+          python main.py post unpre || echo "Failed to post to unpre"
+          python main.py post untab || echo "Failed to post to untab"
+          python main.py post skewese || echo "Failed to post to skewese"
+        else
+          if [ "${{ github.event.inputs.site }}" == "all" ]; then
+            echo "Publishing to all sites..."
+            python main.py post unpre || echo "Failed to post to unpre"
+            python main.py post untab || echo "Failed to post to untab"
+            python main.py post skewese || echo "Failed to post to skewese"
+          else
+            echo "Publishing to ${{ github.event.inputs.site }}..."
+            python main.py post ${{ github.event.inputs.site }}
+          fi
+        fi
+    
+    - name: Upload logs
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: blog-post-logs
+        path: |
+          logs/
+          data/

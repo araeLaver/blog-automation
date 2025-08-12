@@ -1,0 +1,26 @@
+name: Deploy to Koyeb
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to Koyeb
+      run: |
+        echo "🚀 Deployment triggered!"
+        echo "Koyeb will automatically detect and deploy changes from GitHub"
+        echo "Check your Koyeb dashboard for deployment status"
+    
+    - name: Deployment Info
+      run: |
+        echo "Repository: ${{ github.repository }}"
+        echo "Branch: ${{ github.ref_name }}"
+        echo "Commit: ${{ github.sha }}"
+        echo "Triggered by: ${{ github.actor }}"
