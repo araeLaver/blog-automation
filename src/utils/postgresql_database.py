@@ -22,12 +22,22 @@ logger = logging.getLogger(__name__)
 class PostgreSQLDatabase:
     def __init__(self):
         """PostgreSQL 데이터베이스 연결 초기화"""
+        # 환경변수에서 연결 정보 가져오기
+        host = os.getenv('PG_HOST', 'aws-0-ap-northeast-2.pooler.supabase.com')
+        port = int(os.getenv('PG_PORT', 5432))
+        database = os.getenv('PG_DATABASE', 'postgres')
+        user = os.getenv('PG_USER', '')
+        password = os.getenv('PG_PASSWORD', '')
+        
+        # 연결 정보 로깅 (비밀번호는 제외)
+        logger.info(f"PostgreSQL 연결 시도: host={host}, port={port}, database={database}, user={user[:20] if user else 'NOT SET'}...")
+        
         self.connection_params = {
-            'host': os.getenv('PG_HOST', 'aws-0-ap-northeast-2.pooler.supabase.com'),
-            'port': int(os.getenv('PG_PORT', 5432)),
-            'database': os.getenv('PG_DATABASE', 'postgres'),
-            'user': os.getenv('PG_USER', ''),
-            'password': os.getenv('PG_PASSWORD', ''),
+            'host': host,
+            'port': port,
+            'database': database,
+            'user': user,
+            'password': password,
         }
         self.schema = os.getenv('PG_SCHEMA', 'unble')
         self._connection = None
@@ -35,10 +45,16 @@ class PostgreSQLDatabase:
         
         # 연결 테스트 (실패해도 앱은 실행됨)
         try:
-            self._test_connection()
-            self.is_connected = True
+            if not user or not password:
+                logger.error("PG_USER 또는 PG_PASSWORD 환경변수가 설정되지 않았습니다!")
+                logger.info("Koyeb에서 환경변수를 설정하세요: Settings > Environment variables")
+                self.is_connected = False
+            else:
+                self._test_connection()
+                self.is_connected = True
         except Exception as e:
             logger.warning(f"PostgreSQL 연결 실패 (앱은 계속 실행됨): {e}")
+            logger.info("연결 정보를 확인하세요. Supabase 대시보드에서 정확한 연결 정보를 확인할 수 있습니다.")
             self.is_connected = False
     
     def _test_connection(self):

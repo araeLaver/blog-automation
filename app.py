@@ -206,12 +206,34 @@ def get_trending():
 
 @app.route('/api/system/time')
 def get_system_time():
-    """시스템 시간 조회 (한국 시간)"""
+    """시스템 시간 조회 (한국 시간과 서버 시간 비교)"""
+    import time
+    
+    # 서버 UTC 시간
+    utc_time = datetime.now(pytz.UTC)
+    # 한국 시간
     kst_time = datetime.now(KST)
+    # 서버 로컬 시간 (시간대 없이)
+    server_local = datetime.now()
+    
+    # 시간 차이 계산
+    time_diff = kst_time.hour - server_local.hour
+    if time_diff < -12:
+        time_diff += 24
+    elif time_diff > 12:
+        time_diff -= 24
+    
     return jsonify({
         'status': 'success',
-        'time': kst_time.strftime('%Y-%m-%d %H:%M:%S'),
-        'timezone': 'Asia/Seoul'
+        'korea_time': kst_time.strftime('%Y-%m-%d %H:%M:%S KST'),
+        'utc_time': utc_time.strftime('%Y-%m-%d %H:%M:%S UTC'),
+        'server_local_time': server_local.strftime('%Y-%m-%d %H:%M:%S'),
+        'timezone': 'Asia/Seoul',
+        'time_difference_hours': time_diff,
+        'scheduler_info': {
+            'timezone': 'Asia/Seoul',
+            'note': '스케줄러는 한국 시간(KST) 기준으로 작동합니다'
+        }
     })
 
 @app.route('/health')
