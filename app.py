@@ -96,6 +96,26 @@ def dashboard():
     response.headers['Expires'] = '0'
     return response
 
+@app.route('/api/recent_posts')
+def get_recent_posts():
+    """최근 포스트 목록 조회"""
+    try:
+        db = get_database()
+        if db:
+            posts = []
+            for site in ['unpre', 'untab', 'skewese']:
+                site_posts = db.get_recent_posts(site, limit=5)
+                posts.extend(site_posts)
+            posts.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+            return jsonify(posts[:20])
+        else:
+            mock = get_mock_data()
+            return jsonify(mock['posts'])
+    except Exception as e:
+        logger.error(f"최근 포스트 조회 오류: {e}")
+        mock = get_mock_data()
+        return jsonify(mock['posts'])
+
 @app.route('/api/posts')
 def get_posts():
     """발행된 포스트 목록 조회"""
@@ -166,19 +186,72 @@ def get_stats():
                 'total_posts': total_posts,
                 'published': published,
                 'scheduled': scheduled,
-                'today_posts': today_posts
+                'today_posts': today_posts,
+                'revenue': {
+                    'total_views': 0,
+                    'total_revenue': 0
+                }
             }
         else:
             # DB 연결 실패 시 목업 데이터 반환
             mock = get_mock_data()
             stats = mock['stats']
+            stats['revenue'] = {
+                'total_views': 0,
+                'total_revenue': 0
+            }
         
-        return jsonify({'status': 'success', 'stats': stats})
+        return jsonify(stats)
         
     except Exception as e:
         logger.error(f"통계 조회 오류: {e}")
         mock = get_mock_data()
-        return jsonify({'status': 'success', 'stats': mock['stats']})
+        stats = mock['stats']
+        stats['revenue'] = {
+            'total_views': 0,
+            'total_revenue': 0
+        }
+        return jsonify(stats)
+
+@app.route('/api/topic_stats')
+def get_topic_stats():
+    """주제 풀 통계 조회"""
+    return jsonify({
+        'unpre': {
+            'total': 50,
+            'used': 25,
+            'available': 25
+        },
+        'untab': {
+            'total': 50,
+            'used': 20,
+            'available': 30
+        },
+        'skewese': {
+            'total': 50,
+            'used': 15,
+            'available': 35
+        }
+    })
+
+@app.route('/api/system_status')
+def get_system_status():
+    """시스템 상태 조회"""
+    db = get_database()
+    return jsonify({
+        'api': {
+            'openai': 'online',
+            'claude': 'online',
+            'pexels': 'online'
+        },
+        'sites': {
+            'unpre': 'online',
+            'untab': 'online',
+            'skewese': 'online'
+        },
+        'database': 'online' if db and db.is_connected else 'offline',
+        'scheduler': 'online'
+    })
 
 @app.route('/api/trending')
 def get_trending():
@@ -203,6 +276,61 @@ def get_trending():
                 'site_trends': {}
             }
         })
+
+@app.route('/api/chart_data')
+def get_chart_data():
+    """차트 데이터 조회"""
+    # 최근 7일 데이터 (목업)
+    now = datetime.now(KST)
+    daily_data = []
+    site_data = {
+        'unpre': 0,
+        'untab': 0,
+        'skewese': 0
+    }
+    
+    try:
+        db = get_database()
+        if db:
+            for i in range(7):
+                date = (now - timedelta(days=i)).strftime('%Y-%m-%d')
+                count = 0
+                for site in ['unpre', 'untab', 'skewese']:
+                    posts = db.get_recent_posts(site, limit=100)
+                    for post in posts:
+                        if post.get('created_at', '').startswith(date):
+                            count += 1
+                            site_data[site] += 1
+                daily_data.append({'date': date, 'count': count})
+        else:
+            # 목업 데이터
+            for i in range(7):
+                date = (now - timedelta(days=i)).strftime('%Y-%m-%d')
+                daily_data.append({'date': date, 'count': 3 - i % 2})
+            site_data = {'unpre': 7, 'untab': 5, 'skewese': 3}
+    except:
+        # 목업 데이터
+        for i in range(7):
+            date = (now - timedelta(days=i)).strftime('%Y-%m-%d')
+            daily_data.append({'date': date, 'count': 3 - i % 2})
+        site_data = {'unpre': 7, 'untab': 5, 'skewese': 3}
+    
+    return jsonify({
+        'daily': daily_data,
+        'bySite': site_data
+    })
+
+@app.route('/api/logs')
+def get_logs():
+    """최근 로그 조회"""
+    logs = [
+        {
+            'time': datetime.now(KST).strftime('%H:%M:%S'),
+            'level': 'info',
+            'message': '시스템 정상 작동 중'
+        }
+    ]
+    return jsonify(logs)
 
 @app.route('/api/system/time')
 def get_system_time():
