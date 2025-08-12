@@ -728,28 +728,72 @@
         function updateSystemStatus(status) {
             let html = '';
             
-            // WordPress 사이트들
-            for (const [site, isOnline] of Object.entries(status.wordpress)) {
-                const statusClass = isOnline ? 'status-online' : 'status-offline';
-                const statusText = isOnline ? '정상' : '오프라인';
+            try {
+                // API 응답 구조 확인
+                if (!status || typeof status !== 'object') {
+                    console.warn('Invalid status object:', status);
+                    status = {
+                        sites: { unpre: {status: 'offline'}, untab: {status: 'offline'}, skewese: {status: 'offline'} },
+                        database: {status: 'offline'},
+                        api: { openai: {status: 'offline'}, claude: {status: 'offline'} }
+                    };
+                }
+                
+                // 사이트 상태
+                if (status.sites && typeof status.sites === 'object') {
+                    for (const [site, info] of Object.entries(status.sites)) {
+                        const isOnline = info && info.status === 'online';
+                        const statusClass = isOnline ? 'status-online' : 'status-offline';
+                        const statusText = isOnline ? '정상' : '오프라인';
+                        html += `
+                            <div class="col-md-3 mb-2">
+                                <span class="status-indicator ${statusClass}"></span>
+                                ${site}.co.kr <small class="text-muted">(${statusText})</small>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // 데이터베이스
+                const dbStatus = status.database && status.database.status;
+                const dbClass = dbStatus === 'online' ? 'status-online' : 'status-offline';
+                const dbText = dbStatus === 'online' ? '정상' : '오프라인';
                 html += `
                     <div class="col-md-3 mb-2">
-                        <span class="status-indicator ${statusClass}"></span>
-                        ${site}.co.kr <small class="text-muted">(${statusText})</small>
+                        <span class="status-indicator ${dbClass}"></span>
+                        Database <small class="text-muted">(${dbText})</small>
+                    </div>
+                `;
+                
+                // API 상태
+                if (status.api && typeof status.api === 'object') {
+                    for (const [api, info] of Object.entries(status.api)) {
+                        const isOnline = info && info.status === 'online';
+                        const statusClass = isOnline ? 'status-online' : 'status-offline';
+                        const statusText = isOnline ? '정상' : '오프라인';
+                        html += `
+                            <div class="col-md-3 mb-2">
+                                <span class="status-indicator ${statusClass}"></span>
+                                ${api.toUpperCase()} API <small class="text-muted">(${statusText})</small>
+                            </div>
+                        `;
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error updating system status:', error);
+                html = `
+                    <div class="col-12">
+                        <span class="status-indicator status-offline"></span>
+                        시스템 상태 로딩 실패
                     </div>
                 `;
             }
             
-            // 데이터베이스
-            const dbClass = status.postgresql ? 'status-online' : 'status-offline';
-            html += `
-                <div class="col-md-3 mb-2">
-                    <span class="status-indicator ${dbClass}"></span>
-                    Database <small class="text-muted">(${status.postgresql ? '정상' : '오류'})</small>
-                </div>
-            `;
-            
-            document.getElementById('system-status').innerHTML = html;
+            const statusElement = document.getElementById('system-status');
+            if (statusElement) {
+                statusElement.innerHTML = html;
+            }
         }
 
         // 최근 포스트 업데이트

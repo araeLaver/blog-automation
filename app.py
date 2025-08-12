@@ -406,6 +406,69 @@ def delete_posts():
             'error': str(e)
         }), 500
 
+@app.route('/api/schedule')
+def get_schedule():
+    """발행 일정 조회"""
+    try:
+        now = datetime.now(KST)
+        schedule = []
+        
+        # 다음 7일간의 예정
+        for i in range(7):
+            date = (now + timedelta(days=i)).strftime('%Y-%m-%d')
+            schedule.append({
+                'date': date,
+                'time': '03:00',
+                'status': 'scheduled',
+                'sites': ['unpre', 'untab', 'skewese']
+            })
+        
+        return jsonify(schedule)
+    except Exception as e:
+        return jsonify([]), 500
+
+@app.route('/api/wordpress_files')
+def get_wordpress_files():
+    """WordPress 파일 목록"""
+    try:
+        files = []
+        
+        # 목업 데이터
+        for i, site in enumerate(['unpre', 'untab', 'skewese']):
+            for j in range(3):
+                files.append({
+                    'id': f'{site}_{j}',
+                    'site': site,
+                    'title': f'샘플 포스트 {j+1}',
+                    'date': datetime.now(KST).strftime('%Y-%m-%d'),
+                    'size': '2.5KB',
+                    'url': f'https://{site}.co.kr/post-{j}'
+                })
+        
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([]), 500
+
+@app.route('/api/tistory_files')
+def get_tistory_files():
+    """Tistory 파일 목록"""
+    try:
+        files = []
+        
+        # 목업 데이터
+        for i in range(5):
+            files.append({
+                'id': f'tistory_{i}',
+                'title': f'Tistory 포스트 {i+1}',
+                'date': datetime.now(KST).strftime('%Y-%m-%d'),
+                'size': '3.2KB',
+                'url': f'https://untab.tistory.com/post-{i}'
+            })
+        
+        return jsonify(files)
+    except Exception as e:
+        return jsonify([]), 500
+
 @app.route('/api/system/time')
 def get_system_time():
     """시스템 시간 조회 (한국 시간과 서버 시간 비교)"""
