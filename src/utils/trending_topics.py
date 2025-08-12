@@ -14,8 +14,16 @@ class TrendingTopicsManager:
     """트렌딩 토픽 관리 클래스"""
     
     def __init__(self):
-        self.db = PostgreSQLDatabase()
-        self._ensure_trending_table()
+        try:
+            self.db = PostgreSQLDatabase()
+            if self.db.is_connected:
+                self._ensure_trending_table()
+            else:
+                self.db = None
+                print("트렌딩 매니저: DB 연결 실패 - 기본 모드로 실행")
+        except Exception as e:
+            self.db = None
+            print(f"트렌딩 매니저 초기화 중 오류 (계속 실행): {e}")
     
     def _ensure_trending_table(self):
         """트렌딩 토픽 테이블 생성"""
@@ -45,6 +53,8 @@ class TrendingTopicsManager:
     
     def get_current_week_trends(self) -> Dict:
         """이번 주 트렌딩 토픽 조회"""
+        if not self.db:
+            return self._get_default_trends()
         try:
             today = datetime.now().date()
             week_start = today - timedelta(days=today.weekday())
@@ -52,10 +62,12 @@ class TrendingTopicsManager:
             return self._get_week_trends(week_start, "이번주")
         except Exception as e:
             print(f"[TRENDING] 이번주 트렌드 조회 오류: {e}")
-            return {}
+            return self._get_default_trends()
     
     def get_last_week_trends(self) -> Dict:
         """지난 주 트렌딩 토픽 조회"""
+        if not self.db:
+            return self._get_default_trends()
         try:
             today = datetime.now().date()
             last_week_start = today - timedelta(days=today.weekday() + 7)
@@ -63,10 +75,12 @@ class TrendingTopicsManager:
             return self._get_week_trends(last_week_start, "전주")
         except Exception as e:
             print(f"[TRENDING] 전주 트렌드 조회 오류: {e}")
-            return {}
+            return self._get_default_trends()
     
     def get_next_week_trends(self) -> Dict:
         """다음 주 예상 트렌딩 토픽 조회"""
+        if not self.db:
+            return self._get_default_trends()
         try:
             today = datetime.now().date()
             next_week_start = today - timedelta(days=today.weekday()) + timedelta(days=7)
@@ -74,7 +88,7 @@ class TrendingTopicsManager:
             return self._get_week_trends(next_week_start, "다음주")
         except Exception as e:
             print(f"[TRENDING] 다음주 트렌드 조회 오류: {e}")
-            return {}
+            return self._get_default_trends()
     
     def _get_week_trends(self, week_start: datetime.date, period_name: str) -> Dict:
         """특정 주의 트렌딩 토픽 조회"""
@@ -430,6 +444,27 @@ class TrendingTopicsManager:
                 'priority': 8
             }
         ]
+    
+    def _get_default_trends(self):
+        """DB 연결 실패 시 반환할 기본 트렌드"""
+        return {
+            'period': '기본 트렌드',
+            'cross_trends': [
+                {
+                    'category': 'technology',
+                    'trend_type': 'hot',
+                    'title': 'AI 기술 발전',
+                    'description': 'AI 기술이 계속 발전하고 있습니다',
+                    'keywords': ['AI', '인공지능', '기술'],
+                    'priority': 10
+                }
+            ],
+            'site_trends': {
+                'unpre': [],
+                'untab': [],
+                'skewese': []
+            }
+        }
 
 # 전역 인스턴스
 trending_manager = TrendingTopicsManager()

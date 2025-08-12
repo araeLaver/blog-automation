@@ -31,20 +31,22 @@ class PostgreSQLDatabase:
         }
         self.schema = os.getenv('PG_SCHEMA', 'unble')
         self._connection = None
+        self.is_connected = False
         
-        # 연결 테스트
-        self._test_connection()
+        # 연결 테스트 (실패해도 앱은 실행됨)
+        try:
+            self._test_connection()
+            self.is_connected = True
+        except Exception as e:
+            logger.warning(f"PostgreSQL 연결 실패 (앱은 계속 실행됨): {e}")
+            self.is_connected = False
     
     def _test_connection(self):
         """데이터베이스 연결 테스트"""
-        try:
-            conn = self.get_connection()
-            with conn.cursor() as cursor:
-                cursor.execute("SELECT 1")
-            logger.info("PostgreSQL 연결 성공")
-        except Exception as e:
-            logger.error(f"PostgreSQL 연결 실패: {e}")
-            raise
+        conn = self.get_connection()
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        logger.info("PostgreSQL 연결 성공")
     
     def get_connection(self):
         """데이터베이스 연결 반환 (풀링 방식)"""
