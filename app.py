@@ -658,37 +658,40 @@ def generate_wordpress():
         
         database = get_database()
         
-        if database.is_connected:
-            # 실제 데이터베이스에 콘텐츠 생성
-            content = f'# {topic} 완전 가이드\n\n{topic}에 대한 상세한 분석입니다.'
-            
-            file_id = database.add_content_file(
-                site=site,
-                title=f'{topic} 완전 가이드',
-                file_path=f"wordpress_posts/{site}_{topic.replace(' ', '_')}.html",
-                file_type='wordpress',
-                metadata={
-                    'categories': [data.get('category', '기본')],
-                    'tags': data.get('keywords', [topic]),
-                    'word_count': len(content.split()),
-                    'reading_time': len(content.split()) // 200 + 1,
-                    'file_size': len(content.encode('utf-8'))
-                }
-            )
-            
-            # 생성 성공 응답
-            return jsonify({
-                'success': True,
-                'message': f'{site} 사이트에 {topic} 주제로 콘텐츠를 생성했습니다.',
-                'title': f'{topic} 완전 가이드',
-                'id': file_id,
-                'post': {
-                    'id': file_id,
+        try:
+            if database.is_connected:
+                # 실제 데이터베이스에 콘텐츠 생성
+                content = f'# {topic} 완전 가이드\n\n{topic}에 대한 상세한 분석입니다.'
+                
+                file_id = database.add_content_file(
+                    site=site,
+                    title=f'{topic} 완전 가이드',
+                    file_path=f"wordpress_posts/{site}_{topic.replace(' ', '_')}.html",
+                    file_type='wordpress',
+                    metadata={
+                        'categories': [data.get('category', '기본')],
+                        'tags': data.get('keywords', [topic]),
+                        'word_count': len(content.split()),
+                        'reading_time': len(content.split()) // 200 + 1,
+                        'file_size': len(content.encode('utf-8'))
+                    }
+                )
+                
+                # 생성 성공 응답
+                return jsonify({
+                    'success': True,
+                    'message': f'{site} 사이트에 {topic} 주제로 콘텐츠를 생성했습니다.',
                     'title': f'{topic} 완전 가이드',
-                    'site': site,
-                    'status': 'draft'
-                }
-            })
+                    'id': file_id,
+                    'post': {
+                        'id': file_id,
+                        'title': f'{topic} 완전 가이드',
+                        'site': site,
+                        'status': 'draft'
+                    }
+                })
+        except Exception as db_error:
+            logger.error(f"DB 저장 실패, 목업 모드로 전환: {db_error}")
         
         # DB 연결 실패시 목업 응답
         import time
@@ -726,36 +729,39 @@ def generate_tistory():
         
         database = get_database()
         
-        if database.is_connected:
-            # 실제 데이터베이스에 콘텐츠 생성
-            content = f'# {topic} 심화 분석\n\n{topic}에 대한 상세한 분석입니다.'
-            
-            file_id = database.add_content_file(
-                site='untab',
-                title=f'{topic} 심화 분석',
-                file_path=f"tistory_posts/{topic.replace(' ', '_')}.html",
-                file_type='tistory',
-                metadata={
-                    'categories': [data.get('category', '기본')],
-                    'tags': data.get('keywords', [topic]),
-                    'word_count': len(content.split()),
-                    'reading_time': len(content.split()) // 200 + 1,
-                    'file_size': len(content.encode('utf-8'))
-                }
-            )
-            
-            # 생성 성공 응답
-            return jsonify({
-                'success': True,
-                'message': f'Tistory에 {topic} 주제로 콘텐츠를 생성했습니다.',
-                'title': f'{topic} 심화 분석',
-                'id': file_id,
-                'post': {
-                    'id': file_id,
+        try:
+            if database.is_connected:
+                # 실제 데이터베이스에 콘텐츠 생성
+                content = f'# {topic} 심화 분석\n\n{topic}에 대한 상세한 분석입니다.'
+                
+                file_id = database.add_content_file(
+                    site='untab',
+                    title=f'{topic} 심화 분석',
+                    file_path=f"tistory_posts/{topic.replace(' ', '_')}.html",
+                    file_type='tistory',
+                    metadata={
+                        'categories': [data.get('category', '기본')],
+                        'tags': data.get('keywords', [topic]),
+                        'word_count': len(content.split()),
+                        'reading_time': len(content.split()) // 200 + 1,
+                        'file_size': len(content.encode('utf-8'))
+                    }
+                )
+                
+                # 생성 성공 응답
+                return jsonify({
+                    'success': True,
+                    'message': f'Tistory에 {topic} 주제로 콘텐츠를 생성했습니다.',
                     'title': f'{topic} 심화 분석',
-                    'status': 'draft'
-                }
-            })
+                    'id': file_id,
+                    'post': {
+                        'id': file_id,
+                        'title': f'{topic} 심화 분석',
+                        'status': 'draft'
+                    }
+                })
+        except Exception as db_error:
+            logger.error(f"DB 저장 실패, 목업 모드로 전환: {db_error}")
         
         # DB 연결 실패시 목업 응답
         import time
