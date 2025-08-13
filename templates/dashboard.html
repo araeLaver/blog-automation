@@ -827,12 +827,19 @@
         function updateSchedule(schedule) {
             let html = '';
             
+            if (!schedule || !Array.isArray(schedule)) {
+                document.getElementById('schedule').innerHTML = '<p class="text-muted">일정 데이터를 불러올 수 없습니다.</p>';
+                return;
+            }
+            
             schedule.forEach(item => {
+                if (!item || !item.site) return;
+                
                 const siteClass = `site-${item.site}`;
-                const daysKor = item.days.map(d => {
+                const daysKor = (item.days && Array.isArray(item.days)) ? item.days.map(d => {
                     const dayMap = {mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토', sun: '일'};
                     return dayMap[d] || d;
-                }).join(', ');
+                }).join(', ') : '일정 없음';
                 
                 html += `
                     <div class="schedule-item">
@@ -1233,8 +1240,10 @@
                             const wordpressFiles = await wordpressRes.json();
                             
                             // 새로 생성된 콘텐츠가 목록에 있는지 확인
+                            const resultTitle = result.title || result.post?.title || topic;
                             const hasNewContent = wordpressFiles.some(f => 
-                                f.title.includes(result.title.substring(0, 10)) || 
+                                (f.title && resultTitle && f.title.includes(resultTitle.substring(0, 10))) ||
+                                (f.id && result.id && f.id === result.id) ||
                                 new Date(f.created_at).getTime() > Date.now() - 60000 // 1분 이내 생성
                             );
                             
@@ -1411,6 +1420,18 @@
                 if (result.success) {
                     showNotification(`✅ Tistory 콘텐츠 생성 완료!`, 'success');
                     
+                    // 업데이트 중 표시
+                    const tistoryFilesContainer = document.getElementById('tistory-files');
+                    tistoryFilesContainer.insertAdjacentHTML('afterbegin', 
+                        `<div id="tistory-updating-indicator" class="update-indicator">
+                            <div class="spinner"></div>
+                            목록을 업데이트하고 있습니다...
+                            <small style="display: block; margin-top: 5px; opacity: 0.8;">
+                                새로 생성된 콘텐츠를 불러오는 중 (최대 5초)
+                            </small>
+                        </div>`
+                    );
+                    
                     // 즉시 목록에 새 콘텐츠 표시 (임시)
                     addTemporaryContent('tistory', {
                         title: result.title || topic,
@@ -1420,10 +1441,53 @@
                         isNew: true
                     });
                     
-                    // 3초 후 실제 데이터로 새로고침
-                    setTimeout(() => {
-                        refreshData();
-                    }, 3000);
+                    // 여러 번 시도해서 목록 갱신 보장
+                    let retryCount = 0;
+                    const maxRetries = 5;
+                    
+                    const updateList = async () => {
+                        try {
+                            const tistoryRes = await fetch('/api/tistory_files');
+                            const tistoryFiles = await tistoryRes.json();
+                            
+                            // 새로 생성된 콘텐츠가 목록에 있는지 확인
+                            const resultTitle = result.title || result.post?.title || topic;
+                            const hasNewContent = tistoryFiles.some(f => 
+                                (f.title && resultTitle && f.title.includes(resultTitle.substring(0, 10))) ||
+                                (f.id && result.id && f.id === result.id) ||
+                                new Date(f.created_at).getTime() > Date.now() - 60000 // 1분 이내 생성
+                            );
+                            
+                            updateTistoryFiles(tistoryFiles);
+                            
+                            if (hasNewContent || retryCount >= maxRetries) {
+                                // 업데이트 중 인디케이터 제거
+                                const indicator = document.getElementById('tistory-updating-indicator');
+                                if (indicator) indicator.remove();
+                                
+                                showNotification(`🎉 목록이 업데이트되었습니다! 새 콘텐츠를 확인하세요.`, 'info');
+                                // 전체 데이터도 갱신
+                                refreshData();
+                            } else {
+                                retryCount++;
+                                setTimeout(updateList, 1000); // 1초 후 재시도
+                            }
+                        } catch (error) {
+                            if (retryCount < maxRetries) {
+                                retryCount++;
+                                setTimeout(updateList, 1000);
+                            } else {
+                                // 업데이트 중 인디케이터 제거
+                                const indicator = document.getElementById('tistory-updating-indicator');
+                                if (indicator) indicator.remove();
+                                
+                                showNotification('목록 갱신 중 오류가 발생했습니다. 페이지를 새로고침해주세요.', 'error');
+                            }
+                        }
+                    };
+                    
+                    // 즉시 첫 번째 갱신 시도
+                    setTimeout(updateList, 500);
                     
                     // 폼 리셋
                     document.getElementById('tistoryForm').reset();

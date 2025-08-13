@@ -633,15 +633,35 @@ def generate_wordpress():
         site = data.get('site', 'unpre')
         topic = data.get('topic', '프로그래밍')
         
-        # 실제 생성 로직 대신 목업 응답
+        # 목업 응답 (실제 생성 로직으로 대체 예정)
+        import time
+        current_time = int(time.time())
+        
+        # WordPress 파일 목록에 새 항목 추가 (실제 파일 생성 시뮬레이션)
+        new_file = {
+            'title': f'{topic} 완전 가이드',
+            'file_path': f'wordpress_posts/{site}_{topic.replace(" ", "_")}_{current_time}.html',
+            'url': f'https://{site}.co.kr/posts/{current_time}',
+            'status': 'draft',
+            'category': data.get('category', '기본'),
+            'tags': data.get('keywords', [topic]),
+            'created_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'actions': ['view', 'edit', 'publish', 'download', 'delete'],
+            'id': current_time
+        }
+        
+        # 글로벌 mock_wordpress_files에 추가
+        global mock_wordpress_files
+        mock_wordpress_files.append(new_file)
+        
         return jsonify({
             'success': True,
             'message': f'{site} 사이트에 {topic} 주제로 콘텐츠를 생성했습니다.',
-            'post': {
-                'title': f'{topic} 관련 새로운 포스트',
-                'url': f'https://{site}.co.kr/new-post',
-                'id': 123
-            }
+            'title': new_file['title'],
+            'file_path': new_file['file_path'],
+            'url': new_file['url'],
+            'id': new_file['id'],
+            'post': new_file
         })
     except Exception as e:
         return jsonify({
@@ -656,15 +676,35 @@ def generate_tistory():
         data = request.json
         topic = data.get('topic', '프로그래밍')
         
-        # 실제 생성 로직 대신 목업 응답
+        # 목업 응답 (실제 생성 로직으로 대체 예정)
+        import time
+        current_time = int(time.time())
+        
+        # Tistory 파일 목록에 새 항목 추가 (실제 파일 생성 시뮬레이션)
+        new_file = {
+            'title': f'{topic} 심화 분석',
+            'file_path': f'tistory_posts/{topic.replace(" ", "_")}_{current_time}.html',
+            'url': f'https://untab.tistory.com/posts/{current_time}',
+            'status': 'draft',
+            'category': data.get('category', '기본'),
+            'tags': data.get('keywords', [topic]),
+            'created_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'actions': ['view', 'edit', 'publish', 'download', 'delete'],
+            'id': current_time
+        }
+        
+        # 글로벌 mock_tistory_files에 추가
+        global mock_tistory_files
+        mock_tistory_files.append(new_file)
+        
         return jsonify({
             'success': True,
             'message': f'Tistory에 {topic} 주제로 콘텐츠를 생성했습니다.',
-            'post': {
-                'title': f'{topic} 관련 새로운 포스트',
-                'url': 'https://untab.tistory.com/new-post',
-                'id': 456
-            }
+            'title': new_file['title'],
+            'file_path': new_file['file_path'],
+            'url': new_file['url'],
+            'id': new_file['id'],
+            'post': new_file
         })
     except Exception as e:
         return jsonify({
@@ -717,21 +757,80 @@ def get_wordpress_files():
     """WordPress 파일 목록"""
     try:
         files = []
+        now = datetime.now(KST)
         
-        # 목업 데이터
-        for i, site in enumerate(['unpre', 'untab', 'skewese']):
-            for j in range(3):
-                files.append({
-                    'id': f'{site}_{j}',
-                    'site': site,
-                    'title': f'샘플 포스트 {j+1}',
-                    'date': datetime.now(KST).strftime('%Y-%m-%d'),
-                    'size': '2.5KB',
-                    'url': f'https://{site}.co.kr/post-{j}'
-                })
+        # 최근 생성된 콘텐츠 (목업 + 동적 생성)
+        base_files = [
+            {
+                'id': 'wp_unpre_001',
+                'site': 'unpre',
+                'title': '🤖 AI 코딩 어시스턴트 활용 가이드',
+                'date': now.strftime('%Y-%m-%d %H:%M'),
+                'size': '3.2KB',
+                'status': 'published',
+                'url': 'https://unpre.co.kr/ai-coding-assistant-guide',
+                'actions': ['view', 'edit', 'download', 'delete']
+            },
+            {
+                'id': 'wp_unpre_002',
+                'site': 'unpre', 
+                'title': '⚡ React 18 Concurrent Features 완전 정복',
+                'date': (now - timedelta(hours=2)).strftime('%Y-%m-%d %H:%M'),
+                'size': '4.1KB',
+                'status': 'published',
+                'url': 'https://unpre.co.kr/react-18-concurrent',
+                'actions': ['view', 'edit', 'download', 'delete']
+            },
+            {
+                'id': 'wp_untab_001',
+                'site': 'untab',
+                'title': '📚 토익 990점 달성하는 5가지 비법',
+                'date': (now - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M'),
+                'size': '2.8KB',
+                'status': 'published',
+                'url': 'https://untab.co.kr/toeic-990-tips',
+                'actions': ['view', 'edit', 'download', 'delete']
+            },
+            {
+                'id': 'wp_untab_002',
+                'site': 'untab',
+                'title': '💰 부동산 경매 초보자 완벽 가이드',
+                'date': (now - timedelta(hours=3)).strftime('%Y-%m-%d %H:%M'),
+                'size': '3.5KB',
+                'status': 'draft',
+                'url': None,
+                'actions': ['edit', 'publish', 'download', 'delete']
+            },
+            {
+                'id': 'wp_skewese_001',
+                'site': 'skewese',
+                'title': '🏛️ 조선시대 과학기술의 숨겨진 이야기',
+                'date': (now - timedelta(minutes=30)).strftime('%Y-%m-%d %H:%M'),
+                'size': '3.7KB',
+                'status': 'published',
+                'url': 'https://skewese.com/joseon-science-stories',
+                'actions': ['view', 'edit', 'download', 'delete']
+            },
+            {
+                'id': 'wp_skewese_002',
+                'site': 'skewese',
+                'title': '✨ 고구려 고분벽화 속 우주관',
+                'date': (now - timedelta(hours=4)).strftime('%Y-%m-%d %H:%M'),
+                'size': '2.9KB',
+                'status': 'draft',
+                'url': None,
+                'actions': ['edit', 'publish', 'download', 'delete']
+            }
+        ]
+        
+        files.extend(base_files)
+        
+        # 최신순으로 정렬
+        files.sort(key=lambda x: x['date'], reverse=True)
         
         return jsonify(files)
     except Exception as e:
+        logger.error(f"WordPress 파일 목록 조회 오류: {e}")
         return jsonify([]), 500
 
 @app.route('/api/tistory_files')
@@ -739,19 +838,75 @@ def get_tistory_files():
     """Tistory 파일 목록"""
     try:
         files = []
+        now = datetime.now(KST)
         
-        # 목업 데이터
-        for i in range(5):
-            files.append({
-                'id': f'tistory_{i}',
-                'title': f'Tistory 포스트 {i+1}',
-                'date': datetime.now(KST).strftime('%Y-%m-%d'),
-                'size': '3.2KB',
-                'url': f'https://untab.tistory.com/post-{i}'
-            })
+        # 최근 생성된 Tistory 콘텐츠
+        base_files = [
+            {
+                'id': 'tistory_001',
+                'title': '🎯 2025년 언어학습 트렌드와 전망',
+                'date': now.strftime('%Y-%m-%d %H:%M'),
+                'size': '2.7KB',
+                'status': 'published',
+                'url': 'https://untab.tistory.com/language-trends-2025',
+                'actions': ['view', 'edit', 'download', 'delete'],
+                'category': '언어학습',
+                'tags': ['언어학습', '트렌드', '2025년']
+            },
+            {
+                'id': 'tistory_002',
+                'title': '💡 효과적인 온라인 강의 제작 노하우',
+                'date': (now - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M'),
+                'size': '3.1KB',
+                'status': 'published',
+                'url': 'https://untab.tistory.com/online-course-creation',
+                'actions': ['view', 'edit', 'download', 'delete'],
+                'category': '교육콘텐츠',
+                'tags': ['온라인강의', '제작', '노하우']
+            },
+            {
+                'id': 'tistory_003',
+                'title': '📈 주식 투자 초보자를 위한 기본 가이드',
+                'date': (now - timedelta(hours=2)).strftime('%Y-%m-%d %H:%M'),
+                'size': '4.2KB',
+                'status': 'draft',
+                'url': None,
+                'actions': ['edit', 'publish', 'download', 'delete'],
+                'category': '투자',
+                'tags': ['주식투자', '초보자', '가이드']
+            },
+            {
+                'id': 'tistory_004',
+                'title': '🏆 AWS 자격증 취득 완벽 로드맵',
+                'date': (now - timedelta(hours=3)).strftime('%Y-%m-%d %H:%M'),
+                'size': '3.8KB',
+                'status': 'published',
+                'url': 'https://untab.tistory.com/aws-certification-roadmap',
+                'actions': ['view', 'edit', 'download', 'delete'],
+                'category': 'IT자격증',
+                'tags': ['AWS', '자격증', '로드맵']
+            },
+            {
+                'id': 'tistory_005',
+                'title': '💰 부동산 경매 투자 시작하는 법',
+                'date': (now - timedelta(hours=5)).strftime('%Y-%m-%d %H:%M'),
+                'size': '3.5KB',
+                'status': 'draft',
+                'url': None,
+                'actions': ['edit', 'publish', 'download', 'delete'],
+                'category': '부동산',
+                'tags': ['부동산경매', '투자', '초보자']
+            }
+        ]
+        
+        files.extend(base_files)
+        
+        # 최신순으로 정렬
+        files.sort(key=lambda x: x['date'], reverse=True)
         
         return jsonify(files)
     except Exception as e:
+        logger.error(f"Tistory 파일 목록 조회 오류: {e}")
         return jsonify([]), 500
 
 @app.route('/api/system/time')
