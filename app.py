@@ -970,7 +970,7 @@ def get_tistory_files():
                 'size': f'{f.get("file_size", 0) / 1024:.1f}KB' if f.get('file_size') else '3.0KB',
                 'status': f.get('status', 'draft'),
                 'url': f.get('url'),
-                'actions': ['view', 'edit', 'publish', 'download', 'delete'] if f.get('status') == 'draft' else ['view', 'edit', 'download', 'delete'],
+                'actions': ['view', 'delete'],
                 'category': f.get('categories', ['기본'])[0] if f.get('categories') else '기본',
                 'tags': f.get('tags', [])
             })
@@ -992,7 +992,7 @@ def get_mock_tistory_files():
                 'size': '2.7KB',
                 'status': 'published',
                 'url': 'https://untab.tistory.com/language-trends-2025',
-                'actions': ['view', 'edit', 'download', 'delete'],
+                'actions': ['view', 'delete'],
                 'category': '언어학습',
                 'tags': ['언어학습', '트렌드', '2025년']
             },
@@ -1003,7 +1003,7 @@ def get_mock_tistory_files():
                 'size': '3.1KB',
                 'status': 'published',
                 'url': 'https://untab.tistory.com/online-course-creation',
-                'actions': ['view', 'edit', 'download', 'delete'],
+                'actions': ['view', 'delete'],
                 'category': '교육콘텐츠',
                 'tags': ['온라인강의', '제작', '노하우']
             },
@@ -1014,7 +1014,7 @@ def get_mock_tistory_files():
                 'size': '4.2KB',
                 'status': 'draft',
                 'url': None,
-                'actions': ['edit', 'publish', 'download', 'delete'],
+                'actions': ['view', 'delete'],
                 'category': '투자',
                 'tags': ['주식투자', '초보자', '가이드']
             },
@@ -1025,7 +1025,7 @@ def get_mock_tistory_files():
                 'size': '3.8KB',
                 'status': 'published',
                 'url': 'https://untab.tistory.com/aws-certification-roadmap',
-                'actions': ['view', 'edit', 'download', 'delete'],
+                'actions': ['view', 'delete'],
                 'category': 'IT자격증',
                 'tags': ['AWS', '자격증', '로드맵']
             },
@@ -1036,7 +1036,7 @@ def get_mock_tistory_files():
                 'size': '3.5KB',
                 'status': 'draft',
                 'url': None,
-                'actions': ['edit', 'publish', 'download', 'delete'],
+                'actions': ['view', 'delete'],
                 'category': '부동산',
                 'tags': ['부동산경매', '투자', '초보자']
             }
