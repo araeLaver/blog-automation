@@ -829,6 +829,19 @@ def get_wordpress_files():
         
         files.extend(base_files)
         
+        # 새로 생성된 WordPress 파일들 추가
+        for wp_file in mock_wordpress_files:
+            files.append({
+                'id': wp_file.get('id'),
+                'site': wp_file.get('site', 'unpre'),
+                'title': wp_file.get('title'),
+                'date': wp_file.get('created_at'),
+                'size': '3.0KB',
+                'status': wp_file.get('status', 'draft'),
+                'url': wp_file.get('url'),
+                'actions': wp_file.get('actions', ['view', 'edit', 'publish', 'download', 'delete'])
+            })
+        
         # 최신순으로 정렬
         files.sort(key=lambda x: x['date'], reverse=True)
         
@@ -904,6 +917,20 @@ def get_tistory_files():
         ]
         
         files.extend(base_files)
+        
+        # 새로 생성된 Tistory 파일들 추가
+        for tistory_file in mock_tistory_files:
+            files.append({
+                'id': tistory_file.get('id'),
+                'title': tistory_file.get('title'),
+                'date': tistory_file.get('created_at'),
+                'size': '3.0KB',
+                'status': tistory_file.get('status', 'draft'),
+                'url': tistory_file.get('url'),
+                'actions': tistory_file.get('actions', ['view', 'edit', 'publish', 'download', 'delete']),
+                'category': tistory_file.get('category', '기본'),
+                'tags': tistory_file.get('tags', [])
+            })
         
         # 최신순으로 정렬
         files.sort(key=lambda x: x['date'], reverse=True)
