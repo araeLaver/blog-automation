@@ -21,6 +21,9 @@ sys.path.append(str(Path(__file__).parent))
 # 환경변수 로드
 load_dotenv()
 
+# PostgreSQL 데이터베이스 import
+from src.utils.postgresql_database import PostgreSQLDatabase
+
 # Flask 앱 생성
 app = Flask(__name__, 
             template_folder='templates',
@@ -39,9 +42,15 @@ logger = logging.getLogger(__name__)
 # 한국 시간대 설정
 KST = pytz.timezone('Asia/Seoul')
 
-# 목업 데이터 저장용 변수
-mock_wordpress_files = []
-mock_tistory_files = []
+# PostgreSQL 데이터베이스 인스턴스 (전역)
+db = None
+
+def get_database():
+    """데이터베이스 인스턴스 반환"""
+    global db
+    if db is None:
+        db = PostgreSQLDatabase()
+    return db
 
 # PostgreSQL 연결 함수
 def get_db_connection():
@@ -637,37 +646,56 @@ def generate_wordpress():
         site = data.get('site', 'unpre')
         topic = data.get('topic', '프로그래밍')
         
-        # 목업 응답 (실제 생성 로직으로 대체 예정)
+        database = get_database()
+        
+        if database.is_connected:
+            # 실제 데이터베이스에 콘텐츠 생성
+            content_data = {
+                'site': site,
+                'title': f'{topic} 완전 가이드',
+                'file_type': 'wordpress',
+                'status': 'draft',
+                'categories': [data.get('category', '기본')],
+                'tags': data.get('keywords', [topic]),
+                'content': f'# {topic} 완전 가이드\n\n{topic}에 대한 상세한 분석입니다.'
+            }
+            
+            file_id = database.save_content_file(**content_data)
+            
+            # 생성된 파일 정보 조회
+            created_file = database.get_content_files(file_ids=[file_id])
+            if created_file:
+                file_info = created_file[0]
+                return jsonify({
+                    'success': True,
+                    'message': f'{site} 사이트에 {topic} 주제로 콘텐츠를 생성했습니다.',
+                    'title': file_info['title'],
+                    'id': file_info['id'],
+                    'post': file_info
+                })
+        
+        # DB 연결 실패시 목업 응답
         import time
         current_time = int(time.time())
         
-        # WordPress 파일 목록에 새 항목 추가 (실제 파일 생성 시뮬레이션)
         new_file = {
             'title': f'{topic} 완전 가이드',
-            'file_path': f'wordpress_posts/{site}_{topic.replace(" ", "_")}_{current_time}.html',
-            'url': f'https://{site}.co.kr/posts/{current_time}',
+            'id': current_time,
+            'site': site,
             'status': 'draft',
-            'category': data.get('category', '기본'),
-            'tags': data.get('keywords', [topic]),
             'created_at': time.strftime('%Y-%m-%d %H:%M:%S'),
-            'actions': ['view', 'edit', 'publish', 'download', 'delete'],
-            'id': current_time
         }
-        
-        # 글로벌 mock_wordpress_files에 추가
-        global mock_wordpress_files
-        mock_wordpress_files.append(new_file)
         
         return jsonify({
             'success': True,
-            'message': f'{site} 사이트에 {topic} 주제로 콘텐츠를 생성했습니다.',
+            'message': f'{site} 사이트에 {topic} 주제로 콘텐츠를 생성했습니다. (목업 모드)',
             'title': new_file['title'],
-            'file_path': new_file['file_path'],
-            'url': new_file['url'],
             'id': new_file['id'],
             'post': new_file
         })
+        
     except Exception as e:
+        logger.error(f"WordPress 콘텐츠 생성 오류: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -680,37 +708,54 @@ def generate_tistory():
         data = request.json
         topic = data.get('topic', '프로그래밍')
         
-        # 목업 응답 (실제 생성 로직으로 대체 예정)
+        database = get_database()
+        
+        if database.is_connected:
+            # 실제 데이터베이스에 콘텐츠 생성
+            content_data = {
+                'title': f'{topic} 심화 분석',
+                'file_type': 'tistory',
+                'status': 'draft',
+                'categories': [data.get('category', '기본')],
+                'tags': data.get('keywords', [topic]),
+                'content': f'# {topic} 심화 분석\n\n{topic}에 대한 상세한 분석입니다.'
+            }
+            
+            file_id = database.save_content_file(**content_data)
+            
+            # 생성된 파일 정보 조회
+            created_file = database.get_content_files(file_ids=[file_id])
+            if created_file:
+                file_info = created_file[0]
+                return jsonify({
+                    'success': True,
+                    'message': f'Tistory에 {topic} 주제로 콘텐츠를 생성했습니다.',
+                    'title': file_info['title'],
+                    'id': file_info['id'],
+                    'post': file_info
+                })
+        
+        # DB 연결 실패시 목업 응답
         import time
         current_time = int(time.time())
         
-        # Tistory 파일 목록에 새 항목 추가 (실제 파일 생성 시뮬레이션)
         new_file = {
             'title': f'{topic} 심화 분석',
-            'file_path': f'tistory_posts/{topic.replace(" ", "_")}_{current_time}.html',
-            'url': f'https://untab.tistory.com/posts/{current_time}',
+            'id': current_time,
             'status': 'draft',
-            'category': data.get('category', '기본'),
-            'tags': data.get('keywords', [topic]),
             'created_at': time.strftime('%Y-%m-%d %H:%M:%S'),
-            'actions': ['view', 'edit', 'publish', 'download', 'delete'],
-            'id': current_time
         }
-        
-        # 글로벌 mock_tistory_files에 추가
-        global mock_tistory_files
-        mock_tistory_files.append(new_file)
         
         return jsonify({
             'success': True,
-            'message': f'Tistory에 {topic} 주제로 콘텐츠를 생성했습니다.',
+            'message': f'Tistory에 {topic} 주제로 콘텐츠를 생성했습니다. (목업 모드)',
             'title': new_file['title'],
-            'file_path': new_file['file_path'],
-            'url': new_file['url'],
             'id': new_file['id'],
             'post': new_file
         })
+        
     except Exception as e:
+        logger.error(f"Tistory 콘텐츠 생성 오류: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -723,13 +768,33 @@ def delete_posts():
         data = request.json
         post_ids = data.get('post_ids', [])
         
-        # 실제 삭제 로직 대신 목업 응답
+        database = get_database()
+        
+        if database.is_connected and post_ids:
+            # 실제 데이터베이스에서 삭제
+            deleted_count = 0
+            for post_id in post_ids:
+                try:
+                    if database.delete_content_file(post_id):
+                        deleted_count += 1
+                except Exception as e:
+                    logger.error(f"포스트 {post_id} 삭제 실패: {e}")
+            
+            return jsonify({
+                'success': True,
+                'message': f'{deleted_count}개의 포스트를 삭제했습니다.',
+                'deleted': deleted_count
+            })
+        
+        # DB 연결 실패시 목업 응답
         return jsonify({
             'success': True,
-            'message': f'{len(post_ids)}개의 포스트를 삭제했습니다.',
+            'message': f'{len(post_ids)}개의 포스트를 삭제했습니다. (목업 모드)',
             'deleted': post_ids
         })
+        
     except Exception as e:
+        logger.error(f"포스트 삭제 오류: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
@@ -760,11 +825,38 @@ def get_schedule():
 def get_wordpress_files():
     """WordPress 파일 목록"""
     try:
-        files = []
-        now = datetime.now(KST)
+        database = get_database()
+        if not database.is_connected:
+            # DB 연결 실패시 목업 데이터 반환
+            return jsonify(get_mock_wordpress_files())
         
-        # 최근 생성된 콘텐츠 (목업 + 동적 생성)
-        base_files = [
+        # DB에서 WordPress 콘텐츠 조회
+        files = database.get_content_files(file_type='wordpress', limit=50)
+        
+        # 형식 맞추기
+        formatted_files = []
+        for f in files:
+            formatted_files.append({
+                'id': f.get('id'),
+                'site': f.get('site', 'unpre'),
+                'title': f.get('title'),
+                'date': f.get('created_at'),
+                'size': f'{f.get("file_size", 0) / 1024:.1f}KB' if f.get('file_size') else '3.0KB',
+                'status': f.get('status', 'draft'),
+                'url': f.get('url'),
+                'actions': ['view', 'edit', 'publish', 'download', 'delete'] if f.get('status') == 'draft' else ['view', 'edit', 'download', 'delete']
+            })
+        
+        return jsonify(formatted_files)
+    except Exception as e:
+        logger.error(f"WordPress 파일 목록 조회 오류: {e}")
+        # 오류 발생시 목업 데이터 반환
+        return jsonify(get_mock_wordpress_files())
+
+def get_mock_wordpress_files():
+    """목업 WordPress 파일 데이터"""
+    now = datetime.now(KST)
+    base_files = [
             {
                 'id': 'wp_unpre_001',
                 'site': 'unpre',
@@ -826,39 +918,45 @@ def get_wordpress_files():
                 'actions': ['edit', 'publish', 'download', 'delete']
             }
         ]
-        
-        files.extend(base_files)
-        
-        # 새로 생성된 WordPress 파일들 추가
-        for wp_file in mock_wordpress_files:
-            files.append({
-                'id': wp_file.get('id'),
-                'site': wp_file.get('site', 'unpre'),
-                'title': wp_file.get('title'),
-                'date': wp_file.get('created_at'),
-                'size': '3.0KB',
-                'status': wp_file.get('status', 'draft'),
-                'url': wp_file.get('url'),
-                'actions': wp_file.get('actions', ['view', 'edit', 'publish', 'download', 'delete'])
-            })
-        
-        # 최신순으로 정렬
-        files.sort(key=lambda x: x['date'], reverse=True)
-        
-        return jsonify(files)
-    except Exception as e:
-        logger.error(f"WordPress 파일 목록 조회 오류: {e}")
-        return jsonify([]), 500
+    return base_files
 
 @app.route('/api/tistory_files')
 def get_tistory_files():
     """Tistory 파일 목록"""
     try:
-        files = []
-        now = datetime.now(KST)
+        database = get_database()
+        if not database.is_connected:
+            # DB 연결 실패시 목업 데이터 반환
+            return jsonify(get_mock_tistory_files())
         
-        # 최근 생성된 Tistory 콘텐츠
-        base_files = [
+        # DB에서 Tistory 콘텐츠 조회
+        files = database.get_content_files(file_type='tistory', limit=50)
+        
+        # 형식 맞추기
+        formatted_files = []
+        for f in files:
+            formatted_files.append({
+                'id': f.get('id'),
+                'title': f.get('title'),
+                'date': f.get('created_at'),
+                'size': f'{f.get("file_size", 0) / 1024:.1f}KB' if f.get('file_size') else '3.0KB',
+                'status': f.get('status', 'draft'),
+                'url': f.get('url'),
+                'actions': ['view', 'edit', 'publish', 'download', 'delete'] if f.get('status') == 'draft' else ['view', 'edit', 'download', 'delete'],
+                'category': f.get('categories', ['기본'])[0] if f.get('categories') else '기본',
+                'tags': f.get('tags', [])
+            })
+        
+        return jsonify(formatted_files)
+    except Exception as e:
+        logger.error(f"Tistory 파일 목록 조회 오류: {e}")
+        # 오류 발생시 목업 데이터 반환
+        return jsonify(get_mock_tistory_files())
+
+def get_mock_tistory_files():
+    """목업 Tistory 파일 데이터"""
+    now = datetime.now(KST)
+    base_files = [
             {
                 'id': 'tistory_001',
                 'title': '🎯 2025년 언어학습 트렌드와 전망',
@@ -915,30 +1013,7 @@ def get_tistory_files():
                 'tags': ['부동산경매', '투자', '초보자']
             }
         ]
-        
-        files.extend(base_files)
-        
-        # 새로 생성된 Tistory 파일들 추가
-        for tistory_file in mock_tistory_files:
-            files.append({
-                'id': tistory_file.get('id'),
-                'title': tistory_file.get('title'),
-                'date': tistory_file.get('created_at'),
-                'size': '3.0KB',
-                'status': tistory_file.get('status', 'draft'),
-                'url': tistory_file.get('url'),
-                'actions': tistory_file.get('actions', ['view', 'edit', 'publish', 'download', 'delete']),
-                'category': tistory_file.get('category', '기본'),
-                'tags': tistory_file.get('tags', [])
-            })
-        
-        # 최신순으로 정렬
-        files.sort(key=lambda x: x['date'], reverse=True)
-        
-        return jsonify(files)
-    except Exception as e:
-        logger.error(f"Tistory 파일 목록 조회 오류: {e}")
-        return jsonify([]), 500
+    return base_files
 
 @app.route('/api/system/time')
 def get_system_time():
