@@ -672,8 +672,9 @@ def generate_wordpress():
         try:
             if database.is_connected:
                 # Claude API로 실제 콘텐츠 생성
+                logger.info(f"Content generator 상태: {content_generator is not None}")
                 if content_generator:
-                    print(f"🤖 Claude API로 {topic} 콘텐츠 생성 시작...")
+                    logger.info(f"Claude API로 {topic} 콘텐츠 생성 시작...")
                     
                     # 사이트 설정
                     site_config = {
@@ -742,13 +743,14 @@ def generate_wordpress():
                     
                     content = content_html
                     title = generated_content['title']
-                    print(f"✅ Claude API 콘텐츠 생성 완료: {title[:50]}...")
+                    logger.info(f"Claude API 콘텐츠 생성 완료: {title[:50]}...")
                     
                 else:
                     # Fallback 콘텐츠
+                    logger.warning("ContentGenerator가 None입니다. 기본 콘텐츠를 생성합니다.")
                     content = f'<h1>{topic} 완전 가이드</h1>\n<p>{topic}에 대한 상세한 분석입니다.</p>'
                     title = f'{topic} 완전 가이드'
-                    print(f"⚠️ Claude API 미사용, 기본 콘텐츠 생성: {title}")
+                    logger.warning(f"Claude API 미사용, 기본 콘텐츠 생성: {title}")
                 
                 # 실제 파일 저장
                 import tempfile
@@ -831,8 +833,9 @@ def generate_tistory():
         try:
             if database.is_connected:
                 # Claude API로 실제 콘텐츠 생성
+                logger.info(f"Tistory Content generator 상태: {content_generator is not None}")
                 if content_generator:
-                    print(f"🤖 Claude API로 Tistory {topic} 콘텐츠 생성 시작...")
+                    logger.info(f"Claude API로 Tistory {topic} 콘텐츠 생성 시작...")
                     
                     # 사이트 설정
                     site_config = {
@@ -901,13 +904,14 @@ def generate_tistory():
                     
                     content = content_html
                     title = generated_content['title']
-                    print(f"✅ Claude API Tistory 콘텐츠 생성 완룉: {title[:50]}...")
+                    logger.info(f"Claude API Tistory 콘텐츠 생성 완료: {title[:50]}...")
                     
                 else:
                     # Fallback 콘텐츠
+                    logger.warning("Tistory ContentGenerator가 None입니다. 기본 콘텐츠를 생성합니다.")
                     content = f'<h1>{topic} 심화 분석</h1>\n<p>{topic}에 대한 상세한 분석입니다.</p>'
                     title = f'{topic} 심화 분석'
-                    print(f"⚠️ Claude API 미사용, Tistory 기본 콘텐츠 생성: {title}")
+                    logger.warning(f"Claude API 미사용, Tistory 기본 콘텐츠 생성: {title}")
                 
                 # 실제 파일 저장
                 import tempfile
@@ -1001,10 +1005,12 @@ def download_content(file_id):
                     try:
                         with open(file_path, 'r', encoding='utf-8') as f:
                             content = f.read()
-                        print(f"✅ 실제 파일 읽기 성공: {file_path}")
+                        logger.info(f"실제 파일 읽기 성공: {file_path}")
                     except Exception as e:
-                        print(f"⚠️ 파일 읽기 실패: {e}")
+                        logger.warning(f"파일 읽기 실패: {e}")
                         content = None
+                else:
+                    logger.warning(f"파일 경로가 없거나 존재하지 않음: {file_path}")
                 
                 # 파일이 없거나 읽기 실패시 기본 콘텐츠 생성
                 if not content:
@@ -1046,7 +1052,7 @@ def download_content(file_id):
                 
                 response.headers['Content-Disposition'] = f'attachment; filename*=UTF-8\'\'{"".join(f"%{ord(c):02X}" if ord(c) > 127 else c for c in filename)}'
                 response.headers['Content-Type'] = 'text/html; charset=utf-8'
-                print(f"✅ 다운로드 제공: {filename}")
+                logger.info(f"다운로드 제공: {filename}")
                 return response
         
         # 파일을 찾을 수 없는 경우
@@ -1061,6 +1067,25 @@ def download_content(file_id):
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/debug/content_generator')
+def debug_content_generator():
+    """ContentGenerator 상태 디버깅"""
+    try:
+        import os
+        api_key = os.getenv("ANTHROPIC_API_KEY")
+        return jsonify({
+            'content_generator_initialized': content_generator is not None,
+            'api_key_exists': api_key is not None,
+            'api_key_length': len(api_key) if api_key else 0,
+            'api_key_prefix': api_key[:20] if api_key else None,
+            'error_info': str(getattr(content_generator, '_init_error', 'No error'))
+        })
+    except Exception as e:
+        return jsonify({
+            'error': str(e),
+            'content_generator_initialized': False
+        })
 
 @app.route('/api/delete_posts', methods=['POST'])
 def delete_posts():
