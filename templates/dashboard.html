@@ -852,100 +852,84 @@
 
         // WordPress 파일 업데이트
         function updateWordPressFiles(files) {
-            // 임시 콘텐츠 제거
-            const tempContent = document.getElementById('temp-content');
-            if (tempContent) {
-                tempContent.remove();
-            }
-            
             let html = '';
             
-            files.forEach(file => {
-                // 날짜와 시간을 상세하게 표시 (2025. 8. 10. 14:22 형식)
-                let dateTimeString = '';
-                if (file.created_at) {
-                    const dateObj = new Date(file.created_at);
-                    const year = dateObj.getFullYear();
-                    const month = dateObj.getMonth() + 1;
-                    const day = dateObj.getDate();
-                    const hours = String(dateObj.getHours()).padStart(2, '0');
-                    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-                    dateTimeString = `${year}. ${month}. ${day}. ${hours}:${minutes}`;
-                }
-                
-                const site = file.site || 'unknown';
-                const siteClass = `site-${site}`;
-                
-                // 제목 정리 (JSX 코드나 이상한 내용 필터링)
-                let cleanTitle = file.title || '제목 없음';
-                
-                // JSX나 특수 문자가 포함된 제목 처리
-                if (cleanTitle.includes('jsx') || cleanTitle.includes('const') || cleanTitle.includes('element') || cleanTitle.includes('<') || cleanTitle.includes('{')) {
-                    cleanTitle = '올바르지 않은 콘텐츠';
-                }
-                
-                // 제목 길이 제한 (최대 50자)
-                if (cleanTitle.length > 50) {
-                    cleanTitle = cleanTitle.substring(0, 50) + '...';
-                }
-                
-                // 키워드/태그 처리 (WordPress)
-                let keywords = [];
-                if (file.tags && Array.isArray(file.tags)) {
-                    keywords = file.tags;
-                } else if (file.metadata && file.metadata.keywords) {
-                    keywords = file.metadata.keywords;
-                } else if (file.metadata && file.metadata.tags) {
-                    keywords = file.metadata.tags;
-                }
-                
-                const keywordTags = keywords.slice(0, 5).map(keyword => 
-                    `<span class="badge bg-primary me-1">${keyword}</span>`
-                ).join('');
-                
-                // 카테고리 처리 (categories 배열에서 첫 번째 항목 사용)
-                let category = '카테고리 없음';
-                if (file.categories && Array.isArray(file.categories) && file.categories.length > 0) {
-                    category = file.categories[0];
-                } else if (file.category) {
-                    category = file.category;
-                }
-                
-                html += `
-                    <div class="wordpress-file content-item mb-3 p-2 border rounded" data-file-id="${file.id}">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="d-flex align-items-start flex-grow-1">
-                                <input type="checkbox" class="form-check-input content-checkbox me-2" 
-                                       onchange="toggleItemSelection('wordpress', ${file.id})" data-file-id="${file.id}"
-                                       style="display: inline-block !important; visibility: visible !important; opacity: 1 !important; width: 16px !important; height: 16px !important; transform: scale(1.2);">
-                                <div class="flex-grow-1">
-                                    <div class="d-flex align-items-center mb-1">
-                                        <span class="site-badge ${siteClass}">${site.toUpperCase()}</span>
-                                        <span class="badge bg-secondary ms-2">${category}</span>
-                                    </div>
-                                    <strong>${cleanTitle}</strong>
-                                    ${keywordTags ? `<div class="mt-2">${keywordTags}</div>` : ''}
-                                    <div class="text-muted small mt-1">
-                                        <i class="bi bi-calendar"></i> ${dateTimeString}
-                                        ${file.word_count ? `<span class="ms-3"><i class="bi bi-file-text"></i> ${file.word_count.toLocaleString()}자</span>` : ''}
+            if (!files || files.length === 0) {
+                html = '<p class="text-muted">생성된 파일이 없습니다.</p>';
+            } else {
+                files.forEach(file => {
+                    const site = file.site || 'unknown';
+                    const siteClass = `site-${site}`;
+                    const title = file.title || '제목 없음';
+                    const date = file.date || new Date().toLocaleString();
+                    const size = file.size || '0KB';
+                    const status = file.status || 'draft';
+                    const actions = file.actions || ['view', 'edit', 'download', 'delete'];
+                    
+                    // 상태별 배지 색상
+                    const statusBadge = status === 'published' ? 
+                        '<span class="badge bg-success">발행됨</span>' : 
+                        '<span class="badge bg-warning">임시저장</span>';
+                    
+                    // 액션 버튼들 생성
+                    let actionButtons = '';
+                    
+                    if (actions.includes('view') && file.url) {
+                        actionButtons += `<a href="${file.url}" target="_blank" class="btn btn-outline-info btn-sm me-1" title="보기">
+                            <i class="bi bi-eye"></i> 보기
+                        </a>`;
+                    }
+                    
+                    if (actions.includes('edit')) {
+                        actionButtons += `<button class="btn btn-outline-primary btn-sm me-1" onclick="editContent('${file.id}', 'wordpress')" title="편집">
+                            <i class="bi bi-pencil"></i> 편집
+                        </button>`;
+                    }
+                    
+                    if (actions.includes('publish') && status === 'draft') {
+                        actionButtons += `<button class="btn btn-outline-success btn-sm me-1" onclick="publishContent('${file.id}', '${site}')" title="발행">
+                            <i class="bi bi-upload"></i> 발행
+                        </button>`;
+                    }
+                    
+                    if (actions.includes('download')) {
+                        actionButtons += `<button class="btn btn-outline-secondary btn-sm me-1" onclick="downloadContent('${file.id}', 'wordpress')" title="다운로드">
+                            <i class="bi bi-download"></i> 다운로드
+                        </button>`;
+                    }
+                    
+                    if (actions.includes('delete')) {
+                        actionButtons += `<button class="btn btn-outline-danger btn-sm" onclick="deleteContent('${file.id}', 'wordpress')" title="삭제">
+                            <i class="bi bi-trash"></i> 삭제
+                        </button>`;
+                    }
+                    
+                    html += `
+                        <div class="content-item mb-3 p-3 border rounded" data-file-id="${file.id}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex align-items-start flex-grow-1">
+                                    <input type="checkbox" class="form-check-input content-checkbox me-3" 
+                                           onchange="toggleItemSelection('wordpress', '${file.id}')" data-file-id="${file.id}">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="site-badge ${siteClass}">${site.toUpperCase()}</span>
+                                            ${statusBadge}
+                                        </div>
+                                        <h6 class="mb-1">${title}</h6>
+                                        <div class="text-muted small">
+                                            <i class="bi bi-calendar"></i> ${date}
+                                            <span class="ms-3"><i class="bi bi-file-text"></i> ${size}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="btn-group-vertical btn-group-sm">
-                                <a href="/api/download_file/${encodeURIComponent(file.file_path)}" class="btn btn-outline-primary btn-sm" title="다운로드">
-                                    <i class="bi bi-download"></i> 다운로드
-                                </a>
-                                <button class="btn btn-outline-success btn-sm" onclick="publishToWordPress(${file.id}, '${site}')" title="WordPress에 발행">
-                                    <i class="bi bi-upload"></i> 발행
-                                </button>
-                                <button class="btn btn-outline-danger btn-sm" onclick="deleteFile('${file.id}', 'wordpress')" title="파일 삭제">
-                                    <i class="bi bi-trash"></i> 삭제
-                                </button>
+                                <div class="btn-group-sm">
+                                    ${actionButtons}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            }
             
             document.getElementById('wordpress-files').innerHTML = html || '<p class="text-muted">생성된 파일이 없습니다.</p>';
         }
@@ -954,50 +938,91 @@
         function updateTistoryFiles(files) {
             let html = '';
             
-            files.forEach(file => {
-                // 날짜와 시간을 상세하게 표시 (2025. 8. 10. 14:22 형식)
-                let dateTimeString = '';
-                if (file.created_at) {
-                    const dateObj = new Date(file.created_at);
-                    const year = dateObj.getFullYear();
-                    const month = dateObj.getMonth() + 1;
-                    const day = dateObj.getDate();
-                    const hours = String(dateObj.getHours()).padStart(2, '0');
-                    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
-                    dateTimeString = `${year}. ${month}. ${day}. ${hours}:${minutes}`;
-                }
-                const tags = (file.tags || []).map(tag => `<span class="badge bg-secondary">${tag}</span>`).join(' ');
-                
-                html += `
-                    <div class="tistory-file content-item mb-3 p-2 border rounded" data-file-id="${file.id}">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="d-flex align-items-start flex-grow-1">
-                                <input type="checkbox" class="form-check-input content-checkbox me-2" 
-                                       onchange="toggleItemSelection('tistory', ${file.id})" data-file-id="${file.id}"
-                                       style="display: inline-block !important; visibility: visible !important; opacity: 1 !important; width: 16px !important; height: 16px !important; transform: scale(1.2);">
-                                <div class="flex-grow-1">
-                                    <strong>${file.title}</strong>
-                                    <div class="mt-1">${tags}</div>
-                                    <div class="text-muted small mt-1">
-                                        <i class="bi bi-calendar"></i> ${dateTimeString}
-                                        ${file.word_count ? `<span class="ms-3"><i class="bi bi-file-text"></i> ${file.word_count.toLocaleString()}자</span>` : ''}
+            if (!files || files.length === 0) {
+                html = '<p class="text-muted">생성된 파일이 없습니다.</p>';
+            } else {
+                files.forEach(file => {
+                    const title = file.title || '제목 없음';
+                    const date = file.date || new Date().toLocaleString();
+                    const size = file.size || '0KB';
+                    const status = file.status || 'draft';
+                    const category = file.category || '카테고리 없음';
+                    const tags = file.tags || [];
+                    const actions = file.actions || ['view', 'edit', 'download', 'delete'];
+                    
+                    // 상태별 배지 색상
+                    const statusBadge = status === 'published' ? 
+                        '<span class="badge bg-success">발행됨</span>' : 
+                        '<span class="badge bg-warning">임시저장</span>';
+                    
+                    // 태그 표시
+                    const tagHtml = tags.slice(0, 3).map(tag => 
+                        `<span class="badge bg-secondary me-1">${tag}</span>`
+                    ).join('');
+                    
+                    // 액션 버튼들 생성
+                    let actionButtons = '';
+                    
+                    if (actions.includes('view') && file.url) {
+                        actionButtons += `<a href="${file.url}" target="_blank" class="btn btn-outline-info btn-sm me-1" title="보기">
+                            <i class="bi bi-eye"></i> 보기
+                        </a>`;
+                    }
+                    
+                    if (actions.includes('edit')) {
+                        actionButtons += `<button class="btn btn-outline-primary btn-sm me-1" onclick="editContent('${file.id}', 'tistory')" title="편집">
+                            <i class="bi bi-pencil"></i> 편집
+                        </button>`;
+                    }
+                    
+                    if (actions.includes('publish') && status === 'draft') {
+                        actionButtons += `<button class="btn btn-outline-success btn-sm me-1" onclick="publishToTistory('${file.id}')" title="발행">
+                            <i class="bi bi-upload"></i> 발행
+                        </button>`;
+                    }
+                    
+                    if (actions.includes('download')) {
+                        actionButtons += `<button class="btn btn-outline-secondary btn-sm me-1" onclick="downloadContent('${file.id}', 'tistory')" title="다운로드">
+                            <i class="bi bi-download"></i> 다운로드
+                        </button>`;
+                    }
+                    
+                    if (actions.includes('delete')) {
+                        actionButtons += `<button class="btn btn-outline-danger btn-sm" onclick="deleteContent('${file.id}', 'tistory')" title="삭제">
+                            <i class="bi bi-trash"></i> 삭제
+                        </button>`;
+                    }
+                    
+                    html += `
+                        <div class="content-item mb-3 p-3 border rounded" data-file-id="${file.id}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex align-items-start flex-grow-1">
+                                    <input type="checkbox" class="form-check-input content-checkbox me-3" 
+                                           onchange="toggleItemSelection('tistory', '${file.id}')" data-file-id="${file.id}">
+                                    <div class="flex-grow-1">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <span class="badge bg-info me-2">TISTORY</span>
+                                            <span class="badge bg-secondary me-2">${category}</span>
+                                            ${statusBadge}
+                                        </div>
+                                        <h6 class="mb-1">${title}</h6>
+                                        ${tagHtml ? `<div class="mb-2">${tagHtml}</div>` : ''}
+                                        <div class="text-muted small">
+                                            <i class="bi bi-calendar"></i> ${date}
+                                            <span class="ms-3"><i class="bi bi-file-text"></i> ${size}</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="btn-group-vertical btn-group-sm">
-                                <a href="/api/download_file/${encodeURIComponent(file.file_path)}" class="btn btn-outline-primary btn-sm">
-                                    <i class="bi bi-download"></i> 다운로드
-                                </a>
-                                <button class="btn btn-outline-danger btn-sm" onclick="deleteFile('${file.id}')">
-                                    <i class="bi bi-trash"></i> 삭제
-                                </button>
+                                <div class="btn-group-sm">
+                                    ${actionButtons}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
-            });
+                    `;
+                });
+            }
             
-            document.getElementById('tistory-files').innerHTML = html || '<p class="text-muted">생성된 파일이 없습니다.</p>';
+            document.getElementById('tistory-files').innerHTML = html;
         }
 
         // 주제 풀 상태 업데이트
