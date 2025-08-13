@@ -2570,19 +2570,24 @@
         }
         
         function downloadContent(fileId, type) {
-            // 다운로드 API 호출
-            const downloadUrl = `/api/download_content/${fileId}`;
-            
-            // 새 창으로 다운로드 시작
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.download = '';
-            link.target = '_blank';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            showNotification(`${type} 콘텐츠 다운로드를 시작합니다.`, 'info');
+            try {
+                // 다운로드 API 호출
+                const downloadUrl = `/api/download_content/${fileId}`;
+                
+                showNotification(`🔄 ${type} 콘텐츠 다운로드 시작...`, 'info');
+                
+                // 직접 창 열기 방식으로 변경
+                window.open(downloadUrl, '_blank');
+                
+                // 성공 메시지는 약간 지연 후 표시
+                setTimeout(() => {
+                    showNotification(`✅ ${type} 콘텐츠 다운로드가 시작되었습니다.`, 'success');
+                }, 500);
+                
+            } catch (error) {
+                console.error('다운로드 오류:', error);
+                showNotification(`❌ 다운로드 중 오류가 발생했습니다.`, 'error');
+            }
         }
         
         function deleteContent(fileId, type) {
