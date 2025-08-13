@@ -39,6 +39,10 @@ logger = logging.getLogger(__name__)
 # 한국 시간대 설정
 KST = pytz.timezone('Asia/Seoul')
 
+# 목업 데이터 저장용 변수
+mock_wordpress_files = []
+mock_tistory_files = []
+
 # PostgreSQL 연결 함수
 def get_db_connection():
     """PostgreSQL 데이터베이스 연결"""
