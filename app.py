@@ -660,29 +660,35 @@ def generate_wordpress():
         
         if database.is_connected:
             # 실제 데이터베이스에 콘텐츠 생성
-            content_data = {
-                'site': site,
+            content = f'# {topic} 완전 가이드\n\n{topic}에 대한 상세한 분석입니다.'
+            
+            file_id = database.add_content_file(
+                site=site,
+                title=f'{topic} 완전 가이드',
+                file_path=f"wordpress_posts/{site}_{topic.replace(' ', '_')}.html",
+                file_type='wordpress',
+                metadata={
+                    'categories': [data.get('category', '기본')],
+                    'tags': data.get('keywords', [topic]),
+                    'word_count': len(content.split()),
+                    'reading_time': len(content.split()) // 200 + 1,
+                    'file_size': len(content.encode('utf-8'))
+                }
+            )
+            
+            # 생성 성공 응답
+            return jsonify({
+                'success': True,
+                'message': f'{site} 사이트에 {topic} 주제로 콘텐츠를 생성했습니다.',
                 'title': f'{topic} 완전 가이드',
-                'file_type': 'wordpress',
-                'status': 'draft',
-                'categories': [data.get('category', '기본')],
-                'tags': data.get('keywords', [topic]),
-                'content': f'# {topic} 완전 가이드\n\n{topic}에 대한 상세한 분석입니다.'
-            }
-            
-            file_id = database.save_content_file(**content_data)
-            
-            # 생성된 파일 정보 조회
-            created_file = database.get_content_files(file_ids=[file_id])
-            if created_file:
-                file_info = created_file[0]
-                return jsonify({
-                    'success': True,
-                    'message': f'{site} 사이트에 {topic} 주제로 콘텐츠를 생성했습니다.',
-                    'title': file_info['title'],
-                    'id': file_info['id'],
-                    'post': file_info
-                })
+                'id': file_id,
+                'post': {
+                    'id': file_id,
+                    'title': f'{topic} 완전 가이드',
+                    'site': site,
+                    'status': 'draft'
+                }
+            })
         
         # DB 연결 실패시 목업 응답
         import time
@@ -722,28 +728,34 @@ def generate_tistory():
         
         if database.is_connected:
             # 실제 데이터베이스에 콘텐츠 생성
-            content_data = {
+            content = f'# {topic} 심화 분석\n\n{topic}에 대한 상세한 분석입니다.'
+            
+            file_id = database.add_content_file(
+                site='untab',
+                title=f'{topic} 심화 분석',
+                file_path=f"tistory_posts/{topic.replace(' ', '_')}.html",
+                file_type='tistory',
+                metadata={
+                    'categories': [data.get('category', '기본')],
+                    'tags': data.get('keywords', [topic]),
+                    'word_count': len(content.split()),
+                    'reading_time': len(content.split()) // 200 + 1,
+                    'file_size': len(content.encode('utf-8'))
+                }
+            )
+            
+            # 생성 성공 응답
+            return jsonify({
+                'success': True,
+                'message': f'Tistory에 {topic} 주제로 콘텐츠를 생성했습니다.',
                 'title': f'{topic} 심화 분석',
-                'file_type': 'tistory',
-                'status': 'draft',
-                'categories': [data.get('category', '기본')],
-                'tags': data.get('keywords', [topic]),
-                'content': f'# {topic} 심화 분석\n\n{topic}에 대한 상세한 분석입니다.'
-            }
-            
-            file_id = database.save_content_file(**content_data)
-            
-            # 생성된 파일 정보 조회
-            created_file = database.get_content_files(file_ids=[file_id])
-            if created_file:
-                file_info = created_file[0]
-                return jsonify({
-                    'success': True,
-                    'message': f'Tistory에 {topic} 주제로 콘텐츠를 생성했습니다.',
-                    'title': file_info['title'],
-                    'id': file_info['id'],
-                    'post': file_info
-                })
+                'id': file_id,
+                'post': {
+                    'id': file_id,
+                    'title': f'{topic} 심화 분석',
+                    'status': 'draft'
+                }
+            })
         
         # DB 연결 실패시 목업 응답
         import time
