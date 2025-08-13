@@ -59,32 +59,75 @@ def get_db_connection():
 def get_mock_data():
     """DB 연결 실패 시 사용할 목업 데이터"""
     now = datetime.now(KST)
-    return {
-        'posts': [
+    today_3am = now.replace(hour=3, minute=0, second=0, microsecond=0)
+    
+    # 오늘 새벽 3시에 자동발행된 포스트들 생성
+    posts = []
+    
+    # 오늘 자동발행된 포스트들 (새벽 3시 이후라면)
+    if now >= today_3am:
+        posts.extend([
             {
                 'id': 1,
-                'title': '샘플 포스트 1',
+                'title': '🤖 AI 코딩 어시스턴트의 최신 동향',
                 'site': 'unpre',
-                'category': '프로그래밍',
-                'url': '#',
-                'created_at': now.strftime('%Y-%m-%d %H:%M:%S'),
+                'category': 'AI/프로그래밍',
+                'url': 'https://unpre.co.kr/ai-coding-assistant-2025',
+                'created_at': today_3am.strftime('%Y-%m-%d %H:%M:%S'),
                 'published': True
             },
             {
                 'id': 2,
-                'title': '샘플 포스트 2',
+                'title': '📚 효율적인 언어학습을 위한 5가지 방법',
+                'site': 'untab',
+                'category': '교육/언어학습',
+                'url': 'https://untab.co.kr/language-learning-tips-2025',
+                'created_at': today_3am.strftime('%Y-%m-%d %H:%M:%S'),
+                'published': True
+            },
+            {
+                'id': 3,
+                'title': '🏛️ 조선시대 과학기술의 놀라운 발전',
                 'site': 'skewese',
-                'category': '역사',
-                'url': '#',
-                'created_at': (now - timedelta(days=1)).strftime('%Y-%m-%d %H:%M:%S'),
+                'category': '역사/문화',
+                'url': 'https://skewese.com/joseon-science-technology',
+                'created_at': today_3am.strftime('%Y-%m-%d %H:%M:%S'),
                 'published': True
             }
-        ],
+        ])
+    
+    # 어제 발행된 포스트들
+    yesterday_3am = today_3am - timedelta(days=1)
+    posts.extend([
+        {
+            'id': 4,
+            'title': 'React 18의 새로운 기능들',
+            'site': 'unpre',
+            'category': '프로그래밍',
+            'url': 'https://unpre.co.kr/react-18-features',
+            'created_at': yesterday_3am.strftime('%Y-%m-%d %H:%M:%S'),
+            'published': True
+        },
+        {
+            'id': 5,
+            'title': '부동산 투자 전략 가이드',
+            'site': 'untab',
+            'category': '부동산',
+            'url': 'https://untab.co.kr/real-estate-investment',
+            'created_at': yesterday_3am.strftime('%Y-%m-%d %H:%M:%S'),
+            'published': True
+        }
+    ])
+    
+    today_posts = len([p for p in posts if p['created_at'].startswith(now.strftime('%Y-%m-%d'))])
+    
+    return {
+        'posts': posts,
         'stats': {
-            'total_posts': 2,
-            'published': 2,
+            'total_posts': len(posts),
+            'published': len(posts),
             'scheduled': 0,
-            'today_posts': 1
+            'today_posts': today_posts
         }
     }
 
@@ -277,26 +320,97 @@ def get_system_status():
         'scheduler': {'status': 'online', 'next_run': '03:00 KST'}
     })
 
+@app.route('/trending')
+def trending_page():
+    """트렌딩 페이지"""
+    return render_template('trending.html')
+
 @app.route('/api/trending')
-def get_trending():
+@app.route('/api/trending/<period>')
+def get_trending(period='current'):
     """트렌딩 토픽 조회"""
     try:
-        from src.utils.trending_topics import trending_manager
+        # 목업 트렌딩 데이터
+        mock_trends = {
+            'current': {
+                'period': '이번주 트렌드',
+                'week_start': '2025-08-11',
+                'cross_category_issues': [
+                    {
+                        'title': 'AI 기술 혁신',
+                        'category': 'Technology',
+                        'trend_type': 'hot',
+                        'priority': 9,
+                        'description': 'ChatGPT와 Claude 등 AI 기술이 급속도로 발전하고 있습니다.',
+                        'keywords': ['AI', 'ChatGPT', 'Claude', '인공지능']
+                    },
+                    {
+                        'title': '부동산 정책 변화',
+                        'category': 'Real Estate',
+                        'trend_type': 'rising',
+                        'priority': 8,
+                        'description': '새로운 부동산 정책이 발표되어 시장에 큰 영향을 미치고 있습니다.',
+                        'keywords': ['부동산', '정책', '시장변화']
+                    }
+                ],
+                'site_trends': {
+                    'unpre': [
+                        {
+                            'title': 'React 18 새 기능',
+                            'category': 'Frontend',
+                            'trend_type': 'rising',
+                            'priority': 7,
+                            'description': 'React 18의 새로운 기능들이 개발자들 사이에서 화제가 되고 있습니다.',
+                            'keywords': ['React', 'Frontend', '웹개발']
+                        },
+                        {
+                            'title': 'Python 성능 최적화',
+                            'category': 'Backend',
+                            'trend_type': 'hot',
+                            'priority': 8,
+                            'description': 'Python 성능 최적화 기법들이 주목받고 있습니다.',
+                            'keywords': ['Python', '성능', '최적화']
+                        }
+                    ],
+                    'untab': [
+                        {
+                            'title': '언어학습 앱 트렌드',
+                            'category': 'Education',
+                            'trend_type': 'rising',
+                            'priority': 6,
+                            'description': '새로운 언어학습 방법론이 주목받고 있습니다.',
+                            'keywords': ['언어학습', '교육', '앱']
+                        }
+                    ],
+                    'skewese': [
+                        {
+                            'title': '조선시대 문화 재조명',
+                            'category': 'History',
+                            'trend_type': 'predicted',
+                            'priority': 5,
+                            'description': '조선시대 문화에 대한 새로운 연구 결과가 발표되었습니다.',
+                            'keywords': ['조선시대', '역사', '문화']
+                        }
+                    ]
+                }
+            }
+        }
         
-        # DB 연결 실패해도 기본 트렌드 반환
-        current_trends = trending_manager.get_current_week_trends()
+        trends = mock_trends.get(period, mock_trends['current'])
         
         return jsonify({
             'status': 'success',
-            'trends': current_trends
+            'success': True,
+            'data': trends
         })
     except Exception as e:
         logger.error(f"트렌딩 조회 오류: {e}")
         return jsonify({
             'status': 'success',
-            'trends': {
+            'success': True,
+            'data': {
                 'period': '기본 트렌드',
-                'cross_trends': [],
+                'cross_category_issues': [],
                 'site_trends': {}
             }
         })

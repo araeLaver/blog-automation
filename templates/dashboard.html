@@ -1004,84 +1004,107 @@
         function updateTopicStats(topicStats) {
             let html = '';
             
-            for (const [site, stats] of Object.entries(topicStats)) {
-                const total = stats.used + stats.unused;
-                const percentage = total > 0 ? Math.round((stats.used / total) * 100) : 0;
-                
-                html += `
-                    <div class="col-md-4 mb-3">
-                        <h6>${site}</h6>
-                        <div class="progress" style="height: 25px;">
-                            <div class="progress-bar bg-success" style="width: ${percentage}%">
-                                사용: ${stats.used}
+            if (!topicStats || typeof topicStats !== 'object') {
+                html = '<div class="col-12"><p class="text-muted">주제 풀 데이터를 불러오는 중...</p></div>';
+            } else {
+                for (const [site, stats] of Object.entries(topicStats)) {
+                    if (!stats || typeof stats !== 'object') continue;
+                    
+                    const total = (stats.total || 0);
+                    const used = (stats.used || 0);
+                    const available = (stats.available || 0);
+                    const percentage = total > 0 ? Math.round((used / total) * 100) : 0;
+                    
+                    html += `
+                        <div class="col-md-4 mb-3">
+                            <h6 class="text-uppercase">${site}</h6>
+                            <div class="progress" style="height: 25px;">
+                                <div class="progress-bar bg-success" style="width: ${percentage}%">
+                                    사용: ${used}
+                                </div>
+                                <div class="progress-bar bg-info" style="width: ${100-percentage}%">
+                                    가능: ${available}
+                                </div>
                             </div>
-                            <div class="progress-bar bg-info" style="width: ${100-percentage}%">
-                                미사용: ${stats.unused}
-                            </div>
+                            <small class="text-muted">총 ${total}개 중 ${used}개 사용</small>
                         </div>
-                    </div>
-                `;
+                    `;
+                }
             }
             
-            document.getElementById('topic-stats').innerHTML = html;
+            const topicStatsElement = document.getElementById('topic-stats');
+            if (topicStatsElement) {
+                topicStatsElement.innerHTML = html;
+            }
         }
 
         // 차트 업데이트
         async function updateCharts() {
-            // 일별 차트
-            const dailyRes = await fetch('/api/chart/daily');
-            const dailyData = await dailyRes.json();
+            try {
+                // 차트 데이터 API 호출
+                const chartRes = await fetch('/api/chart_data');
+                if (!chartRes.ok) {
+                    throw new Error(`HTTP ${chartRes.status}`);
+                }
+                const chartData = await chartRes.json();
             
-            const ctx1 = document.getElementById('dailyChart').getContext('2d');
-            if (dailyChart) dailyChart.destroy();
-            
-            dailyChart = new Chart(ctx1, {
-                type: 'line',
-                data: {
-                    labels: dailyData.labels,
-                    datasets: [{
-                        label: '발행 포스트',
-                        data: dailyData.data,
-                        borderColor: 'rgb(102, 126, 234)',
-                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }
+                // 일별 차트 데이터 준비
+                const dailyLabels = chartData.daily ? chartData.daily.map(item => item.date) : [];
+                const dailyValues = chartData.daily ? chartData.daily.map(item => item.count) : [];
+                
+                const ctx1 = document.getElementById('dailyChart').getContext('2d');
+                if (dailyChart) dailyChart.destroy();
+                
+                dailyChart = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: dailyLabels,
+                        datasets: [{
+                            label: '발행 포스트',
+                            data: dailyValues,
+                            borderColor: 'rgb(102, 126, 234)',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        }
                     }
-                }
-            });
-            
-            // 사이트별 차트
-            const siteRes = await fetch('/api/chart/site');
-            const siteData = await siteRes.json();
-            
-            const ctx2 = document.getElementById('siteChart').getContext('2d');
-            if (siteChart) siteChart.destroy();
-            
-            siteChart = new Chart(ctx2, {
-                type: 'doughnut',
-                data: {
-                    labels: siteData.labels,
-                    datasets: [{
-                        data: siteData.data,
-                        backgroundColor: [
-                            'rgba(102, 126, 234, 0.8)',
-                            'rgba(72, 199, 116, 0.8)',
-                            'rgba(255, 183, 77, 0.8)',
-                            'rgba(255, 107, 107, 0.8)'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
+                });
+                
+                // 사이트별 차트 데이터 준비
+                const siteLabels = chartData.bySite ? Object.keys(chartData.bySite) : [];
+                const siteValues = chartData.bySite ? Object.values(chartData.bySite) : [];
+                
+                const ctx2 = document.getElementById('siteChart').getContext('2d');
+                if (siteChart) siteChart.destroy();
+                
+                siteChart = new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: siteLabels,
+                        datasets: [{
+                            data: siteValues,
+                            backgroundColor: [
+                                'rgba(102, 126, 234, 0.8)',
+                                'rgba(72, 199, 116, 0.8)',
+                                'rgba(255, 183, 77, 0.8)',
+                                'rgba(255, 107, 107, 0.8)'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            } catch (error) {
+                console.error('차트 업데이트 오류:', error);
+            }
         }
 
         // WordPress 콘텐츠 생성
@@ -2142,7 +2165,7 @@
         function displayScheduleOverview(scheduleData, weekType) {
             const container = document.getElementById('schedule-overview-content');
             
-            if (!scheduleData || !scheduleData.schedule) {
+            if (!scheduleData || Object.keys(scheduleData).length === 0) {
                 container.innerHTML = `
                     <div class="text-center py-4">
                         <div class="text-muted mb-3">
@@ -2159,73 +2182,59 @@
                 <div class="schedule-header mb-4">
                     <h6 class="text-primary">
                         📅 ${weekType === 'current' ? '이번' : '다음'} 주 발행 계획 
-                        <small class="text-muted">(${scheduleData.week_start} 주)</small>
                     </h6>
                 </div>
                 <div class="row">
             `;
             
-            const statusColors = {
-                'planned': 'secondary',
-                'generating': 'warning',
-                'published': 'success',
-                'failed': 'danger'
-            };
-            
-            const statusTexts = {
-                'planned': '발행 예정',
-                'generating': '생성 중',
-                'published': '발행 완료',
-                'failed': '실패'
-            };
-            
-            // 요일별로 카드 형태로 표시
-            for (let day = 0; day < 7; day++) {
-                const dayInfo = scheduleData.schedule[day];
-                if (!dayInfo) continue;
+            // API 응답 데이터를 날짜별로 표시
+            const dates = Object.keys(scheduleData);
+            dates.forEach(date => {
+                const dayData = scheduleData[date];
+                if (!dayData) return;
+                
+                const dateObj = new Date(date);
+                const dayName = dateObj.toLocaleDateString('ko-KR', { weekday: 'long' });
                 
                 html += `
                     <div class="col-md-6 col-lg-4 mb-3">
                         <div class="card schedule-day-card">
                             <div class="card-header bg-light">
-                                <h6 class="mb-0">${dayInfo.day_name}</h6>
-                                <small class="text-muted">${dayInfo.date}</small>
+                                <h6 class="mb-0">${dayName}</h6>
+                                <small class="text-muted">${date}</small>
                             </div>
                             <div class="card-body p-2">
                 `;
                 
                 // 사이트별 계획 표시
                 const sites = ['unpre', 'untab', 'skewese'];
-                for (const site of sites) {
-                    const plan = dayInfo.sites[site];
-                    if (plan) {
-                        const statusClass = statusColors[plan.status] || 'secondary';
-                        const statusText = statusTexts[plan.status] || plan.status;
+                sites.forEach(site => {
+                    if (dayData[site]) {
+                        const plan = dayData[site];
                         
                         html += `
-                            <div class="schedule-site-item mb-2">
+                            <div class="schedule-site-item mb-2 p-2 bg-light rounded">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div class="flex-grow-1">
                                         <div class="site-badge site-${site} small mb-1">${site.toUpperCase()}</div>
-                                        <div class="fw-bold small" style="font-size: 0.8rem;">${plan.topic}</div>
-                                        <div class="text-muted" style="font-size: 0.7rem;">
-                                            ${plan.keywords ? plan.keywords.slice(0, 3).join(', ') : ''}
+                                        <div class="fw-bold small">${plan.time} 발행</div>
+                                        <div class="text-muted small">
+                                            주제: ${plan.topics ? plan.topics.join(', ') : '자동 선택'}
                                         </div>
                                     </div>
-                                    <span class="badge bg-${statusClass} small">${statusText}</span>
+                                    <span class="badge bg-info small">${plan.status || '예정'}</span>
                                 </div>
-                                ${plan.url ? `<div class="mt-1"><a href="${plan.url}" target="_blank" class="small text-decoration-none">🔗 보기</a></div>` : ''}
                             </div>
                         `;
                     }
-                }
+                });
                 
                 html += `
                             </div>
                         </div>
                     </div>
                 `;
-            }
+            });
             
             html += '</div>';
             container.innerHTML = html;
