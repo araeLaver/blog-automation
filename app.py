@@ -24,6 +24,8 @@ load_dotenv()
 # PostgreSQL 데이터베이스 import
 from src.utils.postgresql_database import PostgreSQLDatabase
 
+# AI 콘텐츠 생성 import (나중에 초기화)
+
 # Flask 앱 생성
 app = Flask(__name__, 
             template_folder='templates',
@@ -38,6 +40,15 @@ app.jinja_env.auto_reload = True
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# AI 콘텐츠 생성기 초기화
+try:
+    from src.generators.content_generator import ContentGenerator
+    content_generator = ContentGenerator()
+    logger.info("✅ Claude API 콘텐츠 생성기 초기화 완료")
+except Exception as e:
+    logger.warning(f"⚠️ Claude API 초기화 실패: {e}")
+    content_generator = None
 
 # 한국 시간대 설정
 KST = pytz.timezone('Asia/Seoul')
@@ -660,13 +671,101 @@ def generate_wordpress():
         
         try:
             if database.is_connected:
-                # 실제 데이터베이스에 콘텐츠 생성
-                content = f'# {topic} 완전 가이드\n\n{topic}에 대한 상세한 분석입니다.'
+                # Claude API로 실제 콘텐츠 생성
+                if content_generator:
+                    print(f"🤖 Claude API로 {topic} 콘텐츠 생성 시작...")
+                    
+                    # 사이트 설정
+                    site_config = {
+                        'name': site,
+                        'target_audience': '개발자 및 IT 전문가',
+                        'content_style': '실용적이고 기술적인',
+                        'keywords_focus': data.get('keywords', [topic])
+                    }
+                    
+                    # AI 콘텐츠 생성 (실제 Claude API 호출)
+                    generated_content = content_generator.generate_content(
+                        site_config=site_config,
+                        topic=topic,
+                        category=data.get('category', '프로그래밍'),
+                        content_length='medium'
+                    )
+                    
+                    # HTML 형태로 변환
+                    content_html = f"""
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{generated_content['title']}</title>
+    <meta name="description" content="{generated_content['meta_description']}">
+</head>
+<body>
+    <article>
+        <header>
+            <h1>{generated_content['title']}</h1>
+        </header>
+        
+        <section class="introduction">
+            <p>{generated_content['introduction']}</p>
+        </section>
+        
+        <main>
+"""
+                    
+                    for section in generated_content['sections']:
+                        content_html += f"""
+            <section>
+                <h2>{section['heading']}</h2>
+                <div>{section['content'].replace('\n\n', '</p><p>').replace('\n', '<br>')}</div>
+            </section>
+"""
+                    
+                    content_html += f"""
+        </main>
+        
+        <footer>
+            <section class="conclusion">
+                <h2>마무리</h2>
+                <p>{generated_content['conclusion']}</p>
+            </section>
+            
+            <div class="tags">
+                <strong>태그:</strong> {', '.join(generated_content['tags'])}
+            </div>
+        </footer>
+    </article>
+</body>
+</html>
+"""
+                    
+                    content = content_html
+                    title = generated_content['title']
+                    print(f"✅ Claude API 콘텐츠 생성 완료: {title[:50]}...")
+                    
+                else:
+                    # Fallback 콘텐츠
+                    content = f'<h1>{topic} 완전 가이드</h1>\n<p>{topic}에 대한 상세한 분석입니다.</p>'
+                    title = f'{topic} 완전 가이드'
+                    print(f"⚠️ Claude API 미사용, 기본 콘텐츠 생성: {title}")
+                
+                # 실제 파일 저장
+                import tempfile
+                import os
+                
+                temp_dir = tempfile.mkdtemp()
+                file_name = f"{site}_{topic.replace(' ', '_')}_{int(__import__('time').time())}.html"
+                file_path = os.path.join(temp_dir, file_name)
+                
+                # 파일 저장
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
                 
                 file_id = database.add_content_file(
                     site=site,
-                    title=f'{topic} 완전 가이드',
-                    file_path=f"wordpress_posts/{site}_{topic.replace(' ', '_')}.html",
+                    title=title,
+                    file_path=file_path,
                     file_type='wordpress',
                     metadata={
                         'categories': [data.get('category', '기본')],
@@ -681,11 +780,11 @@ def generate_wordpress():
                 return jsonify({
                     'success': True,
                     'message': f'{site} 사이트에 {topic} 주제로 콘텐츠를 생성했습니다.',
-                    'title': f'{topic} 완전 가이드',
+                    'title': title,
                     'id': file_id,
                     'post': {
                         'id': file_id,
-                        'title': f'{topic} 완전 가이드',
+                        'title': title,
                         'site': site,
                         'status': 'draft'
                     }
@@ -731,13 +830,101 @@ def generate_tistory():
         
         try:
             if database.is_connected:
-                # 실제 데이터베이스에 콘텐츠 생성
-                content = f'# {topic} 심화 분석\n\n{topic}에 대한 상세한 분석입니다.'
+                # Claude API로 실제 콘텐츠 생성
+                if content_generator:
+                    print(f"🤖 Claude API로 Tistory {topic} 콘텐츠 생성 시작...")
+                    
+                    # 사이트 설정
+                    site_config = {
+                        'name': 'untab',
+                        'target_audience': '일반 대중 및 관심있는 독자',
+                        'content_style': '이해하기 쉬우고 실용적인',
+                        'keywords_focus': data.get('keywords', [topic])
+                    }
+                    
+                    # AI 콘텐츠 생성 (실제 Claude API 호출)
+                    generated_content = content_generator.generate_content(
+                        site_config=site_config,
+                        topic=topic,
+                        category=data.get('category', '일반'),
+                        content_length='medium'
+                    )
+                    
+                    # HTML 형태로 변환
+                    content_html = f"""
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{generated_content['title']}</title>
+    <meta name="description" content="{generated_content['meta_description']}">
+</head>
+<body>
+    <article>
+        <header>
+            <h1>{generated_content['title']}</h1>
+        </header>
+        
+        <section class="introduction">
+            <p>{generated_content['introduction']}</p>
+        </section>
+        
+        <main>
+"""
+                    
+                    for section in generated_content['sections']:
+                        content_html += f"""
+            <section>
+                <h2>{section['heading']}</h2>
+                <div>{section['content'].replace('\n\n', '</p><p>').replace('\n', '<br>')}</div>
+            </section>
+"""
+                    
+                    content_html += f"""
+        </main>
+        
+        <footer>
+            <section class="conclusion">
+                <h2>마무리</h2>
+                <p>{generated_content['conclusion']}</p>
+            </section>
+            
+            <div class="tags">
+                <strong>태그:</strong> {', '.join(generated_content['tags'])}
+            </div>
+        </footer>
+    </article>
+</body>
+</html>
+"""
+                    
+                    content = content_html
+                    title = generated_content['title']
+                    print(f"✅ Claude API Tistory 콘텐츠 생성 완룉: {title[:50]}...")
+                    
+                else:
+                    # Fallback 콘텐츠
+                    content = f'<h1>{topic} 심화 분석</h1>\n<p>{topic}에 대한 상세한 분석입니다.</p>'
+                    title = f'{topic} 심화 분석'
+                    print(f"⚠️ Claude API 미사용, Tistory 기본 콘텐츠 생성: {title}")
+                
+                # 실제 파일 저장
+                import tempfile
+                import os
+                
+                temp_dir = tempfile.mkdtemp()
+                file_name = f"tistory_{topic.replace(' ', '_')}_{int(__import__('time').time())}.html"
+                file_path = os.path.join(temp_dir, file_name)
+                
+                # 파일 저장
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
                 
                 file_id = database.add_content_file(
                     site='untab',
-                    title=f'{topic} 심화 분석',
-                    file_path=f"tistory_posts/{topic.replace(' ', '_')}.html",
+                    title=title,
+                    file_path=file_path,
                     file_type='tistory',
                     metadata={
                         'categories': [data.get('category', '기본')],
@@ -752,11 +939,11 @@ def generate_tistory():
                 return jsonify({
                     'success': True,
                     'message': f'Tistory에 {topic} 주제로 콘텐츠를 생성했습니다.',
-                    'title': f'{topic} 심화 분석',
+                    'title': title,
                     'id': file_id,
                     'post': {
                         'id': file_id,
-                        'title': f'{topic} 심화 분석',
+                        'title': title,
                         'status': 'draft'
                     }
                 })
@@ -806,8 +993,22 @@ def download_content(file_id):
                     break
             
             if target_file:
-                # 파일 내용 생성 (HTML 형식)
-                content = f"""<!DOCTYPE html>
+                # 실제 파일 내용 읽기 시도
+                file_path = target_file.get('file_path')
+                content = None
+                
+                if file_path and os.path.exists(file_path):
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        print(f"✅ 실제 파일 읽기 성공: {file_path}")
+                    except Exception as e:
+                        print(f"⚠️ 파일 읽기 실패: {e}")
+                        content = None
+                
+                # 파일이 없거나 읽기 실패시 기본 콘텐츠 생성
+                if not content:
+                    content = f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -830,16 +1031,22 @@ def download_content(file_id):
     </div>
     <div class="content">
         <p>이 콘텐츠는 자동 생성된 {target_file.get('file_type', 'unknown')} 콘텐츠입니다.</p>
-        <p>추가 내용을 여기에 작성할 수 있습니다.</p>
+        <p>콘텐츠 파일을 찾을 수 없어 기본 내용을 표시합니다.</p>
     </div>
 </body>
 </html>"""
                 
                 # 파일 다운로드 응답
                 response = make_response(content)
-                filename = f"{target_file.get('title', 'content')}_{file_id}.html"
-                response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+                # 한글 파일명 처리
+                safe_title = target_file.get('title', 'content')[:50]  # 길이 제한
+                import re
+                safe_title = re.sub(r'[^\w\s-]', '', safe_title).strip()
+                filename = f"{safe_title}_{file_id}.html"
+                
+                response.headers['Content-Disposition'] = f'attachment; filename*=UTF-8\'\'{"".join(f"%{ord(c):02X}" if ord(c) > 127 else c for c in filename)}'
                 response.headers['Content-Type'] = 'text/html; charset=utf-8'
+                print(f"✅ 다운로드 제공: {filename}")
                 return response
         
         # 파일을 찾을 수 없는 경우
