@@ -789,6 +789,72 @@ def generate_tistory():
             'error': str(e)
         }), 500
 
+@app.route('/api/download_content/<int:file_id>')
+def download_content(file_id):
+    """콘텐츠 파일 다운로드"""
+    try:
+        database = get_database()
+        
+        if database.is_connected:
+            # DB에서 파일 정보 조회
+            files = database.get_content_files(limit=1000)  # 전체 조회
+            target_file = None
+            
+            for f in files:
+                if f.get('id') == file_id:
+                    target_file = f
+                    break
+            
+            if target_file:
+                # 파일 내용 생성 (HTML 형식)
+                content = f"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{target_file.get('title', '제목 없음')}</title>
+    <style>
+        body {{ font-family: 'Segoe UI', sans-serif; margin: 40px; line-height: 1.6; }}
+        h1 {{ color: #333; border-bottom: 3px solid #007bff; padding-bottom: 10px; }}
+        .meta {{ color: #666; margin-bottom: 20px; }}
+        .content {{ margin-top: 30px; }}
+    </style>
+</head>
+<body>
+    <h1>{target_file.get('title', '제목 없음')}</h1>
+    <div class="meta">
+        <p><strong>사이트:</strong> {target_file.get('site', 'N/A')}</p>
+        <p><strong>생성일:</strong> {target_file.get('created_at', 'N/A')}</p>
+        <p><strong>상태:</strong> {target_file.get('status', 'draft')}</p>
+        <p><strong>카테고리:</strong> {target_file.get('categories', ['기본'])[0] if target_file.get('categories') else '기본'}</p>
+    </div>
+    <div class="content">
+        <p>이 콘텐츠는 자동 생성된 {target_file.get('file_type', 'unknown')} 콘텐츠입니다.</p>
+        <p>추가 내용을 여기에 작성할 수 있습니다.</p>
+    </div>
+</body>
+</html>"""
+                
+                # 파일 다운로드 응답
+                response = make_response(content)
+                filename = f"{target_file.get('title', 'content')}_{file_id}.html"
+                response.headers['Content-Disposition'] = f'attachment; filename="{filename}"'
+                response.headers['Content-Type'] = 'text/html; charset=utf-8'
+                return response
+        
+        # 파일을 찾을 수 없는 경우
+        return jsonify({
+            'success': False,
+            'error': '파일을 찾을 수 없습니다.'
+        }), 404
+        
+    except Exception as e:
+        logger.error(f"다운로드 오류: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/delete_posts', methods=['POST'])
 def delete_posts():
     """포스트 삭제"""
@@ -864,11 +930,29 @@ def get_wordpress_files():
         # 형식 맞추기
         formatted_files = []
         for f in files:
+            # 시간 포맷팅 (한국 시간)
+            created_at = f.get('created_at')
+            if created_at:
+                if isinstance(created_at, str):
+                    # ISO 형식 문자열을 datetime으로 변환
+                    from datetime import datetime
+                    try:
+                        dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                        # UTC를 한국 시간으로 변환
+                        kst_dt = dt.astimezone(KST)
+                        formatted_date = kst_dt.strftime('%Y-%m-%d %H:%M')
+                    except:
+                        formatted_date = created_at
+                else:
+                    formatted_date = created_at.strftime('%Y-%m-%d %H:%M') if hasattr(created_at, 'strftime') else str(created_at)
+            else:
+                formatted_date = datetime.now(KST).strftime('%Y-%m-%d %H:%M')
+            
             formatted_files.append({
                 'id': f.get('id'),
                 'site': f.get('site', 'unpre'),
                 'title': f.get('title'),
-                'date': f.get('created_at'),
+                'date': formatted_date,
                 'size': f'{f.get("file_size", 0) / 1024:.1f}KB' if f.get('file_size') else '3.0KB',
                 'status': f.get('status', 'draft'),
                 'url': f.get('url'),
@@ -963,10 +1047,28 @@ def get_tistory_files():
         # 형식 맞추기
         formatted_files = []
         for f in files:
+            # 시간 포맷팅 (한국 시간)
+            created_at = f.get('created_at')
+            if created_at:
+                if isinstance(created_at, str):
+                    # ISO 형식 문자열을 datetime으로 변환
+                    from datetime import datetime
+                    try:
+                        dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+                        # UTC를 한국 시간으로 변환
+                        kst_dt = dt.astimezone(KST)
+                        formatted_date = kst_dt.strftime('%Y-%m-%d %H:%M')
+                    except:
+                        formatted_date = created_at
+                else:
+                    formatted_date = created_at.strftime('%Y-%m-%d %H:%M') if hasattr(created_at, 'strftime') else str(created_at)
+            else:
+                formatted_date = datetime.now(KST).strftime('%Y-%m-%d %H:%M')
+            
             formatted_files.append({
                 'id': f.get('id'),
                 'title': f.get('title'),
-                'date': f.get('created_at'),
+                'date': formatted_date,
                 'size': f'{f.get("file_size", 0) / 1024:.1f}KB' if f.get('file_size') else '3.0KB',
                 'status': f.get('status', 'draft'),
                 'url': f.get('url'),
