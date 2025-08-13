@@ -165,9 +165,14 @@ def get_recent_posts():
             posts = []
             for site in ['unpre', 'untab', 'skewese']:
                 cursor.execute("""
-                    SELECT id, title, site, category, url, 
-                           created_at::text, published
-                    FROM posts 
+                    SELECT id, title, site, 
+                           CASE WHEN categories IS NOT NULL AND jsonb_array_length(categories) > 0 
+                                THEN categories->>0 
+                                ELSE 'default' END as category,
+                           url, 
+                           created_at::text, 
+                           CASE WHEN status = 'published' THEN true ELSE false END as published
+                    FROM content_files 
                     WHERE site = %s
                     ORDER BY created_at DESC 
                     LIMIT 5
@@ -203,9 +208,14 @@ def get_posts():
             for site in ['unpre', 'untab', 'skewese']:
                 if site_filter == 'all' or site_filter == site:
                     query = """
-                        SELECT id, title, site, category, url, 
-                               created_at::text, published
-                        FROM posts 
+                        SELECT id, title, site, 
+                               CASE WHEN categories IS NOT NULL AND jsonb_array_length(categories) > 0 
+                                    THEN categories->>0 
+                                    ELSE 'default' END as category,
+                               url, 
+                               created_at::text, 
+                               CASE WHEN status = 'published' THEN true ELSE false END as published
+                        FROM content_files 
                         WHERE site = %s
                     """
                     params = [site]
@@ -246,10 +256,10 @@ def get_stats():
             cursor.execute("""
                 SELECT 
                     COUNT(*) as total_posts,
-                    COUNT(CASE WHEN published = true THEN 1 END) as published,
-                    COUNT(CASE WHEN published = false THEN 1 END) as scheduled,
+                    COUNT(CASE WHEN status = 'published' THEN 1 END) as published,
+                    COUNT(CASE WHEN status != 'published' THEN 1 END) as scheduled,
                     COUNT(CASE WHEN DATE(created_at) = CURRENT_DATE THEN 1 END) as today_posts
-                FROM posts
+                FROM content_files
             """)
             
             stats = cursor.fetchone()
@@ -449,7 +459,7 @@ def get_chart_data():
                 
                 cursor.execute("""
                     SELECT site, COUNT(*) as count
-                    FROM posts
+                    FROM content_files
                     WHERE DATE(created_at) = %s
                     GROUP BY site
                 """, (date,))
