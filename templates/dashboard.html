@@ -672,7 +672,10 @@
 
         // 데이터 새로고침
         async function refreshData() {
-            document.getElementById('loader').style.display = 'block';
+            const loader = document.getElementById('loader');
+            if (loader) {
+                loader.style.display = 'block';
+            }
             
             try {
                 // 통계 데이터
@@ -701,8 +704,12 @@
                 
                 // 발행 일정
                 const scheduleRes = await fetch('/api/schedule');
-                const schedule = await scheduleRes.json();
-                updateSchedule(schedule);
+                if (scheduleRes.ok) {
+                    const schedule = await scheduleRes.json();
+                    updateSchedule(schedule);
+                } else {
+                    console.warn('발행 일정 데이터 로드 실패');
+                }
                 
                 // WordPress 파일
                 const wordpressRes = await fetch('/api/wordpress_files');
@@ -719,8 +726,12 @@
                 
             } catch (error) {
                 console.error('Error refreshing data:', error);
+                // 오류 발생시에도 로더는 숨기기
             } finally {
-                document.getElementById('loader').style.display = 'none';
+                const loader = document.getElementById('loader');
+                if (loader) {
+                    loader.style.display = 'none';
+                }
             }
         }
 
@@ -820,7 +831,10 @@
                 `;
             });
             
-            document.getElementById('recent-posts').innerHTML = html || '<p class="text-muted">포스트가 없습니다.</p>';
+            const recentPostsElement = document.getElementById('recent-posts');
+            if (recentPostsElement) {
+                recentPostsElement.innerHTML = html || '<p class="text-muted">포스트가 없습니다.</p>';
+            }
         }
 
         // 발행 일정 업데이트
@@ -828,7 +842,10 @@
             let html = '';
             
             if (!schedule || !Array.isArray(schedule)) {
-                document.getElementById('schedule').innerHTML = '<p class="text-muted">일정 데이터를 불러올 수 없습니다.</p>';
+                const scheduleElement = document.getElementById('weekly-schedule-content');
+                if (scheduleElement) {
+                    scheduleElement.innerHTML = '<p class="text-muted">일정 데이터를 불러올 수 없습니다.</p>';
+                }
                 return;
             }
             
@@ -854,7 +871,10 @@
                 `;
             });
             
-            document.getElementById('schedule').innerHTML = html;
+            const scheduleElement = document.getElementById('weekly-schedule-content');
+            if (scheduleElement) {
+                scheduleElement.innerHTML = html;
+            }
         }
 
         // WordPress 파일 업데이트
@@ -938,7 +958,10 @@
                 });
             }
             
-            document.getElementById('wordpress-files').innerHTML = html || '<p class="text-muted">생성된 파일이 없습니다.</p>';
+            const wordpressElement = document.getElementById('wordpress-files');
+            if (wordpressElement) {
+                wordpressElement.innerHTML = html || '<p class="text-muted">생성된 파일이 없습니다.</p>';
+            }
         }
 
         // Tistory 파일 업데이트
@@ -1029,7 +1052,10 @@
                 });
             }
             
-            document.getElementById('tistory-files').innerHTML = html;
+            const tistoryElement = document.getElementById('tistory-files');
+            if (tistoryElement) {
+                tistoryElement.innerHTML = html;
+            }
         }
 
         // 주제 풀 상태 업데이트
