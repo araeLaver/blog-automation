@@ -1127,6 +1127,7 @@
             ]);
             
             try {
+                console.log('Sending WordPress generation request...');
                 const res = await fetch('/api/generate_wordpress', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -1139,11 +1140,18 @@
                     })
                 });
                 
+                console.log('Response received, status:', res.status);
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
+                
                 const result = await res.json();
+                console.log('Generation result:', result);
                 hideProgressSteps();
                 
                 if (result.success) {
-                    showNotification(`✅ ${site.toUpperCase()} 콘텐츠 생성 완료! 목록을 업데이트하고 있습니다...`, 'success');
+                    showNotification(`✅ ${site.toUpperCase()} 콘텐츠 생성 완료!`, 'success');
                     
                     // 업데이트 중 표시 (새로운 디자인)
                     const wpFilesContainer = document.getElementById('wordpress-files');
@@ -2101,7 +2109,9 @@
                 document.querySelectorAll('.schedule-overview-controls .btn').forEach(btn => {
                     btn.classList.remove('active');
                 });
-                event.target.classList.add('active');
+                if (event && event.target) {
+                    event.target.classList.add('active');
+                }
                 
                 const today = new Date();
                 let targetDate;
@@ -2115,6 +2125,7 @@
                     targetDate = new Date(nextWeek.setDate(diff)).toISOString().split('T')[0];
                 }
                 
+                console.log('Fetching schedule for:', targetDate);
                 const response = await fetch(`/api/schedule/weekly?week_start=${targetDate}`);
                 const scheduleData = await response.json();
                 
@@ -2266,7 +2277,9 @@
         function displayWeeklySchedule(scheduleData) {
             const container = document.getElementById('weekly-schedule-content');
             
-            if (!scheduleData || !scheduleData.schedule) {
+            console.log('displayWeeklySchedule received:', scheduleData);
+            
+            if (!scheduleData || (Array.isArray(scheduleData) && scheduleData.length === 0)) {
                 container.innerHTML = `
                     <div class="text-center py-4">
                         <div class="text-muted mb-3">
@@ -2278,6 +2291,50 @@
                         </button>
                     </div>
                 `;
+                return;
+            }
+            
+            // scheduleData가 객체인 경우 (새로운 API 형식)
+            if (typeof scheduleData === 'object' && !Array.isArray(scheduleData)) {
+                let html = '<div class="schedule-week-view">';
+                
+                for (const [date, daySchedule] of Object.entries(scheduleData)) {
+                    const dayName = new Date(date + 'T00:00:00').toLocaleDateString('ko-KR', { weekday: 'short' });
+                    html += `
+                        <div class="schedule-day mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong>${date} (${dayName})</strong>
+                                <span class="badge bg-primary">매일 03:00</span>
+                            </div>
+                            <div class="schedule-sites">
+                    `;
+                    
+                    for (const [site, info] of Object.entries(daySchedule)) {
+                        const statusBadge = info.status === 'scheduled' ? 
+                            '<span class="badge bg-success">예정</span>' : 
+                            '<span class="badge bg-secondary">완료</span>';
+                        
+                        html += `
+                            <div class="site-schedule mb-1">
+                                <small>
+                                    <strong>${site}</strong> (${info.time}) 
+                                    ${statusBadge}
+                                    <br>
+                                    <span class="text-muted">주제: ${info.topics ? info.topics.join(', ') : '자동 선택'}</span>
+                                </small>
+                            </div>
+                        `;
+                    }
+                    
+                    html += `
+                            </div>
+                        </div>
+                        <hr>
+                    `;
+                }
+                
+                html += '</div>';
+                container.innerHTML = html;
                 return;
             }
             

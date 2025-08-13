@@ -12,6 +12,8 @@ import pytz
 import json
 import logging
 from dotenv import load_dotenv
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 # 프로젝트 경로 추가
 sys.path.append(str(Path(__file__).parent))
@@ -22,7 +24,8 @@ load_dotenv()
 # Flask 앱 생성
 app = Flask(__name__, 
             template_folder='templates',
-            static_folder='static')
+            static_folder='static',
+            static_url_path='/static')  # 정적 파일 경로 명시
 CORS(app)
 
 # 템플릿 캐싱 비활성화
@@ -36,24 +39,22 @@ logger = logging.getLogger(__name__)
 # 한국 시간대 설정
 KST = pytz.timezone('Asia/Seoul')
 
-# 전역 데이터베이스 인스턴스 (옵셔널)
-database = None
-
-def get_database():
-    """데이터베이스 인스턴스 반환 (실패해도 None 반환)"""
-    global database
-    if database is None:
-        try:
-            from src.utils.postgresql_database import PostgreSQLDatabase
-            database = PostgreSQLDatabase()
-            if database.is_connected:
-                logger.info("PostgreSQL 데이터베이스 연결 성공")
-            else:
-                database = None
-        except Exception as e:
-            logger.warning(f"PostgreSQL 연결 실패 (앱은 계속 실행): {e}")
-            database = None
-    return database
+# PostgreSQL 연결 함수
+def get_db_connection():
+    """PostgreSQL 데이터베이스 연결"""
+    try:
+        conn = psycopg2.connect(
+            host=os.getenv('PG_HOST'),
+            port=os.getenv('PG_PORT', 5432),
+            database=os.getenv('PG_DATABASE'),
+            user=os.getenv('PG_USER'),
+            password=os.getenv('PG_PASSWORD'),
+            options=f"-c search_path={os.getenv('PG_SCHEMA', 'unble')}"
+        )
+        return conn
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+        return None
 
 def get_mock_data():
     """DB 연결 실패 시 사용할 목업 데이터"""
@@ -100,12 +101,28 @@ def dashboard():
 def get_recent_posts():
     """최근 포스트 목록 조회"""
     try:
-        db = get_database()
-        if db:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # 각 사이트에서 최근 포스트 가져오기
             posts = []
             for site in ['unpre', 'untab', 'skewese']:
-                site_posts = db.get_recent_posts(site, limit=5)
-                posts.extend(site_posts)
+                cursor.execute("""
+                    SELECT id, title, site, category, url, 
+                           created_at::text, published
+                    FROM posts 
+                    WHERE site = %s
+                    ORDER BY created_at DESC 
+                    LIMIT 5
+                """, (site,))
+                site_posts = cursor.fetchall()
+                posts.extend(site_posts if site_posts else [])
+            
+            cursor.close()
+            conn.close()
+            
+            # 시간순 정렬
             posts.sort(key=lambda x: x.get('created_at', ''), reverse=True)
             return jsonify(posts[:20])
         else:
@@ -120,31 +137,39 @@ def get_recent_posts():
 def get_posts():
     """발행된 포스트 목록 조회"""
     try:
-        db = get_database()
-        if db:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
             site_filter = request.args.get('site', 'all')
             date_filter = request.args.get('date', '')
             
             posts = []
             for site in ['unpre', 'untab', 'skewese']:
                 if site_filter == 'all' or site_filter == site:
-                    site_posts = db.get_recent_posts(site, limit=10)
-                    posts.extend(site_posts)
+                    query = """
+                        SELECT id, title, site, category, url, 
+                               created_at::text, published
+                        FROM posts 
+                        WHERE site = %s
+                    """
+                    params = [site]
+                    
+                    if date_filter:
+                        query += " AND DATE(created_at) = %s"
+                        params.append(date_filter)
+                    
+                    query += " ORDER BY created_at DESC LIMIT 10"
+                    
+                    cursor.execute(query, params)
+                    site_posts = cursor.fetchall()
+                    posts.extend(site_posts if site_posts else [])
             
-            # 날짜별 필터링
-            if date_filter:
-                filtered_posts = []
-                for post in posts:
-                    if post.get('created_at', '').startswith(date_filter):
-                        filtered_posts.append(post)
-                posts = filtered_posts
+            cursor.close()
+            conn.close()
             
-            # 시간순 정렬
             posts.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-            
             return jsonify({'status': 'success', 'posts': posts})
         else:
-            # DB 연결 실패 시 목업 데이터 반환
             mock = get_mock_data()
             return jsonify({'status': 'success', 'posts': mock['posts']})
             
@@ -157,51 +182,46 @@ def get_posts():
 def get_stats():
     """통계 정보 조회"""
     try:
-        db = get_database()
-        if db:
-            # 각 사이트별 통계
-            total_posts = 0
-            published = 0
-            scheduled = 0
-            today_posts = 0
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
             
-            today = datetime.now(KST).date()
+            # 전체 통계 조회
+            cursor.execute("""
+                SELECT 
+                    COUNT(*) as total_posts,
+                    COUNT(CASE WHEN published = true THEN 1 END) as published,
+                    COUNT(CASE WHEN published = false THEN 1 END) as scheduled,
+                    COUNT(CASE WHEN DATE(created_at) = CURRENT_DATE THEN 1 END) as today_posts
+                FROM posts
+            """)
             
-            for site in ['unpre', 'untab', 'skewese']:
-                posts = db.get_recent_posts(site, limit=100)
-                total_posts += len(posts)
-                
-                for post in posts:
-                    if post.get('published'):
-                        published += 1
-                    else:
-                        scheduled += 1
-                    
-                    # 오늘 발행된 포스트
-                    created_at = post.get('created_at', '')
-                    if created_at.startswith(str(today)):
-                        today_posts += 1
+            stats = cursor.fetchone()
+            cursor.close()
+            conn.close()
             
-            stats = {
-                'total_posts': total_posts,
-                'published': published,
-                'scheduled': scheduled,
-                'today_posts': today_posts,
-                'revenue': {
+            if stats:
+                stats['revenue'] = {
                     'total_views': 0,
                     'total_revenue': 0
                 }
-            }
+                return jsonify(stats)
+            else:
+                mock = get_mock_data()
+                stats = mock['stats']
+                stats['revenue'] = {
+                    'total_views': 0,
+                    'total_revenue': 0
+                }
+                return jsonify(stats)
         else:
-            # DB 연결 실패 시 목업 데이터 반환
             mock = get_mock_data()
             stats = mock['stats']
             stats['revenue'] = {
                 'total_views': 0,
                 'total_revenue': 0
             }
-        
-        return jsonify(stats)
+            return jsonify(stats)
         
     except Exception as e:
         logger.error(f"통계 조회 오류: {e}")
@@ -237,7 +257,11 @@ def get_topic_stats():
 @app.route('/api/system_status')
 def get_system_status():
     """시스템 상태 조회"""
-    db = get_database()
+    conn = get_db_connection()
+    db_status = 'online' if conn else 'offline'
+    if conn:
+        conn.close()
+    
     return jsonify({
         'api': {
             'openai': {'status': 'online', 'response_time': 150},
@@ -249,7 +273,7 @@ def get_system_status():
             'untab': {'status': 'online', 'last_post': datetime.now(KST).strftime('%Y-%m-%d')},
             'skewese': {'status': 'online', 'last_post': datetime.now(KST).strftime('%Y-%m-%d')}
         },
-        'database': {'status': 'online' if db and db.is_connected else 'offline'},
+        'database': {'status': db_status},
         'scheduler': {'status': 'online', 'next_run': '03:00 KST'}
     })
 
@@ -280,7 +304,6 @@ def get_trending():
 @app.route('/api/chart_data')
 def get_chart_data():
     """차트 데이터 조회"""
-    # 최근 7일 데이터 (목업)
     now = datetime.now(KST)
     daily_data = []
     site_data = {
@@ -290,25 +313,37 @@ def get_chart_data():
     }
     
     try:
-        db = get_database()
-        if db:
+        conn = get_db_connection()
+        if conn:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
             for i in range(7):
                 date = (now - timedelta(days=i)).strftime('%Y-%m-%d')
-                count = 0
-                for site in ['unpre', 'untab', 'skewese']:
-                    posts = db.get_recent_posts(site, limit=100)
-                    for post in posts:
-                        if post.get('created_at', '').startswith(date):
-                            count += 1
-                            site_data[site] += 1
-                daily_data.append({'date': date, 'count': count})
+                
+                cursor.execute("""
+                    SELECT site, COUNT(*) as count
+                    FROM posts
+                    WHERE DATE(created_at) = %s
+                    GROUP BY site
+                """, (date,))
+                
+                day_results = cursor.fetchall()
+                day_count = sum(r['count'] for r in day_results) if day_results else 0
+                daily_data.append({'date': date, 'count': day_count})
+                
+                for r in day_results:
+                    site_data[r['site']] = site_data.get(r['site'], 0) + r['count']
+            
+            cursor.close()
+            conn.close()
         else:
             # 목업 데이터
             for i in range(7):
                 date = (now - timedelta(days=i)).strftime('%Y-%m-%d')
                 daily_data.append({'date': date, 'count': 3 - i % 2})
             site_data = {'unpre': 7, 'untab': 5, 'skewese': 3}
-    except:
+    except Exception as e:
+        logger.error(f"차트 데이터 조회 오류: {e}")
         # 목업 데이터
         for i in range(7):
             date = (now - timedelta(days=i)).strftime('%Y-%m-%d')
@@ -379,6 +414,29 @@ def generate_wordpress():
                 'title': f'{topic} 관련 새로운 포스트',
                 'url': f'https://{site}.co.kr/new-post',
                 'id': 123
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/generate_tistory', methods=['POST'])
+def generate_tistory():
+    """Tistory 콘텐츠 생성"""
+    try:
+        data = request.json
+        topic = data.get('topic', '프로그래밍')
+        
+        # 실제 생성 로직 대신 목업 응답
+        return jsonify({
+            'success': True,
+            'message': f'Tistory에 {topic} 주제로 콘텐츠를 생성했습니다.',
+            'post': {
+                'title': f'{topic} 관련 새로운 포스트',
+                'url': 'https://untab.tistory.com/new-post',
+                'id': 456
             }
         })
     except Exception as e:
@@ -520,11 +578,15 @@ def health():
 @app.route('/api/status')
 def api_status():
     """시스템 상태 API"""
-    db = get_database()
+    conn = get_db_connection()
+    db_status = 'connected' if conn else 'disconnected'
+    if conn:
+        conn.close()
+    
     return jsonify({
         'status': 'operational',
         'version': '1.0.0',
-        'database': 'connected' if db and db.is_connected else 'disconnected',
+        'database': db_status,
         'features': {
             'content_generation': True,
             'wordpress_publishing': True,
