@@ -486,29 +486,142 @@ def get_weekly_schedule():
     """주간 스케줄 조회"""
     week_start = request.args.get('week_start', datetime.now(KST).strftime('%Y-%m-%d'))
     
-    # 주간 스케줄 데이터 (목업)
+    # 사이트별 주제 풀 (더 많은 다양성)
+    topic_pools = {
+        'unpre': [
+            # 프론트엔드 주간
+            ['React 18 신기능', 'Next.js 13 App Router'],
+            ['Vue.js 3 Composition API', 'Angular 16 Standalone'],
+            ['TypeScript 5.0 활용', 'JavaScript ES2024'],
+            ['Webpack vs Vite', '모던 빌드 도구'],
+            ['CSS Grid vs Flexbox', 'Tailwind CSS 실전'],
+            
+            # 백엔드 주간  
+            ['Node.js 성능 최적화', 'Express vs Fastify'],
+            ['Python FastAPI', 'Django 4.0 비동기'],
+            ['PostgreSQL 고급 쿼리', 'MongoDB 집계 파이프라인'],
+            ['Redis 캐싱 전략', 'ElasticSearch 검색'],
+            ['GraphQL vs REST API', 'gRPC 마이크로서비스'],
+            
+            # 클라우드/DevOps 주간
+            ['AWS Lambda 서버리스', 'Docker 컨테이너 최적화'],
+            ['Kubernetes 기초', 'Terraform IaC'],
+            ['GitHub Actions CI/CD', 'Jenkins vs GitLab CI'],
+            ['모니터링 도구 비교', 'Prometheus & Grafana'],
+            
+            # AI/ML 주간
+            ['ChatGPT API 활용', 'GitHub Copilot 실전'],
+            ['TensorFlow vs PyTorch', 'LangChain 개발'],
+            ['OpenAI 임베딩', 'Vector DB 활용'],
+            ['AI 코드 리뷰', '자동화 테스트 도구']
+        ],
+        'untab': [
+            # 어학 주간
+            ['토익 990점 전략', 'OPIc AL 달성법'],
+            ['토플 110+ 공략', 'IELTS 8.0 비법'],
+            ['일본어 JLPT N1', '중국어 HSK 6급'],
+            ['독일어 TestDaF', '스페인어 DELE'],
+            ['프랑스어 DELF', '이탈리아어 CILS'],
+            
+            # IT 자격증 주간
+            ['정보처리기사 실기', 'SQLD 데이터분석'],
+            ['AWS SAA 자격증', 'Azure Fundamentals'],
+            ['구글 클라우드 ACE', 'CISSP 보안'],
+            ['PMP 프로젝트 관리', 'ITIL 서비스 관리'],
+            
+            # 투자/재테크 주간  
+            ['주식 기술분석', '부동산 경매 실전'],
+            ['코인 투자 가이드', 'ETF 포트폴리오'],
+            ['P2P 투자 전략', '해외 주식 투자'],
+            ['세금 절약 꿀팁', '연금 저축 활용'],
+            
+            # 부업/창업 주간
+            ['블로그 수익화', '유튜브 채널 운영'],
+            ['온라인 강의 제작', '이커머스 창업'],
+            ['프리랜서 마케팅', '개인 브랜딩'],
+            ['사이드 프로젝트', '스타트업 창업']
+        ],
+        'skewese': [
+            # 한국사 주간
+            ['조선 과학기술사', '고려 몽골 침입'],
+            ['삼국통일 과정', '일제강점기 저항'],
+            ['한국전쟁 재조명', '개화기 근대화'],
+            ['백제 문화유산', '신라 황금 문명'],
+            
+            # 세계사 주간
+            ['로마제국 흥망사', '중국 4대 발명품'],
+            ['이집트 파라오', '메소포타미아 문명'],
+            ['르네상스 예술가', '프랑스 대혁명'],
+            ['산업혁명 영향', '아메리카 대발견'],
+            
+            # 철학/사상 주간
+            ['공자 논어 해석', '노자 도덕경'],
+            ['플라톤 이데아론', '아리스토텔레스 윤리학'],
+            ['칸트 순수이성비판', '니체 권력의지'],
+            ['불교 사상 이해', '기독교 신학'],
+            
+            # 문화/예술 주간  
+            ['고구려 고분벽화', '백제 금동대향로'],
+            ['경복궁 건축미', '불국사 석가탑'],
+            ['고려청자 예술', '조선백자 아름다움'],
+            ['전통 한복 변천사', '궁중음식 문화'],
+            
+            # 현대 문화/라이프
+            ['미니멀 라이프', '북유럽 휘게'],
+            ['일본 와비사비', '덴마크 라곰'],
+            ['명상과 마음챙김', '디지털 디톡스'],
+            ['제로웨이스트', '비건 라이프스타일']
+        ]
+    }
+    
+    # 주간 스케줄 데이터 생성
     schedule = {}
     start_date = datetime.strptime(week_start, '%Y-%m-%d')
     
+    # 주차 계산 (년도 기준 주차)
+    week_number = start_date.isocalendar()[1]
+    
     for i in range(7):
         date = (start_date + timedelta(days=i)).strftime('%Y-%m-%d')
+        day_of_week = (start_date + timedelta(days=i)).weekday()  # 0=월요일
+        
+        # 주차와 요일을 조합하여 다양한 주제 선택
+        # 각 사이트별로 다른 로테이션 패턴 적용
+        unpre_index = (week_number * 3 + day_of_week) % len(topic_pools['unpre'])
+        untab_index = (week_number * 2 + day_of_week + 1) % len(topic_pools['untab'])  
+        skewese_index = (week_number * 4 + day_of_week + 2) % len(topic_pools['skewese'])
+        
         schedule[date] = {
             'unpre': {
-                'time': '09:00',
-                'topics': ['프로그래밍', 'AI 기술'],
+                'time': '03:00',  # 새벽 3시 자동발행
+                'topics': topic_pools['unpre'][unpre_index],
                 'status': 'scheduled'
             },
             'untab': {
-                'time': '12:00',
-                'topics': ['언어학습', '자격증'],
+                'time': '03:00',
+                'topics': topic_pools['untab'][untab_index],
                 'status': 'scheduled'
             },
             'skewese': {
-                'time': '15:00',
-                'topics': ['역사', '문화'],
+                'time': '03:00',
+                'topics': topic_pools['skewese'][skewese_index],
                 'status': 'scheduled'
             }
         }
+        
+        # 과거 날짜는 발행 완료로 표시
+        current_date = datetime.now(KST).date()
+        target_date = (start_date + timedelta(days=i)).date()
+        
+        if target_date < current_date:
+            for site in schedule[date]:
+                schedule[date][site]['status'] = 'published'
+        elif target_date == current_date:
+            # 오늘은 새벽 3시 이후면 발행 완료
+            current_time = datetime.now(KST).time()
+            if current_time >= datetime.strptime('03:00', '%H:%M').time():
+                for site in schedule[date]:
+                    schedule[date][site]['status'] = 'published'
     
     return jsonify(schedule)
 
