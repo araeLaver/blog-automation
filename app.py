@@ -45,7 +45,7 @@ logger = logging.getLogger(__name__)
 try:
     from src.generators.content_generator import ContentGenerator
     content_generator = ContentGenerator()
-    logger.info("✅ Claude API 콘텐츠 생성기 초기화 완료")
+    logger.info("✅ Claude API 콘텐츠 생성기 초기화 완료 - v2.0")
 except Exception as e:
     logger.warning(f"⚠️ Claude API 초기화 실패: {e}")
     content_generator = None
