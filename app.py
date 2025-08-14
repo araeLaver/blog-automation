@@ -765,25 +765,11 @@ def generate_wordpress():
                     title = f'{topic} 완전 가이드'
                     logger.warning(f"Claude API 미사용, 기본 콘텐츠 생성: {title}")
                 
-                # 실제 파일 저장
-                import tempfile
-                import os
-                
-                temp_dir = tempfile.mkdtemp()
-                # 파일명을 실제 콘텐츠 제목으로 생성
-                safe_title = title.replace(' ', '_').replace('/', '_').replace('\\', '_')[:50]
-                safe_title = ''.join(c for c in safe_title if c.isalnum() or c in '_-')
-                file_name = f"{site}_{safe_title}_{int(__import__('time').time())}.html"
-                file_path = os.path.join(temp_dir, file_name)
-                
-                # 파일 저장
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                
+                # 콘텐츠를 데이터베이스에 직접 저장 (파일 시스템 사용 안함)
                 file_id = database.add_content_file(
                     site=site,
                     title=title,
-                    file_path=file_path,
+                    file_path=content,  # 실제 콘텐츠를 file_path 필드에 저장
                     file_type='wordpress',
                     metadata={
                         'categories': [data.get('category', '기본')],
@@ -942,25 +928,11 @@ def generate_tistory():
                     title = f'{topic} 심화 분석'
                     logger.warning(f"Claude API 미사용, Tistory 기본 콘텐츠 생성: {title}")
                 
-                # 실제 파일 저장
-                import tempfile
-                import os
-                
-                temp_dir = tempfile.mkdtemp()
-                # 파일명을 실제 콘텐츠 제목으로 생성
-                safe_title = title.replace(' ', '_').replace('/', '_').replace('\\', '_')[:50]
-                safe_title = ''.join(c for c in safe_title if c.isalnum() or c in '_-')
-                file_name = f"tistory_{safe_title}_{int(__import__('time').time())}.html"
-                file_path = os.path.join(temp_dir, file_name)
-                
-                # 파일 저장
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(content)
-                
+                # 콘텐츠를 데이터베이스에 직접 저장 (파일 시스템 사용 안함)
                 file_id = database.add_content_file(
                     site='untab',
                     title=title,
-                    file_path=file_path,
+                    file_path=content,  # 실제 콘텐츠를 file_path 필드에 저장
                     file_type='tistory',
                     metadata={
                         'categories': [data.get('category', '기본')],
@@ -1029,22 +1001,24 @@ def download_content(file_id):
                     break
             
             if target_file:
-                # 실제 파일 내용 읽기 시도
-                file_path = target_file.get('file_path')
-                content = None
+                # file_path 필드에 저장된 실제 콘텐츠 읽기
+                content = target_file.get('file_path')
                 
-                if file_path and os.path.exists(file_path):
-                    try:
-                        with open(file_path, 'r', encoding='utf-8') as f:
-                            content = f.read()
-                        logger.info(f"실제 파일 읽기 성공: {file_path}")
-                    except Exception as e:
-                        logger.warning(f"파일 읽기 실패: {e}")
+                # 콘텐츠가 HTML이 아닌 경우 (파일 경로인 경우) 파일 읽기 시도
+                if content and not content.strip().startswith('<'):
+                    if os.path.exists(content):
+                        try:
+                            with open(content, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                            logger.info(f"실제 파일 읽기 성공: {content}")
+                        except Exception as e:
+                            logger.warning(f"파일 읽기 실패: {e}")
+                            content = None
+                    else:
+                        logger.warning(f"파일이 존재하지 않음: {content}")
                         content = None
-                else:
-                    logger.warning(f"파일 경로가 없거나 존재하지 않음: {file_path}")
                 
-                # 파일이 없거나 읽기 실패시 기본 콘텐츠 생성
+                # 콘텐츠가 없거나 읽기 실패시 기본 콘텐츠 생성
                 if not content:
                     content = f"""<!DOCTYPE html>
 <html lang="ko">
