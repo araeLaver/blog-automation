@@ -365,7 +365,7 @@ class ContentGenerator:
             content['title'] = f"{content['title']} - {site_config['name']}"
         
         # 키워드 밀도 조정
-        main_keywords = site_config['keywords_focus']
+        main_keywords = site_config.get('keywords_focus', [])
         for keyword in main_keywords[:3]:
             # 각 섹션에 키워드 자연스럽게 추가
             for section in content['sections']:
