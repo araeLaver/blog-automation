@@ -1422,6 +1422,48 @@ def favicon():
     # 간단한 빈 favicon 응답
     return Response('', status=204)
 
+@app.route('/api/test_claude', methods=['GET'])
+def test_claude():
+    """Claude API 테스트 및 강제 재초기화"""
+    global content_generator
+    
+    try:
+        # 강제 재초기화
+        from src.generators.content_generator import ContentGenerator
+        test_generator = ContentGenerator()
+        
+        # 간단한 테스트 콘텐츠 생성
+        site_config = {
+            'name': 'test',
+            'target_audience': '테스트',
+            'content_style': '테스트',
+            'keywords_focus': ['테스트']
+        }
+        
+        test_content = test_generator.generate_content(
+            site_config=site_config,
+            topic='테스트 주제',
+            category='테스트',
+            content_length='short'
+        )
+        
+        # 전역 변수 업데이트
+        content_generator = test_generator
+        
+        return jsonify({
+            'success': True,
+            'message': 'Claude API 정상 작동',
+            'title': test_content.get('title', '없음')[:50],
+            'sections_count': len(test_content.get('sections', [])),
+            'content_length': len(str(test_content))
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/health')
 def health():
     """헬스체크 엔드포인트"""
