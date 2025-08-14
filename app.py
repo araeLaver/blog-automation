@@ -673,7 +673,20 @@ def generate_wordpress():
             if database.is_connected:
                 # Claude API로 실제 콘텐츠 생성
                 logger.info(f"Content generator 상태: {content_generator is not None}")
-                if content_generator:
+                
+                # ContentGenerator가 None이면 다시 초기화 시도
+                current_generator = content_generator
+                if current_generator is None:
+                    try:
+                        logger.info("ContentGenerator 재초기화 시도...")
+                        from src.generators.content_generator import ContentGenerator
+                        current_generator = ContentGenerator()
+                        logger.info("✅ ContentGenerator 재초기화 성공")
+                    except Exception as e:
+                        logger.error(f"❌ ContentGenerator 재초기화 실패: {e}")
+                        current_generator = None
+                
+                if current_generator:
                     logger.info(f"Claude API로 {topic} 콘텐츠 생성 시작...")
                     
                     # 사이트 설정
@@ -685,7 +698,7 @@ def generate_wordpress():
                     }
                     
                     # AI 콘텐츠 생성 (실제 Claude API 호출)
-                    generated_content = content_generator.generate_content(
+                    generated_content = current_generator.generate_content(
                         site_config=site_config,
                         topic=topic,
                         category=data.get('category', '프로그래밍'),
@@ -757,7 +770,10 @@ def generate_wordpress():
                 import os
                 
                 temp_dir = tempfile.mkdtemp()
-                file_name = f"{site}_{topic.replace(' ', '_')}_{int(__import__('time').time())}.html"
+                # 파일명을 실제 콘텐츠 제목으로 생성
+                safe_title = title.replace(' ', '_').replace('/', '_').replace('\\', '_')[:50]
+                safe_title = ''.join(c for c in safe_title if c.isalnum() or c in '_-')
+                file_name = f"{site}_{safe_title}_{int(__import__('time').time())}.html"
                 file_path = os.path.join(temp_dir, file_name)
                 
                 # 파일 저장
@@ -834,7 +850,20 @@ def generate_tistory():
             if database.is_connected:
                 # Claude API로 실제 콘텐츠 생성
                 logger.info(f"Tistory Content generator 상태: {content_generator is not None}")
-                if content_generator:
+                
+                # ContentGenerator가 None이면 다시 초기화 시도
+                current_generator = content_generator
+                if current_generator is None:
+                    try:
+                        logger.info("Tistory ContentGenerator 재초기화 시도...")
+                        from src.generators.content_generator import ContentGenerator
+                        current_generator = ContentGenerator()
+                        logger.info("✅ Tistory ContentGenerator 재초기화 성공")
+                    except Exception as e:
+                        logger.error(f"❌ Tistory ContentGenerator 재초기화 실패: {e}")
+                        current_generator = None
+                
+                if current_generator:
                     logger.info(f"Claude API로 Tistory {topic} 콘텐츠 생성 시작...")
                     
                     # 사이트 설정
@@ -846,7 +875,7 @@ def generate_tistory():
                     }
                     
                     # AI 콘텐츠 생성 (실제 Claude API 호출)
-                    generated_content = content_generator.generate_content(
+                    generated_content = current_generator.generate_content(
                         site_config=site_config,
                         topic=topic,
                         category=data.get('category', '일반'),
@@ -918,7 +947,10 @@ def generate_tistory():
                 import os
                 
                 temp_dir = tempfile.mkdtemp()
-                file_name = f"tistory_{topic.replace(' ', '_')}_{int(__import__('time').time())}.html"
+                # 파일명을 실제 콘텐츠 제목으로 생성
+                safe_title = title.replace(' ', '_').replace('/', '_').replace('\\', '_')[:50]
+                safe_title = ''.join(c for c in safe_title if c.isalnum() or c in '_-')
+                file_name = f"tistory_{safe_title}_{int(__import__('time').time())}.html"
                 file_path = os.path.join(temp_dir, file_name)
                 
                 # 파일 저장
