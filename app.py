@@ -719,7 +719,7 @@ def generate_wordpress():
                         content_html += f"""
             <section>
                 <h2>{section['heading']}</h2>
-                <div>{section['content'].replace('\n\n', '</p><p>').replace('\n', '<br>')}</div>
+                <div>{section['content'].replace(chr(10)+chr(10), '</p><p>').replace(chr(10), '<br>')}</div>
             </section>
 """
                     
@@ -880,7 +880,7 @@ def generate_tistory():
                         content_html += f"""
             <section>
                 <h2>{section['heading']}</h2>
-                <div>{section['content'].replace('\n\n', '</p><p>').replace('\n', '<br>')}</div>
+                <div>{section['content'].replace(chr(10)+chr(10), '</p><p>').replace(chr(10), '<br>')}</div>
             </section>
 """
                     
