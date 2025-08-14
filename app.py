@@ -183,7 +183,7 @@ def get_recent_posts():
                            url, 
                            created_at::text, 
                            CASE WHEN status = 'published' THEN true ELSE false END as published
-                    FROM content_files 
+                    FROM unble.content_files 
                     WHERE site = %s
                     ORDER BY created_at DESC 
                     LIMIT 5
@@ -226,7 +226,7 @@ def get_posts():
                                url, 
                                created_at::text, 
                                CASE WHEN status = 'published' THEN true ELSE false END as published
-                        FROM content_files 
+                        FROM unble.content_files 
                         WHERE site = %s
                     """
                     params = [site]
@@ -270,7 +270,7 @@ def get_stats():
                     COUNT(CASE WHEN status = 'published' THEN 1 END) as published,
                     COUNT(CASE WHEN status != 'published' THEN 1 END) as scheduled,
                     COUNT(CASE WHEN DATE(created_at) = CURRENT_DATE THEN 1 END) as today_posts
-                FROM content_files
+                FROM unble.content_files
             """)
             
             stats = cursor.fetchone()
@@ -470,7 +470,7 @@ def get_chart_data():
                 
                 cursor.execute("""
                     SELECT site, COUNT(*) as count
-                    FROM content_files
+                    FROM unble.content_files
                     WHERE DATE(created_at) = %s
                     GROUP BY site
                 """, (date,))

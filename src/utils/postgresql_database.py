@@ -327,7 +327,7 @@ class PostgreSQLDatabase:
         conn = self.get_connection()
         try:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-                query = "SELECT * FROM content_files WHERE 1=1"
+                query = "SELECT * FROM unble.content_files WHERE 1=1"
                 params = []
                 
                 if site:
