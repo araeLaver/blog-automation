@@ -1555,15 +1555,85 @@ def _create_beautiful_html_template(generated_content, site_config):
         .section-content strong {{
             color: #667eea;
             font-weight: 600;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }}
         
-        .section-content ul, .section-content ol {{
+        .section-content em {{
+            color: #555;
+            font-style: italic;
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }}
+        
+        .content-paragraph {{
+            margin-bottom: 18px;
+            text-align: justify;
+            line-height: 1.8;
+        }}
+        
+        .styled-list {{
             margin: 20px 0;
-            padding-left: 25px;
+            padding-left: 0;
+            list-style: none;
         }}
         
-        .section-content li {{
-            margin-bottom: 8px;
+        .styled-list li {{
+            margin-bottom: 12px;
+            padding-left: 30px;
+            position: relative;
+            line-height: 1.6;
+        }}
+        
+        .styled-list li::before {{
+            content: '▸';
+            position: absolute;
+            left: 8px;
+            color: #667eea;
+            font-weight: bold;
+            font-size: 1.1em;
+        }}
+        
+        ol.styled-list li::before {{
+            content: counter(item);
+            counter-increment: item;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: 600;
+            left: 0;
+        }}
+        
+        ol.styled-list {{
+            counter-reset: item;
+        }}
+        
+        .inline-code {{
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            font-weight: 500;
+            white-space: nowrap;
+        }}
+        
+        .section-divider {{
+            margin: 30px 0;
+            border: none;
+            height: 2px;
+            background: linear-gradient(135deg, transparent, #667eea, transparent);
+            border-radius: 2px;
         }}
         
         .code-block {{
@@ -1709,19 +1779,106 @@ def _create_beautiful_html_template(generated_content, site_config):
 """
 
 def _format_section_content(content):
-    """섹션 콘텐츠 포맷팅"""
-    # 코드 블록 처리
-    if '```' in content:
-        content = content.replace('```javascript', '<div class="code-block">').replace('```python', '<div class="code-block">').replace('```', '</div>')
+    """섹션 콘텐츠 포맷팅 - 완전 개선"""
+    import re
     
-    # 테이블 처리
-    if '<table>' in content or '|' in content:
-        content = content.replace('<table>', '<div class="table-container"><table>').replace('</table>', '</table></div>')
+    # 1. 마크다운 볼드체 처리 (**text** -> <strong>text</strong>)
+    content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', content)
     
-    # 텍스트 포맷팅
-    content = content.replace(chr(10)+chr(10), '</p><p>').replace(chr(10), '<br>')
-    if not content.startswith('<p>'):
-        content = f'<p>{content}</p>'
+    # 2. 이탤릭 처리 (*text* -> <em>text</em>)
+    content = re.sub(r'\*([^*]+?)\*', r'<em>\1</em>', content)
+    
+    # 3. 코드 블록 처리 (```로 감싸진 부분)
+    content = re.sub(r'```(\w+)?\n(.*?)\n```', r'<div class="code-block"><pre><code>\2</code></pre></div>', content, flags=re.DOTALL)
+    content = re.sub(r'```(.*?)```', r'<div class="code-block"><pre><code>\1</code></pre></div>', content, flags=re.DOTALL)
+    
+    # 4. 인라인 코드 처리 (`code` -> <code>code</code>)
+    content = re.sub(r'`([^`]+?)`', r'<code class="inline-code">\1</code>', content)
+    
+    # 5. 테이블 처리 개선
+    if '<table>' in content:
+        content = content.replace('<table>', '<div class="table-container"><table>')
+        content = content.replace('</table>', '</table></div>')
+    
+    # 6. 마크다운 테이블을 HTML로 변환
+    lines = content.split('\n')
+    in_table = False
+    table_html = []
+    processed_lines = []
+    
+    for line in lines:
+        if '|' in line and line.strip():
+            if not in_table:
+                in_table = True
+                table_html = ['<div class="table-container"><table>']
+            
+            # 헤더 구분선 처리 (|---|---|)
+            if re.match(r'^(\s*\|?\s*:?-+:?\s*\|)+\s*$', line):
+                continue
+                
+            cells = [cell.strip() for cell in line.split('|') if cell.strip()]
+            if cells:
+                # 첫 번째 테이블 행인지 확인 (다음 줄이 구분선인지 체크)
+                next_line_idx = lines.index(line) + 1
+                is_header = (next_line_idx < len(lines) and 
+                           re.match(r'^(\s*\|?\s*:?-+:?\s*\|)+\s*$', lines[next_line_idx]))
+                
+                if is_header:
+                    row_html = '<tr>' + ''.join([f'<th>{cell}</th>' for cell in cells]) + '</tr>'
+                else:
+                    row_html = '<tr>' + ''.join([f'<td>{cell}</td>' for cell in cells]) + '</tr>'
+                table_html.append(row_html)
+        else:
+            if in_table:
+                table_html.append('</table></div>')
+                processed_lines.extend(table_html)
+                table_html = []
+                in_table = False
+            processed_lines.append(line)
+    
+    # 테이블이 끝나지 않은 경우 처리
+    if in_table:
+        table_html.append('</table></div>')
+        processed_lines.extend(table_html)
+    
+    content = '\n'.join(processed_lines)
+    
+    # 7. 리스트 처리 개선
+    # 순서 없는 리스트 (- item)
+    content = re.sub(r'^\s*[-*]\s+(.+)$', r'<li>\1</li>', content, flags=re.MULTILINE)
+    # 연속된 li 태그를 ul로 감싸기
+    content = re.sub(r'(<li>.*?</li>\s*)+', lambda m: f'<ul class="styled-list">{m.group(0)}</ul>', content, flags=re.DOTALL)
+    
+    # 순서 있는 리스트 (1. item)
+    content = re.sub(r'^\s*\d+\.\s+(.+)$', r'<li>\1</li>', content, flags=re.MULTILINE)
+    content = re.sub(r'(<li>.*?</li>\s*)+', lambda m: f'<ol class="styled-list">{m.group(0)}</ol>', content, flags=re.DOTALL)
+    
+    # 8. 구분선 처리 (---)
+    content = re.sub(r'^---+\s*$', '<hr class="section-divider">', content, flags=re.MULTILINE)
+    
+    # 9. 문단 구분 개선 - 이중 줄바꿈을 문단으로 처리
+    paragraphs = content.split('\n\n')
+    formatted_paragraphs = []
+    
+    for paragraph in paragraphs:
+        paragraph = paragraph.strip()
+        if not paragraph:
+            continue
+            
+        # HTML 태그로 시작하면 그대로 사용
+        if paragraph.startswith(('<div', '<table', '<ul', '<ol', '<hr', '<h1', '<h2', '<h3', '<h4', '<h5', '<h6')):
+            formatted_paragraphs.append(paragraph)
+        else:
+            # 일반 텍스트는 p 태그로 감싸기
+            # 단일 줄바꿈은 <br>로 변환
+            paragraph_html = paragraph.replace('\n', '<br>')
+            formatted_paragraphs.append(f'<p class="content-paragraph">{paragraph_html}</p>')
+    
+    content = '\n\n'.join(formatted_paragraphs)
+    
+    # 10. 빈 태그 제거
+    content = re.sub(r'<p[^>]*>\s*</p>', '', content)
+    content = re.sub(r'<li>\s*</li>', '', content)
     
     return content
 
