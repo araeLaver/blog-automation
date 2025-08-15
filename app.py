@@ -705,54 +705,8 @@ def generate_wordpress():
                         content_length='medium'
                     )
                     
-                    # HTML 형태로 변환
-                    content_html = f"""
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{generated_content['title']}</title>
-    <meta name="description" content="{generated_content['meta_description']}">
-</head>
-<body>
-    <article>
-        <header>
-            <h1>{generated_content['title']}</h1>
-        </header>
-        
-        <section class="introduction">
-            <p>{generated_content['introduction']}</p>
-        </section>
-        
-        <main>
-"""
-                    
-                    for section in generated_content['sections']:
-                        content_html += f"""
-            <section>
-                <h2>{section['heading']}</h2>
-                <div>{section['content'].replace(chr(10)+chr(10), '</p><p>').replace(chr(10), '<br>')}</div>
-            </section>
-"""
-                    
-                    content_html += f"""
-        </main>
-        
-        <footer>
-            <section class="conclusion">
-                <h2>마무리</h2>
-                <p>{generated_content['conclusion']}</p>
-            </section>
-            
-            <div class="tags">
-                <strong>태그:</strong> {', '.join(generated_content['tags'])}
-            </div>
-        </footer>
-    </article>
-</body>
-</html>
-"""
+                    # HTML 형태로 변환 - WordPress 깔끔한 디자인
+                    content_html = _create_beautiful_html_template(generated_content, site_config)
                     
                     content = content_html
                     title = generated_content['title']
@@ -868,54 +822,8 @@ def generate_tistory():
                         content_length='medium'
                     )
                     
-                    # HTML 형태로 변환
-                    content_html = f"""
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{generated_content['title']}</title>
-    <meta name="description" content="{generated_content['meta_description']}">
-</head>
-<body>
-    <article>
-        <header>
-            <h1>{generated_content['title']}</h1>
-        </header>
-        
-        <section class="introduction">
-            <p>{generated_content['introduction']}</p>
-        </section>
-        
-        <main>
-"""
-                    
-                    for section in generated_content['sections']:
-                        content_html += f"""
-            <section>
-                <h2>{section['heading']}</h2>
-                <div>{section['content'].replace(chr(10)+chr(10), '</p><p>').replace(chr(10), '<br>')}</div>
-            </section>
-"""
-                    
-                    content_html += f"""
-        </main>
-        
-        <footer>
-            <section class="conclusion">
-                <h2>마무리</h2>
-                <p>{generated_content['conclusion']}</p>
-            </section>
-            
-            <div class="tags">
-                <strong>태그:</strong> {', '.join(generated_content['tags'])}
-            </div>
-        </footer>
-    </article>
-</body>
-</html>
-"""
+                    # HTML 형태로 변환 - Tistory 깔끔한 디자인
+                    content_html = _create_beautiful_html_template(generated_content, site_config)
                     
                     content = content_html
                     title = generated_content['title']
@@ -1050,11 +958,12 @@ def download_content(file_id):
                 
                 # 파일 다운로드 응답
                 response = make_response(content)
-                # 한글 파일명 처리
-                safe_title = target_file.get('title', 'content')[:50]  # 길이 제한
+                # 한글 파일명 처리 - 제목을 그대로 사용
+                safe_title = target_file.get('title', 'content')[:100]  # 길이 제한 늘림
                 import re
-                safe_title = re.sub(r'[^\w\s-]', '', safe_title).strip()
-                filename = f"{safe_title}_{file_id}.html"
+                # 파일명에 사용할 수 없는 문자만 제거, 한글은 유지
+                safe_title = re.sub(r'[<>:"/\\|?*]', '', safe_title).strip()
+                filename = f"{safe_title}.html"
                 
                 response.headers['Content-Disposition'] = f'attachment; filename*=UTF-8\'\'{"".join(f"%{ord(c):02X}" if ord(c) > 127 else c for c in filename)}'
                 response.headers['Content-Type'] = 'text/html; charset=utf-8'
@@ -1494,6 +1403,330 @@ def api_status():
         },
         'server_time': datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S KST')
     }), 200
+
+def _create_beautiful_html_template(generated_content, site_config):
+    """아름다운 HTML 템플릿 생성"""
+    return f"""
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{generated_content['title']}</title>
+    <meta name="description" content="{generated_content['meta_description']}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        
+        body {{
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.8;
+            color: #2c3e50;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }}
+        
+        .container {{
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }}
+        
+        .header {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px 40px;
+            text-align: center;
+            position: relative;
+        }}
+        
+        .header::before {{
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.05)"/><circle cx="50" cy="10" r="0.5" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.1;
+        }}
+        
+        .header h1 {{
+            font-size: 2.8em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 1;
+        }}
+        
+        .meta-info {{
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 0.9em;
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 1;
+        }}
+        
+        .content {{
+            padding: 50px 40px;
+        }}
+        
+        .introduction {{
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 40px;
+            border-left: 5px solid #667eea;
+            position: relative;
+        }}
+        
+        .introduction::before {{
+            content: '💡';
+            position: absolute;
+            top: -10px;
+            left: 20px;
+            background: #667eea;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+        }}
+        
+        .section {{
+            margin-bottom: 40px;
+            padding: 30px;
+            background: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+            border: 1px solid #f1f3f4;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }}
+        
+        .section:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }}
+        
+        .section h2 {{
+            color: #667eea;
+            font-size: 1.8em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f1f3f4;
+            position: relative;
+        }}
+        
+        .section h2::before {{
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 50px;
+            height: 2px;
+            background: #667eea;
+        }}
+        
+        .section-content {{
+            font-size: 1.1em;
+            line-height: 1.8;
+        }}
+        
+        .section-content p {{
+            margin-bottom: 16px;
+        }}
+        
+        .section-content strong {{
+            color: #667eea;
+            font-weight: 600;
+        }}
+        
+        .section-content ul, .section-content ol {{
+            margin: 20px 0;
+            padding-left: 25px;
+        }}
+        
+        .section-content li {{
+            margin-bottom: 8px;
+        }}
+        
+        .code-block {{
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+        }}
+        
+        .table-container {{
+            overflow-x: auto;
+            margin: 20px 0;
+        }}
+        
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }}
+        
+        th, td {{
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #f1f3f4;
+        }}
+        
+        th {{
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }}
+        
+        tr:hover {{
+            background: #f8f9fa;
+        }}
+        
+        .conclusion {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            border-radius: 15px;
+            margin: 40px 0;
+            text-align: center;
+        }}
+        
+        .conclusion h2 {{
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: white;
+        }}
+        
+        .tags {{
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            margin-top: 30px;
+        }}
+        
+        .tag {{
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }}
+        
+        @media (max-width: 768px) {{
+            .container {{
+                margin: 10px;
+                border-radius: 10px;
+            }}
+            
+            .header {{
+                padding: 40px 20px;
+            }}
+            
+            .header h1 {{
+                font-size: 2.2em;
+            }}
+            
+            .content {{
+                padding: 30px 20px;
+            }}
+            
+            .section {{
+                padding: 20px;
+            }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>{generated_content['title']}</h1>
+            <div class="meta-info">
+                <span>📅 {datetime.now(KST).strftime('%Y년 %m월 %d일')}</span>
+                <span style="margin: 0 15px;">•</span>
+                <span>🔖 {site_config.get('name', 'Blog').upper()}</span>
+            </div>
+        </header>
+        
+        <div class="content">
+            <section class="introduction">
+                <p>{generated_content['introduction']}</p>
+            </section>
+            
+            <main>
+{''.join([f'''
+                <section class="section">
+                    <h2>{section['heading']}</h2>
+                    <div class="section-content">
+                        {_format_section_content(section['content'])}
+                    </div>
+                </section>
+''' for section in generated_content['sections']])}
+            </main>
+            
+            <footer>
+                <section class="conclusion">
+                    <h2>마무리</h2>
+                    <p>{generated_content['conclusion']}</p>
+                </section>
+                
+                <div class="tags">
+                    <strong style="display: block; margin-bottom: 15px; color: #667eea; font-size: 1.1em;">🏷️ 관련 태그</strong>
+                    {''.join([f'<span class="tag">{tag}</span>' for tag in generated_content['tags']])}
+                </div>
+            </footer>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+def _format_section_content(content):
+    """섹션 콘텐츠 포맷팅"""
+    # 코드 블록 처리
+    if '```' in content:
+        content = content.replace('```javascript', '<div class="code-block">').replace('```python', '<div class="code-block">').replace('```', '</div>')
+    
+    # 테이블 처리
+    if '<table>' in content or '|' in content:
+        content = content.replace('<table>', '<div class="table-container"><table>').replace('</table>', '</table></div>')
+    
+    # 텍스트 포맷팅
+    content = content.replace(chr(10)+chr(10), '</p><p>').replace(chr(10), '<br>')
+    if not content.startswith('<p>'):
+        content = f'<p>{content}</p>'
+    
+    return content
+
+# Flask 앱 인스턴스에 메서드 추가
+app._create_beautiful_html_template = _create_beautiful_html_template
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
