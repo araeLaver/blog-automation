@@ -1009,10 +1009,11 @@ def debug_content_generator():
 
 @app.route('/api/publish_post', methods=['POST'])
 def publish_post():
-    """포스트 발행"""
+    """포스트 실제 사이트에 발행"""
     try:
         data = request.json
         post_id = data.get('post_id')
+        site = data.get('site', 'wordpress')  # 사이트 타입 (wordpress, tistory)
         
         if not post_id:
             return jsonify({
@@ -1023,7 +1024,6 @@ def publish_post():
         database = get_database()
         
         if database.is_connected:
-            # 실제 데이터베이스에서 상태 업데이트
             try:
                 # 포스트 정보 가져오기
                 files = database.get_content_files(limit=1000)
@@ -1040,27 +1040,96 @@ def publish_post():
                         'error': '포스트를 찾을 수 없습니다.'
                     }), 404
                 
-                # 상태를 published로 업데이트
-                conn = get_db_connection()
-                if conn:
-                    cursor = conn.cursor()
-                    cursor.execute(
-                        "UPDATE unble.content_files SET status = 'published' WHERE id = %s",
-                        (post_id,)
-                    )
-                    conn.commit()
-                    cursor.close()
-                    conn.close()
+                # 파일에서 실제 콘텐츠 읽기
+                content_data = None
+                try:
+                    import json
+                    content_data = json.loads(target_file.get('content', '{}'))
+                except:
+                    # JSON 파싱 실패시 기본 구조 사용
+                    content_data = {
+                        'title': target_file.get('title', '제목 없음'),
+                        'content': target_file.get('content', ''),
+                        'meta_description': f"{target_file.get('title', '')} 관련 내용입니다.",
+                        'tags': ['블로그', '자동화'],
+                        'categories': [target_file.get('category', '기타')]
+                    }
+                
+                # 사이트별 실제 발행
+                success = False
+                published_url = None
+                error_message = None
+                
+                if site.lower() in ['wordpress', 'unpre', 'untab', 'skewese']:
+                    # WordPress 발행
+                    try:
+                        from src.publishers.wordpress_publisher import WordPressPublisher
+                        
+                        # 사이트 키 매핑
+                        site_key_map = {
+                            'wordpress': 'unpre',
+                            'unpre': 'unpre', 
+                            'untab': 'untab',
+                            'skewese': 'skewese'
+                        }
+                        site_key = site_key_map.get(site.lower(), 'unpre')
+                        
+                        publisher = WordPressPublisher(site_key)
+                        success, result = publisher.publish_post(content_data)
+                        
+                        if success:
+                            published_url = result
+                            logger.info(f"WordPress 발행 성공: {published_url}")
+                        else:
+                            error_message = f"WordPress 발행 실패: {result}"
+                            logger.error(error_message)
+                            
+                    except Exception as e:
+                        error_message = f"WordPress 발행 오류: {str(e)}"
+                        logger.error(error_message)
+                        
+                elif site.lower() == 'tistory':
+                    # Tistory 발행
+                    try:
+                        from src.publishers.tistory_publisher import TistoryPublisher
+                        
+                        publisher = TistoryPublisher()
+                        success, result = publisher.publish_post(content_data)
+                        
+                        if success:
+                            published_url = result
+                            logger.info(f"Tistory 발행 성공: {published_url}")
+                        else:
+                            error_message = f"Tistory 발행 실패: {result}"
+                            logger.error(error_message)
+                            
+                    except Exception as e:
+                        error_message = f"Tistory 발행 오류: {str(e)}"
+                        logger.error(error_message)
+                
+                # 발행 성공시 데이터베이스 상태 업데이트
+                if success:
+                    conn = get_db_connection()
+                    if conn:
+                        cursor = conn.cursor()
+                        cursor.execute(
+                            "UPDATE unble.content_files SET status = 'published', url = %s WHERE id = %s",
+                            (published_url, post_id)
+                        )
+                        conn.commit()
+                        cursor.close()
+                        conn.close()
                     
                     return jsonify({
                         'success': True,
-                        'message': f'포스트 "{target_file.get("title", "")}"가 성공적으로 발행되었습니다.',
-                        'post_id': post_id
+                        'message': f'포스트 "{target_file.get("title", "")}"가 {site} 사이트에 성공적으로 발행되었습니다.',
+                        'post_id': post_id,
+                        'url': published_url
                     })
                 else:
                     return jsonify({
                         'success': False,
-                        'error': '데이터베이스 연결 오류'
+                        'error': error_message or '발행 중 알 수 없는 오류가 발생했습니다.'
                     }), 500
                     
             except Exception as e:
