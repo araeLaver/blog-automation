@@ -2645,11 +2645,12 @@
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) {
+                if (data && data.success) {
                     alert('Tistory에 콘텐츠가 성공적으로 발행되었습니다!');
                     location.reload(); // 페이지 새로고침으로 상태 업데이트
                 } else {
-                    alert(`발행 실패: ${data.error || '알 수 없는 오류'}`);
+                    const errorMsg = (data && data.error) ? data.error : '알 수 없는 오류';
+                    alert(`발행 실패: ${errorMsg}`);
                 }
             })
             .catch(error => {
@@ -2704,14 +2705,15 @@
                 }
             })
             .then(data => {
-                if (data.success) {
+                if (data && data.success) {
                     alert('WordPress에 콘텐츠가 성공적으로 발행되었습니다!');
                     if (data.url) {
                         console.log('발행된 URL:', data.url);
                     }
                     location.reload(); // 페이지 새로고침으로 상태 업데이트
                 } else {
-                    alert(`발행 실패: ${data.error || '알 수 없는 오류'}`);
+                    const errorMsg = (data && data.error) ? data.error : '알 수 없는 오류';
+                    alert(`발행 실패: ${errorMsg}`);
                 }
             })
             .catch(error => {
@@ -2766,14 +2768,15 @@
                 }
             })
             .then(data => {
-                if (data.success) {
+                if (data && data.success) {
                     alert('콘텐츠가 성공적으로 발행되었습니다!');
                     if (data.url) {
                         console.log('발행된 URL:', data.url);
                     }
                     location.reload(); // 페이지 새로고침으로 상태 업데이트
                 } else {
-                    alert(`발행 실패: ${data.error || '알 수 없는 오류'}`);
+                    const errorMsg = (data && data.error) ? data.error : '알 수 없는 오류';
+                    alert(`발행 실패: ${errorMsg}`);
                 }
             })
             .catch(error => {

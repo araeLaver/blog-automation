@@ -1305,8 +1305,7 @@ def manual_auto_publish():
         
         for site in sites:
             try:
-                # 각 사이트별 콘텐츠 생성 및 발행
-                from src.utils.auto_publisher import auto_publisher
+                # 직접 콘텐츠 생성 및 발행 (schedule 모듈 의존성 제거)
                 
                 # 기본 주제 설정
                 topic_map = {
@@ -1315,14 +1314,74 @@ def manual_auto_publish():
                     'skewese': '조선왕조 역사 속 숨겨진 이야기'
                 }
                 
-                plan = {
-                    'topic': topic_map.get(site, 'IT 기술 트렌드'),
-                    'keywords': [site, '가이드', '2025'],
-                    'topic_category': 'programming' if site == 'unpre' else 'realestate' if site == 'untab' else 'history',
-                    'target_length': 'medium'
+                topic = topic_map.get(site, 'IT 기술 트렌드')
+                keywords = [site, '가이드', '2025']
+                category = 'programming' if site == 'unpre' else 'realestate' if site == 'untab' else 'history'
+                
+                # 직접 콘텐츠 생성 API 호출
+                import requests
+                import json
+                
+                # 1. 콘텐츠 생성
+                generate_payload = {
+                    'site': site,
+                    'topic': topic,
+                    'keywords': keywords,
+                    'category': category,
+                    'content_length': 'medium'
                 }
                 
-                success = auto_publisher._execute_site_publishing(site, plan)
+                logger.info(f"[AUTO_PUBLISH] {site} 콘텐츠 생성 중...")
+                
+                # 현재 서버 URL 결정 (운영/개발 환경 자동 감지)
+                server_url = request.url_root.rstrip('/')
+                
+                generate_response = requests.post(
+                    f'{server_url}/api/generate_wordpress',
+                    headers={'Content-Type': 'application/json'},
+                    json=generate_payload,
+                    timeout=300
+                )
+                
+                if generate_response.status_code != 200:
+                    logger.error(f"[AUTO_PUBLISH] {site} 콘텐츠 생성 실패: {generate_response.status_code}")
+                    success = False
+                else:
+                    generate_result = generate_response.json()
+                    if not generate_result.get('success'):
+                        logger.error(f"[AUTO_PUBLISH] {site} 콘텐츠 생성 실패: {generate_result.get('error')}")
+                        success = False
+                    else:
+                        # 2. WordPress 발행
+                        file_path = generate_result.get('file_path')
+                        if not file_path:
+                            logger.error(f"[AUTO_PUBLISH] {site} 파일 경로 없음")
+                            success = False
+                        else:
+                            logger.info(f"[AUTO_PUBLISH] {site} WordPress 발행 중...")
+                            publish_payload = {
+                                'file_path': file_path,
+                                'site': site
+                            }
+                            
+                            publish_response = requests.post(
+                                f'{server_url}/api/publish_to_wordpress',
+                                headers={'Content-Type': 'application/json'},
+                                json=publish_payload,
+                                timeout=120
+                            )
+                            
+                            if publish_response.status_code != 200:
+                                logger.error(f"[AUTO_PUBLISH] {site} WordPress 발행 실패: {publish_response.status_code}")
+                                success = False
+                            else:
+                                publish_result = publish_response.json()
+                                if not publish_result.get('success'):
+                                    logger.error(f"[AUTO_PUBLISH] {site} WordPress 발행 실패: {publish_result.get('error')}")
+                                    success = False
+                                else:
+                                    logger.info(f"[AUTO_PUBLISH] {site} 발행 완료: {publish_result.get('url')}")
+                                    success = True
                 
                 results.append({
                     'site': site,
