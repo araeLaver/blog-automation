@@ -2533,26 +2533,98 @@
                 return;
             }
             
-            showNotification('🚀 수동 발행을 시작합니다... (3-5분 소요)', 'info');
+            // 진행상황 모달 생성
+            const progressModal = document.createElement('div');
+            progressModal.innerHTML = `
+                <div class="modal fade" id="publishProgressModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">🚀 자동발행계획 수동 실행 중...</h5>
+                            </div>
+                            <div class="modal-body">
+                                <div class="progress mb-3">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         role="progressbar" style="width: 0%" id="publishProgress"></div>
+                                </div>
+                                <div id="publishStatus">발행을 시작합니다...</div>
+                                <ul id="publishResults" class="mt-3"></ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(progressModal);
+            
+            const modal = new bootstrap.Modal(document.getElementById('publishProgressModal'));
+            modal.show();
+            
+            showNotification('🚀 자동발행계획에 따른 수동 발행을 시작합니다...', 'info');
             
             try {
                 const response = await fetch('/api/schedule/auto_publish', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({date: today})
+                    body: JSON.stringify({sites: ['unpre', 'untab', 'skewese']})
                 });
                 
                 const result = await response.json();
                 
-                if (result.success) {
-                    showNotification('✅ 수동 발행 완료!', 'success');
+                // 진행상황 업데이트
+                const progressBar = document.getElementById('publishProgress');
+                const statusDiv = document.getElementById('publishStatus');
+                const resultsUl = document.getElementById('publishResults');
+                
+                if (result.success || result.results) {
+                    progressBar.style.width = '100%';
+                    statusDiv.innerHTML = `✅ 발행 완료! (성공: ${result.message || '상세 결과 확인'})`;
+                    
+                    // 개별 사이트 결과 표시
+                    if (result.results) {
+                        result.results.forEach(siteResult => {
+                            const li = document.createElement('li');
+                            li.className = siteResult.success ? 'text-success' : 'text-danger';
+                            
+                            let resultText = `${siteResult.site.toUpperCase()}: ${siteResult.message}`;
+                            if (siteResult.topic) {
+                                resultText += ` (주제: ${siteResult.topic})`;
+                            }
+                            if (siteResult.url) {
+                                resultText += ` - <a href="${siteResult.url}" target="_blank">발행된 글 보기</a>`;
+                            }
+                            
+                            li.innerHTML = resultText;
+                            resultsUl.appendChild(li);
+                        });
+                    }
+                    
+                    showNotification('✅ 자동발행계획 수동 실행 완료!', 'success');
                     loadWeeklySchedule();
                     refreshData(); // 전체 데이터도 새로고침
+                    
                 } else {
+                    progressBar.style.width = '100%';
+                    progressBar.className = 'progress-bar bg-danger';
+                    statusDiv.innerHTML = `❌ 발행 실패: ${result.error || '알 수 없는 오류'}`;
                     showNotification(`❌ 수동 발행 실패: ${result.error}`, 'error');
                 }
+                
+                // 3초 후 모달 자동 닫기
+                setTimeout(() => {
+                    modal.hide();
+                    document.body.removeChild(progressModal);
+                }, 3000);
+                
             } catch (error) {
+                document.getElementById('publishProgress').className = 'progress-bar bg-danger';
+                document.getElementById('publishProgress').style.width = '100%';
+                document.getElementById('publishStatus').innerHTML = `❌ 오류 발생: ${error.message}`;
                 showNotification(`❌ 수동 발행 오류: ${error.message}`, 'error');
+                
+                setTimeout(() => {
+                    modal.hide();
+                    document.body.removeChild(progressModal);
+                }, 3000);
             }
         }
 

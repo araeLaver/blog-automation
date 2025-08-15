@@ -1305,18 +1305,40 @@ def manual_auto_publish():
         
         for site in sites:
             try:
-                # 직접 콘텐츠 생성 및 발행 (schedule 모듈 의존성 제거)
+                # 자동발행계획에서 오늘 날짜에 해당하는 실제 주제 가져오기
+                from src.utils.schedule_manager import schedule_manager
+                from datetime import datetime, timedelta
                 
-                # 기본 주제 설정
-                topic_map = {
-                    'unpre': 'Python 기초 프로그래밍 완벽 가이드',
-                    'untab': '2025년 부동산 투자 전략 분석',
-                    'skewese': '조선왕조 역사 속 숨겨진 이야기'
-                }
+                today = datetime.now().date()
+                week_start = today - timedelta(days=today.weekday())
+                day_of_week = today.weekday()
                 
-                topic = topic_map.get(site, 'IT 기술 트렌드')
-                keywords = [site, '가이드', '2025']
-                category = 'programming' if site == 'unpre' else 'realestate' if site == 'untab' else 'history'
+                # 스케줄에서 실제 주제 조회
+                schedule_data = schedule_manager.get_weekly_schedule(week_start)
+                topic = None
+                keywords = [site, '가이드']
+                category = 'programming'
+                
+                if schedule_data and day_of_week in schedule_data['schedule']:
+                    day_schedule = schedule_data['schedule'][day_of_week]
+                    if site in day_schedule.get('sites', {}):
+                        site_plan = day_schedule['sites'][site]
+                        topic = site_plan.get('topic', f'{site} 전문 콘텐츠 가이드')
+                        keywords = site_plan.get('keywords', [site, '가이드'])
+                        category = site_plan.get('category', 'programming')
+                        
+                        logger.info(f"[SCHEDULE] {site} 스케줄 주제: {topic}")
+                
+                # 스케줄에 없으면 기본 주제 사용
+                if not topic:
+                    topic_map = {
+                        'unpre': 'Python 기초 프로그래밍 완벽 가이드',
+                        'untab': '2025년 부동산 투자 전략 분석',
+                        'skewese': '조선왕조 역사 속 숨겨진 이야기'
+                    }
+                    topic = topic_map.get(site, 'IT 기술 트렌드')
+                    category = 'programming' if site == 'unpre' else 'realestate' if site == 'untab' else 'history'
+                    logger.info(f"[SCHEDULE] {site} 기본 주제 사용: {topic}")
                 
                 # 직접 콘텐츠 생성 API 호출
                 import requests
@@ -1331,11 +1353,12 @@ def manual_auto_publish():
                     'content_length': 'medium'
                 }
                 
-                logger.info(f"[AUTO_PUBLISH] {site} 콘텐츠 생성 중...")
+                logger.info(f"[AUTO_PUBLISH] {site} 콘텐츠 생성 시작 - 주제: {topic}")
                 
                 # 현재 서버 URL 결정 (운영/개발 환경 자동 감지)
                 server_url = request.url_root.rstrip('/')
                 
+                logger.info(f"[AUTO_PUBLISH] {site} API 호출: {server_url}/api/generate_wordpress")
                 generate_response = requests.post(
                     f'{server_url}/api/generate_wordpress',
                     headers={'Content-Type': 'application/json'},
@@ -1380,13 +1403,33 @@ def manual_auto_publish():
                                     logger.error(f"[AUTO_PUBLISH] {site} WordPress 발행 실패: {publish_result.get('error')}")
                                     success = False
                                 else:
-                                    logger.info(f"[AUTO_PUBLISH] {site} 발행 완료: {publish_result.get('url')}")
+                                    published_url = publish_result.get('url', '')
+                                    logger.info(f"[AUTO_PUBLISH] {site} 발행 완료: {published_url}")
+                                    
+                                    # 스케줄 상태를 'published'로 업데이트
+                                    if schedule_data and day_of_week in schedule_data['schedule']:
+                                        try:
+                                            schedule_manager.update_schedule_status(
+                                                week_start, day_of_week, site, 'published', url=published_url
+                                            )
+                                            logger.info(f"[SCHEDULE] {site} 스케줄 상태 업데이트: published")
+                                        except Exception as e:
+                                            logger.error(f"[SCHEDULE] {site} 상태 업데이트 실패: {e}")
+                                    
                                     success = True
+                
+                result_message = f'{site} 발행 완료'
+                if success and 'published_url' in locals():
+                    result_message += f' - URL: {published_url}'
+                elif not success:
+                    result_message = f'{site} 발행 실패'
                 
                 results.append({
                     'site': site,
                     'success': success,
-                    'message': f'{site} 발행 성공' if success else f'{site} 발행 실패'
+                    'message': result_message,
+                    'topic': topic,
+                    'url': published_url if success and 'published_url' in locals() else None
                 })
                 
             except Exception as e:
