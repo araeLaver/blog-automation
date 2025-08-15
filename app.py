@@ -959,13 +959,21 @@ def download_content(file_id):
                 # 파일 다운로드 응답
                 response = make_response(content)
                 # 한글 파일명 처리 - 제목을 그대로 사용
-                safe_title = target_file.get('title', 'content')[:100]  # 길이 제한 늘림
+                safe_title = target_file.get('title', 'content')[:80]  # 길이 제한
                 import re
                 # 파일명에 사용할 수 없는 문자만 제거, 한글은 유지
                 safe_title = re.sub(r'[<>:"/\\|?*]', '', safe_title).strip()
                 filename = f"{safe_title}.html"
                 
-                response.headers['Content-Disposition'] = f'attachment; filename*=UTF-8\'\'{"".join(f"%{ord(c):02X}" if ord(c) > 127 else c for c in filename)}'
+                # 더 호환성 좋은 파일명 헤더 설정 - 한글 파일명 오류 해결
+                import urllib.parse
+                # ASCII 안전한 제목으로 변환
+                ascii_safe_title = re.sub(r'[^\w\s-]', '', safe_title).strip()[:50]
+                if not ascii_safe_title:  # 한글만 있는 경우를 위한 fallback
+                    ascii_safe_title = 'content'
+                
+                encoded_filename = urllib.parse.quote(filename.encode('utf-8'))
+                response.headers['Content-Disposition'] = f'attachment; filename="{ascii_safe_title}.html"; filename*=UTF-8\'\'{encoded_filename}'
                 response.headers['Content-Type'] = 'text/html; charset=utf-8'
                 logger.info(f"다운로드 제공: {filename}")
                 return response
@@ -1001,6 +1009,83 @@ def debug_content_generator():
             'error': str(e),
             'content_generator_initialized': False
         })
+
+@app.route('/api/publish_post', methods=['POST'])
+def publish_post():
+    """포스트 발행"""
+    try:
+        data = request.json
+        post_id = data.get('post_id')
+        
+        if not post_id:
+            return jsonify({
+                'success': False,
+                'error': '포스트 ID가 필요합니다.'
+            }), 400
+        
+        database = get_database()
+        
+        if database.is_connected:
+            # 실제 데이터베이스에서 상태 업데이트
+            try:
+                # 포스트 정보 가져오기
+                files = database.get_content_files(limit=1000)
+                target_file = None
+                
+                for f in files:
+                    if f.get('id') == int(post_id):
+                        target_file = f
+                        break
+                
+                if not target_file:
+                    return jsonify({
+                        'success': False,
+                        'error': '포스트를 찾을 수 없습니다.'
+                    }), 404
+                
+                # 상태를 published로 업데이트
+                conn = get_db_connection()
+                if conn:
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "UPDATE unble.content_files SET status = 'published' WHERE id = %s",
+                        (post_id,)
+                    )
+                    conn.commit()
+                    cursor.close()
+                    conn.close()
+                    
+                    return jsonify({
+                        'success': True,
+                        'message': f'포스트 "{target_file.get("title", "")}"가 성공적으로 발행되었습니다.',
+                        'post_id': post_id
+                    })
+                else:
+                    return jsonify({
+                        'success': False,
+                        'error': '데이터베이스 연결 오류'
+                    }), 500
+                    
+            except Exception as e:
+                logger.error(f"포스트 발행 실패: {e}")
+                return jsonify({
+                    'success': False,
+                    'error': str(e)
+                }), 500
+        
+        # DB 연결 실패시 목업 응답
+        return jsonify({
+            'success': True,
+            'message': f'포스트가 성공적으로 발행되었습니다. (목업 모드)',
+            'post_id': post_id
+        })
+        
+    except Exception as e:
+        logger.error(f"포스트 발행 오류: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/delete_posts', methods=['POST'])
 def delete_posts():
