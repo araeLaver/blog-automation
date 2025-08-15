@@ -20,25 +20,38 @@ class ContentGenerator:
         if not api_key or api_key.startswith("sk-ant-api03-your-actual"):
             raise ValueError("실제 Claude API 키가 설정되지 않았습니다. .env 파일의 ANTHROPIC_API_KEY를 확인하세요.")
         
-        # Koyeb 환경에서 proxies 파라미터 문제 방지
+        # Koyeb 환경에서 proxies 파라미터 문제 해결
+        # 프록시 환경변수 임시 제거
+        old_http_proxy = os.environ.pop('HTTP_PROXY', None)
+        old_https_proxy = os.environ.pop('HTTPS_PROXY', None)
+        old_http_proxy_lower = os.environ.pop('http_proxy', None)
+        old_https_proxy_lower = os.environ.pop('https_proxy', None)
+        
         try:
+            # proxies 없이 클라이언트 초기화
             self.anthropic_client = anthropic.Anthropic(api_key=api_key)
-        except TypeError as e:
-            if "proxies" in str(e):
-                # proxies 파라미터 없이 재시도
-                # 프록시 환경변수 임시 제거
-                old_http_proxy = os.environ.pop('HTTP_PROXY', None)
-                old_https_proxy = os.environ.pop('HTTPS_PROXY', None)
-                try:
-                    self.anthropic_client = anthropic.Anthropic(api_key=api_key)
-                finally:
-                    # 환경변수 복원
-                    if old_http_proxy:
-                        os.environ['HTTP_PROXY'] = old_http_proxy
-                    if old_https_proxy:
-                        os.environ['HTTPS_PROXY'] = old_https_proxy
-            else:
-                raise
+        except Exception as e:
+            print(f"Anthropic 클라이언트 초기화 오류: {e}")
+            # 환경변수 복원
+            if old_http_proxy:
+                os.environ['HTTP_PROXY'] = old_http_proxy
+            if old_https_proxy:
+                os.environ['HTTPS_PROXY'] = old_https_proxy
+            if old_http_proxy_lower:
+                os.environ['http_proxy'] = old_http_proxy_lower
+            if old_https_proxy_lower:
+                os.environ['https_proxy'] = old_https_proxy_lower
+            raise
+        finally:
+            # 환경변수 복원
+            if old_http_proxy:
+                os.environ['HTTP_PROXY'] = old_http_proxy
+            if old_https_proxy:
+                os.environ['HTTPS_PROXY'] = old_https_proxy
+            if old_http_proxy_lower:
+                os.environ['http_proxy'] = old_http_proxy_lower
+            if old_https_proxy_lower:
+                os.environ['https_proxy'] = old_https_proxy_lower
     
     def generate_content(self, site_config: Dict, topic: str, 
                         category: str, existing_posts: List[str] = None, content_length: str = 'medium') -> Dict:
