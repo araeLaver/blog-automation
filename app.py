@@ -1079,9 +1079,56 @@ def publish_post():
                 except:
                     # JSON이 아닌 경우 HTML 콘텐츠로 처리
                     logger.info("HTML 콘텐츠로 처리")
+                    
+                    # 인코딩 문제 해결: 문제가 되는 특수 문자들을 안전한 문자로 대체
+                    safe_content = raw_content
+                    
+                    # 1. 이모지와 특수 문자 대체
+                    char_replacements = {
+                        '\U0001f4c5': '[날짜]',  # 📅 캘린더
+                        '\U0001f516': '[태그]',  # 🔖 북마크
+                        '\U0001f4a1': '[팁]',   # 💡 전구
+                        '\U0001f3f7\ufe0f': '[태그]',  # 🏷️ 라벨
+                        '\U0001f4bb': '[컴퓨터]',  # 💻 노트북
+                        '\U0001f680': '[로켓]',  # 🚀 로켓
+                        '\U0001f525': '[불]',   # 🔥 불
+                        '\U0001f3af': '[타겟]',  # 🎯 다트
+                        '\U0001f4d1': '[북마크]', # 📑 북마크 탭
+                        '\u2022': '•',  # bullet point
+                        '\u2023': '‣',  # triangular bullet
+                        '\u2043': '⁃',  # hyphen bullet
+                        '\u25aa': '▪',  # black small square
+                        '\u25ab': '▫',  # white small square
+                        '\u25b6': '▶',  # black right-pointing triangle
+                        '\u25c0': '◀',  # black left-pointing triangle
+                    }
+                    
+                    for char, replacement in char_replacements.items():
+                        if char in safe_content:
+                            safe_content = safe_content.replace(char, replacement)
+                            logger.info(f"특수 문자 대체: {repr(char)} -> {replacement}")
+                    
+                    # 2. 포괄적 해결: CP949에서 인코딩할 수 없는 모든 문자를 안전한 문자로 변환
+                    try:
+                        # CP949로 인코딩 시도하여 문제 있는 문자 찾기
+                        safe_content.encode('cp949')
+                    except UnicodeEncodeError:
+                        logger.info("CP949 인코딩 불가능한 문자 발견, 안전한 문자로 변환")
+                        # 각 문자를 체크하여 인코딩 가능한 문자만 유지
+                        safe_chars = []
+                        for char in safe_content:
+                            try:
+                                char.encode('cp949')
+                                safe_chars.append(char)
+                            except UnicodeEncodeError:
+                                # 인코딩 불가능한 문자는 물음표로 대체
+                                safe_chars.append('?')
+                                logger.info(f"문제 문자 발견: {repr(char)} -> ?")
+                        safe_content = ''.join(safe_chars)
+                    
                     content_data = {
                         'title': target_file.get('title', '제목 없음'),
-                        'content': raw_content,  # HTML 콘텐츠 그대로 사용
+                        'content': safe_content,  # 이모지가 제거된 안전한 콘텐츠
                         'meta_description': f"{target_file.get('title', '')} 관련 내용입니다.",
                         'tags': target_file.get('tags', ['블로그', '자동화']),
                         'categories': [target_file.get('category', '기타')]
@@ -1147,8 +1194,8 @@ def publish_post():
                     if conn:
                         cursor = conn.cursor()
                         cursor.execute(
-                            "UPDATE unble.content_files SET status = 'published', url = %s WHERE id = %s",
-                            (published_url, post_id)
+                            "UPDATE unble.content_files SET status = 'published' WHERE id = %s",
+                            (post_id,)
                         )
                         conn.commit()
                         cursor.close()
