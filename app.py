@@ -1340,22 +1340,131 @@ def quick_publish():
         import threading
         def background_publish():
             try:
+                from src.utils.schedule_manager import schedule_manager
+                from datetime import datetime, timedelta
+                import requests
+                
+                today = datetime.now().date()
+                week_start = today - timedelta(days=today.weekday())
+                day_of_week = today.weekday()
+                
+                # 오늘의 스케줄 가져오기
+                schedule_data = schedule_manager.get_weekly_schedule(week_start)
+                
                 for i, site in enumerate(sites):
-                    publish_status.update({
-                        'current_site': site,
-                        'progress': int((i + 1) / len(sites) * 100),
-                        'message': f'{site} 발행 완료'
-                    })
-                    # 실제 발행 로직은 여기에...
-                    import time
-                    time.sleep(2)  # 시뮬레이션
+                    try:
+                        publish_status.update({
+                            'current_site': site,
+                            'progress': int((i / len(sites)) * 90),
+                            'message': f'{site} 콘텐츠 생성 중...'
+                        })
+                        
+                        # 스케줄에서 주제 가져오기
+                        topic = f'{site} 가이드'
+                        keywords = [site, '가이드']
+                        category = 'programming'
+                        
+                        if schedule_data and day_of_week in schedule_data['schedule']:
+                            day_schedule = schedule_data['schedule'][day_of_week]
+                            site_plan = day_schedule.get('sites', {}).get(site, {})
+                            if site_plan:
+                                topic = site_plan.get('topic', topic)
+                                keywords = site_plan.get('keywords', keywords)
+                                category = site_plan.get('topic_category', category)
+                        
+                        # 1. 콘텐츠 생성
+                        generate_payload = {
+                            'site': site,
+                            'topic': topic,
+                            'keywords': keywords,
+                            'category': category
+                        }
+                        
+                        generate_response = requests.post(
+                            'http://localhost:8000/api/generate_wordpress',
+                            headers={'Content-Type': 'application/json'},
+                            json=generate_payload,
+                            timeout=300
+                        )
+                        
+                        if generate_response.status_code != 200:
+                            raise Exception(f'콘텐츠 생성 실패: {generate_response.status_code}')
+                        
+                        generate_result = generate_response.json()
+                        if not generate_result.get('success'):
+                            raise Exception(f'콘텐츠 생성 실패: {generate_result.get("error")}')
+                        
+                        publish_status.update({
+                            'current_site': site,
+                            'progress': int(((i + 0.5) / len(sites)) * 90),
+                            'message': f'{site} WordPress 발행 중...'
+                        })
+                        
+                        # 2. WordPress 발행 (파일 경로 사용)
+                        file_path = generate_result.get('file_path')
+                        if not file_path:
+                            raise Exception('생성된 파일 경로가 없습니다')
+                        
+                        # WordPress 발행 로직 직접 호출
+                        from src.publishers.wordpress_publisher import WordPressPublisher
+                        from bs4 import BeautifulSoup
+                        import os
+                        
+                        # 파일 읽기
+                        if os.path.exists(file_path):
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                html_content = f.read()
+                            
+                            # HTML 파싱해서 콘텐츠 추출
+                            soup = BeautifulSoup(html_content, 'html.parser')
+                            title = soup.find('title').text if soup.find('title') else topic
+                            meta_desc = soup.find('meta', {'name': 'description'})
+                            meta_description = meta_desc['content'] if meta_desc else ''
+                            
+                            content_data = {
+                                'title': title,
+                                'content': html_content,
+                                'meta_description': meta_description,
+                                'categories': [category],
+                                'tags': keywords
+                            }
+                            
+                            # WordPress 발행
+                            wp_publisher = WordPressPublisher(site)
+                            success, result = wp_publisher.publish_post(content_data)
+                            
+                            if success:
+                                publish_status.update({
+                                    'current_site': site,
+                                    'progress': int(((i + 1) / len(sites)) * 90),
+                                    'message': f'{site} 발행 성공: {result}'
+                                })
+                                # 스케줄 상태 업데이트
+                                if schedule_data:
+                                    schedule_manager.update_schedule_status(
+                                        week_start, day_of_week, site, 'published', url=result
+                                    )
+                            else:
+                                raise Exception(f'WordPress 발행 실패: {result}')
+                        else:
+                            raise Exception(f'생성된 파일을 찾을 수 없습니다: {file_path}')
+                            
+                    except Exception as e:
+                        logger.error(f'{site} 발행 오류: {e}')
+                        publish_status.update({
+                            'current_site': site,
+                            'progress': int(((i + 1) / len(sites)) * 90),
+                            'message': f'{site} 발행 실패: {str(e)}'
+                        })
                 
                 publish_status.update({
                     'in_progress': False,
                     'progress': 100,
-                    'message': '모든 사이트 발행 완료!'
+                    'message': f'발행 완료! 사이트 확인: unpre.co.kr, untab.co.kr, skewese.com'
                 })
+                
             except Exception as e:
+                logger.error(f'전체 발행 오류: {e}')
                 publish_status.update({
                     'in_progress': False,
                     'message': f'발행 오류: {str(e)}'
