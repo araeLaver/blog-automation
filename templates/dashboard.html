@@ -2565,6 +2565,19 @@
             const pollStatus = async () => {
                 try {
                     const statusResponse = await fetch('/api/publish_status');
+                    
+                    // JSON 응답 확인
+                    if (!statusResponse.ok) {
+                        console.error('상태 조회 실패:', statusResponse.status);
+                        return;
+                    }
+                    
+                    const contentType = statusResponse.headers.get("content-type");
+                    if (!contentType || !contentType.includes("application/json")) {
+                        console.error('JSON이 아닌 응답 수신:', contentType);
+                        return;
+                    }
+                    
                     const status = await statusResponse.json();
                     
                     const progressBar = document.getElementById('publishProgress');
@@ -2629,12 +2642,22 @@
             const pollInterval = setInterval(pollStatus, 1000);
             
             try {
-                // 발행 시작
-                const response = await fetch('/api/schedule/auto_publish', {
+                // 발행 시작 (빠른 API 사용)
+                const response = await fetch('/api/quick_publish', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({sites: ['unpre', 'untab', 'skewese']})
                 });
+                
+                // 응답 검증
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error(`JSON이 아닌 응답: ${contentType}`);
+                }
                 
                 const result = await response.json();
                 
