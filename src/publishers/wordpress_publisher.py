@@ -26,9 +26,40 @@ class WordPressPublisher:
             site_key: 사이트 식별자 (unpre, untab, skewese)
         """
         self.site_key = site_key
+        
+        # 환경변수에서 먼저 시도
         self.base_url = os.getenv(f"{site_key.upper()}_URL")
         self.username = os.getenv(f"{site_key.upper()}_USERNAME")
         self.password = os.getenv(f"{site_key.upper()}_PASSWORD")
+        
+        # 환경변수가 없으면 하드코딩된 값 사용 (운영 환경 대비)
+        if not all([self.base_url, self.username, self.password]):
+            site_configs = {
+                'unpre': {
+                    'url': 'https://unpre.co.kr',
+                    'username': 'unpre',
+                    'password': 'Kdwyyr1527!'
+                },
+                'untab': {
+                    'url': 'https://untab.co.kr',
+                    'username': 'untab',
+                    'password': 'Kdwyyr1527!'
+                },
+                'skewese': {
+                    'url': 'https://skewese.com',
+                    'username': 'skewese',
+                    'password': 'Kdwyyr1527!'
+                }
+            }
+            
+            if site_key in site_configs:
+                config = site_configs[site_key]
+                self.base_url = self.base_url or config['url']
+                self.username = self.username or config['username']
+                self.password = self.password or config['password']
+                print(f"WordPress 설정 로드됨 (하드코딩): {site_key}")
+            else:
+                raise ValueError(f"WordPress 설정이 없습니다: {site_key}")
         
         if not all([self.base_url, self.username, self.password]):
             raise ValueError(f"WordPress 설정이 없습니다: {site_key}")
