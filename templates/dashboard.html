@@ -914,7 +914,7 @@
                     }
                     
                     if (actions.includes('publish') && status === 'draft') {
-                        actionButtons += `<button class="btn btn-outline-success btn-sm me-1" onclick="publishContent('${file.id}', '${site}')" title="발행">
+                        actionButtons += `<button class="btn btn-outline-success btn-sm me-1" onclick="publishContent('${file.id}', '${site}', this)" title="발행">
                             <i class="bi bi-upload"></i> 발행
                         </button>`;
                     }
@@ -1006,7 +1006,7 @@
                     }
                     
                     if (actions.includes('publish') && status === 'draft') {
-                        actionButtons += `<button class="btn btn-outline-success btn-sm me-1" onclick="publishToTistory('${file.id}')" title="발행">
+                        actionButtons += `<button class="btn btn-outline-success btn-sm me-1" onclick="publishToTistory('${file.id}', this)" title="발행">
                             <i class="bi bi-upload"></i> 발행
                         </button>`;
                     }
@@ -2615,16 +2615,23 @@
             }
         }
         
-        function publishToTistory(fileId) {
+        function publishToTistory(fileId, buttonElement) {
             if (!confirm(`Tistory에 콘텐츠를 발행하시겠습니까?`)) {
                 return;
             }
             
-            // 로딩 상태 표시
-            const button = event.target.closest('button');
-            const originalContent = button.innerHTML;
-            button.disabled = true;
-            button.innerHTML = '<i class="spinner-border spinner-border-sm"></i> 발행 중...';
+            // 로딩 상태 표시 (버튼 요소를 안전하게 찾기)
+            let button = buttonElement;
+            if (!button && event && event.target) {
+                button = event.target.closest('button');
+            }
+            
+            let originalContent = '';
+            if (button) {
+                originalContent = button.innerHTML;
+                button.disabled = true;
+                button.innerHTML = '<i class="spinner-border spinner-border-sm"></i> 발행 중...';
+            }
             
             fetch('/api/publish_post', {
                 method: 'POST',
@@ -2651,21 +2658,30 @@
             })
             .finally(() => {
                 // 버튼 상태 복원
-                button.disabled = false;
-                button.innerHTML = originalContent;
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = originalContent;
+                }
             });
         }
         
-        function publishToWordPress(fileId) {
+        function publishToWordPress(fileId, buttonElement) {
             if (!confirm(`WordPress에 콘텐츠를 발행하시겠습니까?`)) {
                 return;
             }
             
-            // 로딩 상태 표시
-            const button = event.target.closest('button');
-            const originalContent = button.innerHTML;
-            button.disabled = true;
-            button.innerHTML = '<i class="spinner-border spinner-border-sm"></i> 발행 중...';
+            // 로딩 상태 표시 (버튼 요소를 안전하게 찾기)
+            let button = buttonElement;
+            if (!button && event && event.target) {
+                button = event.target.closest('button');
+            }
+            
+            let originalContent = '';
+            if (button) {
+                originalContent = button.innerHTML;
+                button.disabled = true;
+                button.innerHTML = '<i class="spinner-border spinner-border-sm"></i> 발행 중...';
+            }
             
             fetch('/api/publish_post', {
                 method: 'POST',
@@ -2704,21 +2720,30 @@
             })
             .finally(() => {
                 // 버튼 상태 복원
-                button.disabled = false;
-                button.innerHTML = originalContent;
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = originalContent;
+                }
             });
         }
         
-        function publishContent(fileId, site) {
+        function publishContent(fileId, site, buttonElement) {
             if (!confirm(`${site} 사이트에 콘텐츠를 발행하시겠습니까?`)) {
                 return;
             }
             
-            // 로딩 상태 표시
-            const button = event.target.closest('button');
-            const originalContent = button.innerHTML;
-            button.disabled = true;
-            button.innerHTML = '<i class="spinner-border spinner-border-sm"></i> 발행 중...';
+            // 로딩 상태 표시 (버튼 요소를 안전하게 찾기)
+            let button = buttonElement;
+            if (!button && event && event.target) {
+                button = event.target.closest('button');
+            }
+            
+            let originalContent = '';
+            if (button) {
+                originalContent = button.innerHTML;
+                button.disabled = true;
+                button.innerHTML = '<i class="spinner-border spinner-border-sm"></i> 발행 중...';
+            }
             
             fetch('/api/publish_post', {
                 method: 'POST',
@@ -2757,8 +2782,10 @@
             })
             .finally(() => {
                 // 버튼 상태 복원
-                button.disabled = false;
-                button.innerHTML = originalContent;
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = originalContent;
+                }
             });
         }
 
