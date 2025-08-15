@@ -2616,15 +2616,126 @@
         }
         
         function publishToTistory(fileId) {
-            alert(`Tistory 발행 기능 (ID: ${fileId})\n준비 중입니다.`);
+            if (!confirm(`Tistory에 콘텐츠를 발행하시겠습니까?`)) {
+                return;
+            }
+            
+            // 로딩 상태 표시
+            const button = event.target.closest('button');
+            const originalContent = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="spinner-border spinner-border-sm"></i> 발행 중...';
+            
+            fetch('/api/publish_post', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    post_id: fileId,
+                    site: 'tistory'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Tistory에 콘텐츠가 성공적으로 발행되었습니다!');
+                    location.reload(); // 페이지 새로고침으로 상태 업데이트
+                } else {
+                    alert(`발행 실패: ${data.error || '알 수 없는 오류'}`);
+                }
+            })
+            .catch(error => {
+                console.error('발행 오류:', error);
+                alert('발행 중 오류가 발생했습니다.');
+            })
+            .finally(() => {
+                // 버튼 상태 복원
+                button.disabled = false;
+                button.innerHTML = originalContent;
+            });
         }
         
         function publishToWordPress(fileId) {
-            alert(`WordPress 발행 기능 (ID: ${fileId})\n준비 중입니다.`);
+            if (!confirm(`WordPress에 콘텐츠를 발행하시겠습니까?`)) {
+                return;
+            }
+            
+            // 로딩 상태 표시
+            const button = event.target.closest('button');
+            const originalContent = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="spinner-border spinner-border-sm"></i> 발행 중...';
+            
+            fetch('/api/publish_post', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    post_id: fileId,
+                    site: 'wordpress'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('WordPress에 콘텐츠가 성공적으로 발행되었습니다!');
+                    location.reload(); // 페이지 새로고침으로 상태 업데이트
+                } else {
+                    alert(`발행 실패: ${data.error || '알 수 없는 오류'}`);
+                }
+            })
+            .catch(error => {
+                console.error('발행 오류:', error);
+                alert('발행 중 오류가 발생했습니다.');
+            })
+            .finally(() => {
+                // 버튼 상태 복원
+                button.disabled = false;
+                button.innerHTML = originalContent;
+            });
         }
         
         function publishContent(fileId, site) {
-            alert(`${site} 사이트에 콘텐츠 발행 기능 (ID: ${fileId})\n준비 중입니다.`);
+            if (!confirm(`${site} 사이트에 콘텐츠를 발행하시겠습니까?`)) {
+                return;
+            }
+            
+            // 로딩 상태 표시
+            const button = event.target.closest('button');
+            const originalContent = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i class="spinner-border spinner-border-sm"></i> 발행 중...';
+            
+            fetch('/api/publish_post', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    post_id: fileId,
+                    site: site
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('콘텐츠가 성공적으로 발행되었습니다!');
+                    location.reload(); // 페이지 새로고침으로 상태 업데이트
+                } else {
+                    alert(`발행 실패: ${data.error || '알 수 없는 오류'}`);
+                }
+            })
+            .catch(error => {
+                console.error('발행 오류:', error);
+                alert('발행 중 오류가 발생했습니다.');
+            })
+            .finally(() => {
+                // 버튼 상태 복원
+                button.disabled = false;
+                button.innerHTML = originalContent;
+            });
         }
 
     </script>

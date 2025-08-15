@@ -965,15 +965,12 @@ def download_content(file_id):
                 safe_title = re.sub(r'[<>:"/\\|?*]', '', safe_title).strip()
                 filename = f"{safe_title}.html"
                 
-                # 더 호환성 좋은 파일명 헤더 설정 - 한글 파일명 오류 해결
+                # 간단하고 안전한 파일명 헤더 설정
                 import urllib.parse
-                # ASCII 안전한 제목으로 변환
-                ascii_safe_title = re.sub(r'[^\w\s-]', '', safe_title).strip()[:50]
-                if not ascii_safe_title:  # 한글만 있는 경우를 위한 fallback
-                    ascii_safe_title = 'content'
+                # 안전한 기본 파일명 사용
+                safe_filename = f"blog_content_{file_id}.html"
                 
-                encoded_filename = urllib.parse.quote(filename.encode('utf-8'))
-                response.headers['Content-Disposition'] = f'attachment; filename="{ascii_safe_title}.html"; filename*=UTF-8\'\'{encoded_filename}'
+                response.headers['Content-Disposition'] = f'attachment; filename="{safe_filename}"'
                 response.headers['Content-Type'] = 'text/html; charset=utf-8'
                 logger.info(f"다운로드 제공: {filename}")
                 return response
