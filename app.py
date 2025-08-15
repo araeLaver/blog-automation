@@ -180,7 +180,6 @@ def get_recent_posts():
                            CASE WHEN categories IS NOT NULL AND jsonb_array_length(categories) > 0 
                                 THEN categories->>0 
                                 ELSE 'default' END as category,
-                           url, 
                            created_at::text, 
                            CASE WHEN status = 'published' THEN true ELSE false END as published
                     FROM unble.content_files 
@@ -1294,6 +1293,21 @@ def get_schedule():
     except Exception as e:
         return jsonify([]), 500
 
+# 발행 상태를 전역으로 추적
+publish_status = {
+    'in_progress': False,
+    'current_site': '',
+    'progress': 0,
+    'total_sites': 0,
+    'results': [],
+    'message': ''
+}
+
+@app.route('/api/publish_status')
+def get_publish_status():
+    """발행 진행 상태 조회"""
+    return jsonify(publish_status)
+
 @app.route('/api/schedule/auto_publish', methods=['POST'])
 def manual_auto_publish():
     """수동으로 자동 발행 실행"""
@@ -1301,10 +1315,28 @@ def manual_auto_publish():
         data = request.json
         sites = data.get('sites', ['unpre', 'untab', 'skewese'])
         
+        # 전역 상태 초기화
+        global publish_status
+        publish_status.update({
+            'in_progress': True,
+            'current_site': '',
+            'progress': 0,
+            'total_sites': len(sites),
+            'results': [],
+            'message': '발행을 시작합니다...'
+        })
+        
         results = []
         
-        for site in sites:
+        for idx, site in enumerate(sites):
             try:
+                # 상태 업데이트
+                publish_status.update({
+                    'current_site': site,
+                    'progress': int((idx / len(sites)) * 100),
+                    'message': f'{site} 사이트 발행 중...'
+                })
+                
                 # 자동발행계획에서 오늘 날짜에 해당하는 실제 주제 가져오기
                 from src.utils.schedule_manager import schedule_manager
                 from datetime import datetime, timedelta
@@ -1419,18 +1451,25 @@ def manual_auto_publish():
                                     success = True
                 
                 result_message = f'{site} 발행 완료'
+                result_url = None
                 if success and 'published_url' in locals():
                     result_message += f' - URL: {published_url}'
+                    result_url = published_url
                 elif not success:
                     result_message = f'{site} 발행 실패'
                 
-                results.append({
+                site_result = {
                     'site': site,
                     'success': success,
                     'message': result_message,
                     'topic': topic,
-                    'url': published_url if success and 'published_url' in locals() else None
-                })
+                    'url': result_url
+                }
+                results.append(site_result)
+                
+                # 실시간 상태 업데이트
+                publish_status['results'].append(site_result)
+                publish_status['progress'] = int(((idx + 1) / len(sites)) * 100)
                 
             except Exception as e:
                 logger.error(f"사이트 {site} 발행 오류: {e}")
@@ -1441,6 +1480,14 @@ def manual_auto_publish():
                 })
         
         success_count = sum(1 for r in results if r['success'])
+        
+        # 최종 상태 업데이트
+        publish_status.update({
+            'in_progress': False,
+            'current_site': '',
+            'progress': 100,
+            'message': f'발행 완료! 총 {len(sites)}개 사이트 중 {success_count}개 성공'
+        })
         
         return jsonify({
             'success': success_count > 0,

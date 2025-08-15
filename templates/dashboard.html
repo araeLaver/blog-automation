@@ -2561,7 +2561,75 @@
             
             showNotification('🚀 자동발행계획에 따른 수동 발행을 시작합니다...', 'info');
             
+            // 실시간 상태 폴링 시작
+            const pollStatus = async () => {
+                try {
+                    const statusResponse = await fetch('/api/publish_status');
+                    const status = await statusResponse.json();
+                    
+                    const progressBar = document.getElementById('publishProgress');
+                    const statusDiv = document.getElementById('publishStatus');
+                    const resultsUl = document.getElementById('publishResults');
+                    
+                    if (progressBar) {
+                        progressBar.style.width = `${status.progress}%`;
+                        statusDiv.innerHTML = status.message;
+                        
+                        // 현재 처리 중인 사이트 표시
+                        if (status.current_site) {
+                            statusDiv.innerHTML += ` (현재: ${status.current_site.toUpperCase()})`;
+                        }
+                        
+                        // 완료된 사이트 결과 표시
+                        resultsUl.innerHTML = '';
+                        status.results.forEach(result => {
+                            const li = document.createElement('li');
+                            li.className = result.success ? 'text-success' : 'text-danger';
+                            
+                            let resultText = `${result.site.toUpperCase()}: ${result.message}`;
+                            if (result.topic) {
+                                resultText += ` (주제: ${result.topic})`;
+                            }
+                            if (result.url) {
+                                resultText += ` - <a href="${result.url}" target="_blank">발행된 글 보기</a>`;
+                            }
+                            
+                            li.innerHTML = resultText;
+                            resultsUl.appendChild(li);
+                        });
+                        
+                        if (!status.in_progress) {
+                            // 완료되면 폴링 중지
+                            clearInterval(pollInterval);
+                            
+                            if (status.progress === 100) {
+                                progressBar.className = 'progress-bar bg-success';
+                                showNotification('✅ 자동발행계획 수동 실행 완료!', 'success');
+                            } else {
+                                progressBar.className = 'progress-bar bg-danger';
+                                showNotification('❌ 발행 중 오류 발생', 'error');
+                            }
+                            
+                            loadWeeklySchedule();
+                            refreshData();
+                            
+                            // 5초 후 모달 닫기
+                            setTimeout(() => {
+                                modal.hide();
+                                document.body.removeChild(progressModal);
+                            }, 5000);
+                        }
+                    }
+                } catch (error) {
+                    console.error('상태 폴링 오류:', error);
+                }
+            };
+            
+            // 1초마다 상태 폴링
+            const pollInterval = setInterval(pollStatus, 1000);
+            
             try {
+                // 발행 시작
                 const response = await fetch('/api/schedule/auto_publish', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -2570,61 +2638,23 @@
                 
                 const result = await response.json();
                 
-                // 진행상황 업데이트
-                const progressBar = document.getElementById('publishProgress');
-                const statusDiv = document.getElementById('publishStatus');
-                const resultsUl = document.getElementById('publishResults');
-                
-                if (result.success || result.results) {
-                    progressBar.style.width = '100%';
-                    statusDiv.innerHTML = `✅ 발행 완료! (성공: ${result.message || '상세 결과 확인'})`;
-                    
-                    // 개별 사이트 결과 표시
-                    if (result.results) {
-                        result.results.forEach(siteResult => {
-                            const li = document.createElement('li');
-                            li.className = siteResult.success ? 'text-success' : 'text-danger';
-                            
-                            let resultText = `${siteResult.site.toUpperCase()}: ${siteResult.message}`;
-                            if (siteResult.topic) {
-                                resultText += ` (주제: ${siteResult.topic})`;
-                            }
-                            if (siteResult.url) {
-                                resultText += ` - <a href="${siteResult.url}" target="_blank">발행된 글 보기</a>`;
-                            }
-                            
-                            li.innerHTML = resultText;
-                            resultsUl.appendChild(li);
-                        });
-                    }
-                    
-                    showNotification('✅ 자동발행계획 수동 실행 완료!', 'success');
-                    loadWeeklySchedule();
-                    refreshData(); // 전체 데이터도 새로고침
-                    
+                // API 호출 성공 시 메시지
+                if (result.success) {
+                    console.log('발행 요청이 성공적으로 시작되었습니다:', result.message);
                 } else {
-                    progressBar.style.width = '100%';
-                    progressBar.className = 'progress-bar bg-danger';
-                    statusDiv.innerHTML = `❌ 발행 실패: ${result.error || '알 수 없는 오류'}`;
-                    showNotification(`❌ 수동 발행 실패: ${result.error}`, 'error');
+                    console.error('발행 시작 실패:', result.error);
+                    clearInterval(pollInterval);
+                    showNotification(`❌ 발행 시작 실패: ${result.error}`, 'error');
+                    modal.hide();
+                    document.body.removeChild(progressModal);
                 }
                 
-                // 3초 후 모달 자동 닫기
-                setTimeout(() => {
-                    modal.hide();
-                    document.body.removeChild(progressModal);
-                }, 3000);
-                
             } catch (error) {
-                document.getElementById('publishProgress').className = 'progress-bar bg-danger';
-                document.getElementById('publishProgress').style.width = '100%';
-                document.getElementById('publishStatus').innerHTML = `❌ 오류 발생: ${error.message}`;
-                showNotification(`❌ 수동 발행 오류: ${error.message}`, 'error');
-                
-                setTimeout(() => {
-                    modal.hide();
-                    document.body.removeChild(progressModal);
-                }, 3000);
+                clearInterval(pollInterval);
+                console.error('발행 요청 오류:', error);
+                showNotification(`❌ 발행 요청 오류: ${error.message}`, 'error');
+                modal.hide();
+                document.body.removeChild(progressModal);
             }
         }
 
