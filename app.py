@@ -1040,20 +1040,54 @@ def publish_post():
                         'error': '포스트를 찾을 수 없습니다.'
                     }), 404
                 
+                # 디버그: 파일 구조 확인
+                logger.info(f"target_file keys: {list(target_file.keys())}")
+                logger.info(f"target_file content preview: {str(target_file.get('content', ''))[:200]}...")
+                
                 # 파일에서 실제 콘텐츠 읽기
                 content_data = None
+                raw_content = ''
+                
+                # file_path에서 실제 콘텐츠 읽기 (file_path가 HTML 콘텐츠 자체일 수도 있음)
+                file_path = target_file.get('file_path', '')
+                if file_path:
+                    # file_path가 HTML인지 실제 파일 경로인지 확인
+                    if file_path.strip().startswith('<!DOCTYPE html>') or file_path.strip().startswith('<html'):
+                        # file_path 자체가 HTML 콘텐츠인 경우
+                        logger.info("file_path 필드에 HTML 콘텐츠가 직접 저장되어 있음")
+                        raw_content = file_path
+                        logger.info(f"HTML 콘텐츠 길이: {len(raw_content)}")
+                    else:
+                        # 실제 파일 경로인 경우
+                        try:
+                            logger.info(f"파일 경로에서 콘텐츠 읽기: {file_path}")
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                raw_content = f.read()
+                            logger.info(f"파일 읽기 성공, 길이: {len(raw_content)}")
+                        except Exception as e:
+                            logger.error(f"파일 읽기 실패: {e}")
+                            raw_content = target_file.get('content', '')
+                else:
+                    logger.info("file_path 없음, content 필드 사용")
+                    raw_content = target_file.get('content', '')
+                
                 try:
+                    # JSON 구조인지 먼저 확인
                     import json
-                    content_data = json.loads(target_file.get('content', '{}'))
+                    content_data = json.loads(raw_content)
+                    logger.info("JSON 구조 콘텐츠 파싱 성공")
                 except:
-                    # JSON 파싱 실패시 기본 구조 사용
+                    # JSON이 아닌 경우 HTML 콘텐츠로 처리
+                    logger.info("HTML 콘텐츠로 처리")
                     content_data = {
                         'title': target_file.get('title', '제목 없음'),
-                        'content': target_file.get('content', ''),
+                        'content': raw_content,  # HTML 콘텐츠 그대로 사용
                         'meta_description': f"{target_file.get('title', '')} 관련 내용입니다.",
-                        'tags': ['블로그', '자동화'],
+                        'tags': target_file.get('tags', ['블로그', '자동화']),
                         'categories': [target_file.get('category', '기타')]
                     }
+                
+                logger.info(f"콘텐츠 데이터 준비 완료: title={content_data.get('title')}, content_length={len(content_data.get('content', ''))}")
                 
                 # 사이트별 실제 발행
                 success = False
