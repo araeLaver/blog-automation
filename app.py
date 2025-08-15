@@ -1294,6 +1294,65 @@ def get_schedule():
     except Exception as e:
         return jsonify([]), 500
 
+@app.route('/api/schedule/auto_publish', methods=['POST'])
+def manual_auto_publish():
+    """수동으로 자동 발행 실행"""
+    try:
+        data = request.json
+        sites = data.get('sites', ['unpre', 'untab', 'skewese'])
+        
+        results = []
+        
+        for site in sites:
+            try:
+                # 각 사이트별 콘텐츠 생성 및 발행
+                from src.utils.auto_publisher import auto_publisher
+                
+                # 기본 주제 설정
+                topic_map = {
+                    'unpre': 'Python 기초 프로그래밍 완벽 가이드',
+                    'untab': '2025년 부동산 투자 전략 분석',
+                    'skewese': '조선왕조 역사 속 숨겨진 이야기'
+                }
+                
+                plan = {
+                    'topic': topic_map.get(site, 'IT 기술 트렌드'),
+                    'keywords': [site, '가이드', '2025'],
+                    'topic_category': 'programming' if site == 'unpre' else 'realestate' if site == 'untab' else 'history',
+                    'target_length': 'medium'
+                }
+                
+                success = auto_publisher._execute_site_publishing(site, plan)
+                
+                results.append({
+                    'site': site,
+                    'success': success,
+                    'message': f'{site} 발행 성공' if success else f'{site} 발행 실패'
+                })
+                
+            except Exception as e:
+                logger.error(f"사이트 {site} 발행 오류: {e}")
+                results.append({
+                    'site': site,
+                    'success': False,
+                    'message': f'{site} 발행 오류: {str(e)}'
+                })
+        
+        success_count = sum(1 for r in results if r['success'])
+        
+        return jsonify({
+            'success': success_count > 0,
+            'message': f'총 {len(sites)}개 사이트 중 {success_count}개 성공',
+            'results': results
+        })
+        
+    except Exception as e:
+        logger.error(f"수동 자동 발행 오류: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/wordpress_files')
 def get_wordpress_files():
     """WordPress 파일 목록"""
