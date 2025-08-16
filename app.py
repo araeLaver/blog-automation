@@ -1387,6 +1387,56 @@ def publish_to_wordpress():
             'error': str(e)
         }), 500
 
+@app.route('/api/schedule/recreate', methods=['POST'])
+def recreate_schedule():
+    """스케줄 강제 재생성 (티스토리 포함)"""
+    try:
+        from src.utils.schedule_manager import schedule_manager
+        from datetime import datetime, timedelta
+        
+        today = datetime.now().date()
+        week_start = today - timedelta(days=today.weekday())
+        
+        # 기존 스케줄 삭제
+        database = get_database()
+        if database.is_connected:
+            conn = database.get_connection()
+            with conn.cursor() as cursor:
+                cursor.execute('DELETE FROM publishing_schedule WHERE week_start_date = %s', (week_start,))
+                deleted = cursor.rowcount
+                conn.commit()
+                logger.info(f"기존 스케줄 {deleted}개 삭제됨")
+        
+        # 새 스케줄 생성 (티스토리 포함)
+        success = schedule_manager.create_weekly_schedule(week_start)
+        
+        if success:
+            # 생성된 스케줄 확인
+            schedule_data = schedule_manager.get_weekly_schedule(week_start)
+            sites = []
+            if schedule_data and 'schedule' in schedule_data:
+                first_day = schedule_data['schedule'].get(0, {})
+                sites = list(first_day.get('sites', {}).keys())
+            
+            return jsonify({
+                'success': True,
+                'message': f'{week_start} 주 스케줄 재생성 완료',
+                'sites': sites,
+                'week_start': str(week_start)
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': '스케줄 생성 실패'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"스케줄 재생성 오류: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/delete_posts', methods=['POST'])
 def delete_posts():
     """포스트 삭제"""
