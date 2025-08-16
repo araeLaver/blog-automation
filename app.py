@@ -704,32 +704,59 @@ def generate_wordpress():
                         content_length='medium'
                     )
                     
-                    # HTML 형태로 변환 - WordPress 깔끔한 디자인
-                    content_html = _create_beautiful_html_template(generated_content, site_config)
+                    # 이미지 생성
+                    logger.info(f"이미지 생성 시작...")
+                    from src.utils.safe_image_generator import SafeImageGenerator
+                    img_gen = SafeImageGenerator()
+                    images = img_gen.generate_images_for_content(
+                        title=generated_content['title'],
+                        keywords=data.get('keywords', [topic]),
+                        count=2
+                    )
+                    logger.info(f"이미지 {len(images)}개 생성 완료")
                     
-                    content = content_html
+                    # WordPress Exporter 사용하여 HTML 생성
+                    from src.generators.wordpress_content_exporter import WordPressContentExporter
+                    exporter = WordPressContentExporter()
+                    file_path = exporter.export_content(site, generated_content, images)
+                    
                     title = generated_content['title']
                     logger.info(f"Claude API 콘텐츠 생성 완료: {title[:50]}...")
                     
                 else:
                     # Fallback 콘텐츠
                     logger.warning("ContentGenerator가 None입니다. 기본 콘텐츠를 생성합니다.")
-                    content = f'<h1>{topic} 완전 가이드</h1>\n<p>{topic}에 대한 상세한 분석입니다.</p>'
                     title = f'{topic} 완전 가이드'
+                    content_dict = {
+                        'title': title,
+                        'introduction': f'{topic}에 대한 상세한 분석입니다.',
+                        'sections': [
+                            {'heading': '소개', 'content': f'{topic}에 대한 기본 개념을 설명합니다.'},
+                            {'heading': '주요 내용', 'content': f'{topic}의 핵심 내용을 다룹니다.'},
+                        ],
+                        'conclusion': f'{topic}에 대한 종합적인 이해를 돕습니다.',
+                        'meta_description': f'{title} - 상세한 가이드와 팁',
+                        'tags': data.get('keywords', [topic]),
+                        'categories': [data.get('category', '기본')]
+                    }
+                    
+                    from src.generators.wordpress_content_exporter import WordPressContentExporter
+                    exporter = WordPressContentExporter()
+                    file_path = exporter.export_content(site, content_dict, [])
                     logger.warning(f"Claude API 미사용, 기본 콘텐츠 생성: {title}")
                 
-                # 콘텐츠를 데이터베이스에 직접 저장 (파일 시스템 사용 안함)
+                # 콘텐츠를 데이터베이스에 직접 저장
                 file_id = database.add_content_file(
                     site=site,
                     title=title,
-                    file_path=content,  # 실제 콘텐츠를 file_path 필드에 저장
+                    file_path=file_path,  # 생성된 파일 경로 저장
                     file_type='wordpress',
                     metadata={
                         'categories': [data.get('category', '기본')],
                         'tags': data.get('keywords', [topic]),
-                        'word_count': len(content.split()),
-                        'reading_time': len(content.split()) // 200 + 1,
-                        'file_size': len(content.encode('utf-8'))
+                        'word_count': 1000,  # 대략적인 값
+                        'reading_time': 5,  # 대략 5분
+                        'file_size': os.path.getsize(file_path) if os.path.exists(file_path) else 1000
                     }
                 )
                 
@@ -739,6 +766,7 @@ def generate_wordpress():
                     'message': f'{site} 사이트에 {topic} 주제로 콘텐츠를 생성했습니다.',
                     'title': title,
                     'id': file_id,
+                    'file_path': file_path,  # 파일 경로 추가
                     'post': {
                         'id': file_id,
                         'title': title,
@@ -1228,6 +1256,88 @@ def publish_post():
         
     except Exception as e:
         logger.error(f"포스트 발행 오류: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/publish_to_wordpress', methods=['POST'])
+def publish_to_wordpress():
+    """WordPress에 콘텐츠 발행"""
+    try:
+        data = request.json
+        file_path = data.get('file_path')
+        site = data.get('site', 'unpre')
+        
+        if not file_path:
+            return jsonify({'success': False, 'error': '파일 경로가 필요합니다'}), 400
+        
+        # HTML 파일 읽기
+        if not os.path.exists(file_path):
+            return jsonify({'success': False, 'error': f'파일을 찾을 수 없습니다: {file_path}'}), 404
+        
+        with open(file_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        
+        # HTML 파싱
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(html_content, 'html.parser')
+        
+        # 제목 추출
+        title_tag = soup.find('h1') or soup.find('title')
+        title = title_tag.text.strip() if title_tag else '제목 없음'
+        
+        # 메타 설명 추출
+        meta_desc = soup.find('meta', {'name': 'description'})
+        meta_description = meta_desc['content'] if meta_desc else ''
+        
+        # 태그 추출
+        tags_div = soup.find('div', class_='tags')
+        tags = []
+        if tags_div:
+            tag_spans = tags_div.find_all('span', class_='tag')
+            tags = [span.text.replace('#', '').strip() for span in tag_spans]
+        
+        # 이미지 생성 (발행 시점에 생성)
+        logger.info(f"WordPress 발행용 이미지 생성 시작...")
+        from src.utils.safe_image_generator import SafeImageGenerator
+        img_gen = SafeImageGenerator()
+        images = img_gen.generate_images_for_content(
+            title=title,
+            keywords=tags[:3] if tags else [site],
+            count=1  # 대표이미지만
+        )
+        
+        # WordPress Publisher 사용
+        from src.publishers.wordpress_publisher import WordPressPublisher
+        publisher = WordPressPublisher(site)
+        
+        content_data = {
+            'title': title,
+            'content': html_content,
+            'meta_description': meta_description,
+            'tags': tags,
+            'categories': [data.get('category', '기본')]
+        }
+        
+        success, result = publisher.publish_post(content_data, images)
+        
+        if success:
+            logger.info(f"WordPress 발행 성공: {result}")
+            return jsonify({
+                'success': True,
+                'message': f'{site} 사이트에 성공적으로 발행되었습니다.',
+                'url': result
+            })
+        else:
+            logger.error(f"WordPress 발행 실패: {result}")
+            return jsonify({
+                'success': False,
+                'error': result
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"WordPress 발행 오류: {e}")
         return jsonify({
             'success': False,
             'error': str(e)

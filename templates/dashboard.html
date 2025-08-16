@@ -2629,7 +2629,9 @@
                             // 5초 후 모달 닫기
                             setTimeout(() => {
                                 modal.hide();
-                                document.body.removeChild(progressModal);
+                                if (progressModal && progressModal.parentNode) {
+                                    progressModal.parentNode.removeChild(progressModal);
+                                }
                             }, 5000);
                         }
                     }
@@ -2669,7 +2671,9 @@
                     clearInterval(pollInterval);
                     showNotification(`❌ 발행 시작 실패: ${result.error}`, 'error');
                     modal.hide();
-                    document.body.removeChild(progressModal);
+                    if (progressModal && progressModal.parentNode) {
+                        progressModal.parentNode.removeChild(progressModal);
+                    }
                 }
                 
             } catch (error) {
@@ -2677,7 +2681,9 @@
                 console.error('발행 요청 오류:', error);
                 showNotification(`❌ 발행 요청 오류: ${error.message}`, 'error');
                 modal.hide();
-                document.body.removeChild(progressModal);
+                if (progressModal && progressModal.parentNode) {
+                    progressModal.parentNode.removeChild(progressModal);
+                }
             }
         }
 

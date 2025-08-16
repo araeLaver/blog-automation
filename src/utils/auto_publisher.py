@@ -126,7 +126,7 @@ class AutoPublisher:
             
             print(f"[PUBLISH] {site} 콘텐츠 생성 중...")
             generate_response = requests.post(
-                'http://localhost:5000/api/generate_wordpress',
+                'http://localhost:8000/api/generate_wordpress',
                 headers={'Content-Type': 'application/json'},
                 json=generate_payload,
                 timeout=300  # 5분 타임아웃
@@ -154,7 +154,7 @@ class AutoPublisher:
             }
             
             publish_response = requests.post(
-                'http://localhost:5000/api/publish_to_wordpress',
+                'http://localhost:8000/api/publish_to_wordpress',
                 headers={'Content-Type': 'application/json'},
                 json=publish_payload,
                 timeout=120  # 2분 타임아웃
