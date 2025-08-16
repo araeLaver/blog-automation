@@ -549,21 +549,8 @@ def get_weekly_schedule():
                 if not isinstance(site_info, dict):
                     continue
                     
-                # 주제를 topics 배열로 변환 (단일 주제를 2개 키워드로)
+                # 단일 주제로 표시
                 topic = site_info.get('topic', f'{site} 기본 주제')
-                keywords = site_info.get('keywords', [site])
-                
-                # 주제를 적절히 분할하여 2개 토픽으로 만들기
-                if len(keywords) >= 2:
-                    topics = [keywords[0], keywords[1]]
-                else:
-                    # 주제를 단어로 분할
-                    topic_words = topic.split()
-                    if len(topic_words) >= 4:
-                        mid = len(topic_words) // 2
-                        topics = [' '.join(topic_words[:mid]), ' '.join(topic_words[mid:])]
-                    else:
-                        topics = [topic, f'{site} 관련 주제']
                 
                 # 상태 결정
                 current_date = datetime.now(KST).date()
@@ -582,7 +569,7 @@ def get_weekly_schedule():
                 
                 formatted_schedule[date_str][site] = {
                     'time': '03:00',
-                    'topics': topics,
+                    'topic': topic,
                     'status': status
                 }
         

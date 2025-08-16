@@ -2334,7 +2334,7 @@
                                         <div class="site-badge site-${site} small mb-1">${site.toUpperCase()}</div>
                                         <div class="fw-bold small">${plan.time} 발행</div>
                                         <div class="text-muted small">
-                                            주제: ${plan.topics ? plan.topics.join(', ') : '자동 선택'}
+                                            주제: ${plan.topic || '자동 선택'}
                                         </div>
                                     </div>
                                     <span class="badge bg-info small">${plan.status || '예정'}</span>
@@ -2442,7 +2442,7 @@
                                     <strong>${site}</strong> (${info.time}) 
                                     ${statusBadge}
                                     <br>
-                                    <span class="text-muted">주제: ${info.topics ? info.topics.join(', ') : '자동 선택'}</span>
+                                    <span class="text-muted">주제: ${info.topic || '자동 선택'}</span>
                                 </small>
                             </div>
                         `;
