@@ -2282,9 +2282,12 @@
 
         // 스케줄 전체 표시
         function displayScheduleOverview(scheduleData, weekType) {
+            console.log('displayScheduleOverview called with:', scheduleData, weekType);
             const container = document.getElementById('schedule-overview-content');
+            console.log('Container found:', container);
             
             if (!scheduleData || Object.keys(scheduleData).length === 0) {
+                console.log('No schedule data, showing empty message');
                 container.innerHTML = `
                     <div class="text-center py-4">
                         <div class="text-muted mb-3">
@@ -2308,9 +2311,14 @@
             
             // API 응답 데이터를 날짜별로 표시
             const dates = Object.keys(scheduleData);
+            console.log('Processing dates:', dates);
             dates.forEach(date => {
                 const dayData = scheduleData[date];
-                if (!dayData) return;
+                console.log('Processing date:', date, 'dayData:', dayData);
+                if (!dayData) {
+                    console.log('No day data for:', date);
+                    return;
+                }
                 
                 const dateObj = new Date(date);
                 const dayName = dateObj.toLocaleDateString('ko-KR', { weekday: 'long' });
@@ -2356,7 +2364,10 @@
             });
             
             html += '</div>';
+            console.log('Generated HTML length:', html.length);
+            console.log('Final HTML:', html);
             container.innerHTML = html;
+            console.log('HTML inserted into container');
         }
 
         // 다음 실행 시간 계산
