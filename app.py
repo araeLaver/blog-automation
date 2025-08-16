@@ -1477,7 +1477,7 @@ def quick_publish():
     """빠른 수동 발행 (타임아웃 방지)"""
     try:
         data = request.json or {}
-        sites = data.get('sites', ['unpre', 'untab', 'skewese'])
+        sites = data.get('sites', ['unpre', 'untab', 'skewese', 'tistory'])
         
         # 간단한 응답으로 즉시 반환
         global publish_status
@@ -1513,10 +1513,18 @@ def quick_publish():
                             'message': f'{site} 콘텐츠 생성 중...'
                         })
                         
-                        # 스케줄에서 주제 가져오기
-                        topic = f'{site} 가이드'
+                        # 스케줄에서 주제 가져오기 (사이트별 기본값 설정)
+                        site_defaults = {
+                            'unpre': {'topic': 'Python 프로그래밍 가이드', 'category': 'programming'},
+                            'untab': {'topic': '부동산 투자 가이드', 'category': 'realestate'}, 
+                            'skewese': {'topic': '한국사 역사 이야기', 'category': 'koreanhistory'},
+                            'tistory': {'topic': '2024년 IT 트렌드 분석', 'category': 'current'}
+                        }
+                        
+                        default = site_defaults.get(site, {'topic': f'{site} 가이드', 'category': 'programming'})
+                        topic = default['topic']
                         keywords = [site, '가이드']
-                        category = 'programming'
+                        category = default['category']
                         
                         if schedule_data and day_of_week in schedule_data['schedule']:
                             day_schedule = schedule_data['schedule'][day_of_week]
@@ -1524,9 +1532,14 @@ def quick_publish():
                             if site_plan:
                                 topic = site_plan.get('topic', topic)
                                 keywords = site_plan.get('keywords', keywords)
-                                category = site_plan.get('topic_category', category)
+                                category = site_plan.get('category', category)
+                                logger.info(f"[SCHEDULE] {site} 스케줄 주제 사용: {topic} (카테고리: {category})")
+                            else:
+                                logger.info(f"[SCHEDULE] {site} 스케줄 없음, 기본값 사용: {topic}")
+                        else:
+                            logger.info(f"[SCHEDULE] 오늘({day_of_week}) 스케줄 없음, 기본값 사용: {topic}")
                         
-                        # 1. 콘텐츠 생성
+                        # 1. 콘텐츠 생성 (사이트별로 다른 API 사용)
                         generate_payload = {
                             'site': site,
                             'topic': topic,
@@ -1534,8 +1547,15 @@ def quick_publish():
                             'category': category
                         }
                         
+                        if site == 'tistory':
+                            # 티스토리는 별도 API 사용
+                            generate_url = 'http://localhost:8000/api/generate_tistory'
+                        else:
+                            # WordPress 사이트들은 기존 API 사용
+                            generate_url = 'http://localhost:8000/api/generate_wordpress'
+                        
                         generate_response = requests.post(
-                            'http://localhost:8000/api/generate_wordpress',
+                            generate_url,
                             headers={'Content-Type': 'application/json'},
                             json=generate_payload,
                             timeout=300
@@ -1547,6 +1567,23 @@ def quick_publish():
                         generate_result = generate_response.json()
                         if not generate_result.get('success'):
                             raise Exception(f'콘텐츠 생성 실패: {generate_result.get("error")}')
+                        
+                        if site == 'tistory':
+                            # 티스토리는 콘텐츠 생성만 하고 발행 안함
+                            publish_status.update({
+                                'current_site': site,
+                                'progress': int(((i + 1) / len(sites)) * 90),
+                                'message': f'{site} 콘텐츠 생성 완료 (목록에 저장됨)'
+                            })
+                            
+                            # 스케줄 상태 업데이트 (generated로 설정)
+                            if schedule_data:
+                                schedule_manager.update_schedule_status(
+                                    week_start, day_of_week, site, 'generated'
+                                )
+                            
+                            logger.info(f"[TISTORY] {site} 콘텐츠 생성 완료, 목록에 저장됨")
+                            continue  # 다음 사이트로
                         
                         publish_status.update({
                             'current_site': site,

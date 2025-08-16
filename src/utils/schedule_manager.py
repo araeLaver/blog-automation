@@ -97,8 +97,8 @@ class ScheduleManager:
                     days_ahead += 7
                 start_date = today + timedelta(days=days_ahead)
             
-            # 3개 사이트 × 7일 = 21개 발행 계획
-            sites = ['unpre', 'untab', 'skewese']
+            # 4개 사이트 × 7일 = 28개 발행 계획
+            sites = ['unpre', 'untab', 'skewese', 'tistory']
             
             # 주제 카테고리와 세부 주제들
             topic_plans = self._generate_topic_plans()
@@ -297,6 +297,52 @@ class ScheduleManager:
                     'length': 'long'
                 }
             ]
+        elif site == 'tistory':
+            # tistory - 주요 이슈, 트렌드, 시사
+            return [
+                {
+                    'category': 'current',
+                    'topic': '2024년 IT 업계 주요 트렌드와 전망',
+                    'keywords': ['IT트렌드', '2024', '전망'],
+                    'length': 'long'
+                },
+                {
+                    'category': 'current',
+                    'topic': '가상화폐 시장 동향과 투자 관점',
+                    'keywords': ['가상화폐', '비트코인', '투자'],
+                    'length': 'medium'
+                },
+                {
+                    'category': 'current',
+                    'topic': '친환경 에너지 산업의 성장과 기회',
+                    'keywords': ['친환경', '신재생에너지', '산업'],
+                    'length': 'long'
+                },
+                {
+                    'category': 'current',
+                    'topic': '인공지능과 자동화가 바꾸는 미래 직업',
+                    'keywords': ['인공지능', 'AI', '미래직업'],
+                    'length': 'medium'
+                },
+                {
+                    'category': 'current',
+                    'topic': '메타버스와 NFT 열풍의 이해와 전망',
+                    'keywords': ['메타버스', 'NFT', '가상현실'],
+                    'length': 'medium'
+                },
+                {
+                    'category': 'current',
+                    'topic': '글로벌 경제 위기와 한국 경제 대응방안',
+                    'keywords': ['글로벌경제', '경제위기', '한국경제'],
+                    'length': 'long'
+                },
+                {
+                    'category': 'current',
+                    'topic': '기후변화 대응을 위한 국제사회 노력',
+                    'keywords': ['기후변화', '탄소중립', '환경정책'],
+                    'length': 'medium'
+                }
+            ]
         else:
             # 기본 개발 주제 (fallback)
             return [
@@ -316,18 +362,22 @@ class ScheduleManager:
         unpre_topics = self._get_site_topic_plans('unpre')
         untab_topics = self._get_site_topic_plans('untab')
         skewese_topics = self._get_site_topic_plans('skewese')
+        tistory_topics = self._get_site_topic_plans('tistory')
         
-        # 21개 항목을 사이트별로 순환 배치
-        for i in range(21):
-            if i % 3 == 0:  # unpre
-                topic_idx = (i // 3) % len(unpre_topics)
+        # 28개 항목을 사이트별로 순환 배치 (4개 사이트 × 7일)
+        for i in range(28):
+            if i % 4 == 0:  # unpre
+                topic_idx = (i // 4) % len(unpre_topics)
                 all_topics.append(unpre_topics[topic_idx])
-            elif i % 3 == 1:  # untab
-                topic_idx = (i // 3) % len(untab_topics)
+            elif i % 4 == 1:  # untab
+                topic_idx = (i // 4) % len(untab_topics)
                 all_topics.append(untab_topics[topic_idx])
-            else:  # skewese
-                topic_idx = (i // 3) % len(skewese_topics)
+            elif i % 4 == 2:  # skewese
+                topic_idx = (i // 4) % len(skewese_topics)
                 all_topics.append(skewese_topics[topic_idx])
+            else:  # tistory
+                topic_idx = (i // 4) % len(tistory_topics)
+                all_topics.append(tistory_topics[topic_idx])
         
         return all_topics
     
