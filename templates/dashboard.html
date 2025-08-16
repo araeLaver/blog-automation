@@ -2224,9 +2224,16 @@
         // 이번 주 월요일 날짜 계산
         function getThisMonday() {
             const today = new Date();
-            const dayOfWeek = today.getDay();
-            const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-            const monday = new Date(today.setDate(diff));
+            const dayOfWeek = today.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
+            
+            // 월요일까지의 일수 계산 (일요일인 경우 -6, 나머지는 1-dayOfWeek)
+            const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            
+            const monday = new Date(today);
+            monday.setDate(today.getDate() + daysToMonday);
+            
+            console.log('Today:', today.toISOString().split('T')[0], 'Day of week:', dayOfWeek, 'Days to Monday:', daysToMonday, 'Monday:', monday.toISOString().split('T')[0]);
+            
             return monday.toISOString().split('T')[0];
         }
 
@@ -2257,10 +2264,10 @@
                 if (weekType === 'current') {
                     targetDate = getThisMonday();
                 } else {
-                    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-                    const dayOfWeek = nextWeek.getDay();
-                    const diff = nextWeek.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-                    targetDate = new Date(nextWeek.setDate(diff)).toISOString().split('T')[0];
+                    // 다음 주 월요일 = 이번 주 월요일 + 7일
+                    const thisMonday = new Date(getThisMonday());
+                    thisMonday.setDate(thisMonday.getDate() + 7);
+                    targetDate = thisMonday.toISOString().split('T')[0];
                 }
                 
                 console.log('Today:', today.toISOString().split('T')[0]);
