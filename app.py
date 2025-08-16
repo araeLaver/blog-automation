@@ -1387,7 +1387,7 @@ def publish_to_wordpress():
             'error': str(e)
         }), 500
 
-@app.route('/api/schedule/recreate', methods=['POST'])
+@app.route('/api/schedule/recreate', methods=['GET', 'POST'])
 def recreate_schedule():
     """스케줄 강제 재생성 (티스토리 포함)"""
     try:
