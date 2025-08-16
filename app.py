@@ -1490,7 +1490,7 @@ def get_schedule():
                 'date': date,
                 'time': '03:00',
                 'status': 'scheduled',
-                'sites': ['unpre', 'untab', 'skewese']
+                'sites': ['unpre', 'untab', 'skewese', 'tistory']
             })
         
         return jsonify(schedule)
@@ -1537,7 +1537,7 @@ def quick_publish():
             'progress': 10,
             'total_sites': len(sites),
             'results': [],
-            'message': f'3개 사이트 발행 시작: {", ".join(sites)}'
+            'message': f'{len(sites)}개 사이트 발행 시작: {", ".join(sites)}'
         })
         
         # 백그라운드에서 실제 발행 (별도 스레드)

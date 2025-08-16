@@ -16,7 +16,7 @@ class WordPressContentExporter:
         self.export_dir.mkdir(parents=True, exist_ok=True)
         
         # 사이트별 디렉토리 생성
-        for site in ['unpre', 'untab', 'skewese']:
+        for site in ['unpre', 'untab', 'skewese', 'tistory']:
             (self.export_dir / site).mkdir(parents=True, exist_ok=True)
     
     def export_content(self, site: str, content: Dict, images: List[Dict] = None) -> str:
@@ -71,7 +71,8 @@ class WordPressContentExporter:
         themes = {
             "unpre": {"primary": "#1976d2", "secondary": "#e3f2fd", "name": "unpre.co.kr"},
             "untab": {"primary": "#388e3c", "secondary": "#e8f5e9", "name": "untab.co.kr"},
-            "skewese": {"primary": "#f57c00", "secondary": "#fff3e0", "name": "skewese.com"}
+            "skewese": {"primary": "#f57c00", "secondary": "#fff3e0", "name": "skewese.com"},
+            "tistory": {"primary": "#c2185b", "secondary": "#fce4ec", "name": "tistory.com"}
         }
         
         theme = themes.get(site, themes["unpre"])
