@@ -1577,6 +1577,31 @@ def quick_publish():
                                     'progress': int(((i + 1) / len(sites)) * 90),
                                     'message': f'{site} 발행 성공: {result}'
                                 })
+                                
+                                # 데이터베이스에 발행된 콘텐츠 저장
+                                try:
+                                    database = get_database()
+                                    if database.is_connected:
+                                        file_id = database.add_content_file(
+                                            site=site,
+                                            title=title,
+                                            file_path=file_path,
+                                            file_type='wordpress',
+                                            metadata={
+                                                'categories': [category],
+                                                'tags': keywords,
+                                                'word_count': len(title.split()) * 50,
+                                                'reading_time': 5,
+                                                'file_size': os.path.getsize(file_path) if os.path.exists(file_path) else 1000,
+                                                'published_url': result,
+                                                'status': 'published'
+                                            }
+                                        )
+                                        database.update_content_file_status(file_id, 'published')
+                                        logger.info(f"[DB] {site} 발행 콘텐츠 저장 완료: {file_id}")
+                                except Exception as db_e:
+                                    logger.warning(f"[DB] {site} 저장 실패: {db_e}")
+                                
                                 # 스케줄 상태 업데이트
                                 if schedule_data:
                                     schedule_manager.update_schedule_status(

@@ -2401,8 +2401,6 @@
         function displayWeeklySchedule(scheduleData) {
             const container = document.getElementById('weekly-schedule-content');
             
-            console.log('displayWeeklySchedule received:', scheduleData);
-            
             if (!scheduleData || (Array.isArray(scheduleData) && scheduleData.length === 0)) {
                 container.innerHTML = `
                     <div class="text-center py-4">
@@ -2623,8 +2621,11 @@
                                 showNotification('❌ 발행 중 오류 발생', 'error');
                             }
                             
-                            loadWeeklySchedule();
-                            refreshData();
+                            // 발행 완료 후 한 번만 새로고침
+                            setTimeout(() => {
+                                loadWeeklySchedule();
+                                refreshData();
+                            }, 1000);
                             
                             // 5초 후 모달 닫기
                             setTimeout(() => {
