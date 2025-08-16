@@ -308,7 +308,7 @@ class PostgreSQLDatabase:
                     json.dumps(metadata.get('categories', []), ensure_ascii=False),
                     metadata.get('file_size', 0),
                     metadata.get('content_hash', ''),
-                    metadata.get('status', 'published')  # 기본값을 published로 설정
+                    metadata.get('status', 'draft')  # 새로 생성된 콘텐츠는 기본적으로 draft
                 ))
                 
                 file_id = cursor.fetchone()[0]
