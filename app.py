@@ -631,11 +631,18 @@ def generate_wordpress():
                         logger.info(f"이미지 생성 시작...")
                         from src.utils.safe_image_generator import SafeImageGenerator
                         img_gen = SafeImageGenerator()
-                        images = img_gen.generate_images_for_content(
-                            title=generated_content['title'],
-                            keywords=data.get('keywords', [topic]),
-                            count=2
-                        )
+                        
+                        # 대표이미지 생성
+                        featured_image_path = img_gen.generate_featured_image(title=generated_content['title'])
+                        
+                        if featured_image_path and os.path.exists(featured_image_path):
+                            images = [{
+                                'url': featured_image_path,
+                                'type': 'thumbnail',  # 대표이미지로 설정
+                                'alt': f"{generated_content['title']} 대표이미지"
+                            }]
+                        else:
+                            images = []
                         logger.info(f"이미지 {len(images)}개 생성 완료")
                     except Exception as img_e:
                         logger.warning(f"이미지 생성 실패, 텍스트만 진행: {img_e}")
@@ -1242,11 +1249,18 @@ def publish_to_wordpress():
             logger.info(f"WordPress 발행용 이미지 생성 시작...")
             from src.utils.safe_image_generator import SafeImageGenerator
             img_gen = SafeImageGenerator()
-            images = img_gen.generate_images_for_content(
-                title=title,
-                keywords=tags[:3] if tags else [site],
-                count=1  # 대표이미지만
-            )
+            
+            # 대표이미지 생성
+            featured_image_path = img_gen.generate_featured_image(title=title)
+            
+            if featured_image_path and os.path.exists(featured_image_path):
+                images = [{
+                    'url': featured_image_path,
+                    'type': 'thumbnail',  # WordPress publisher가 인식할 수 있도록
+                    'alt': f"{title} 대표이미지"
+                }]
+            else:
+                images = []
             logger.info(f"발행용 이미지 {len(images)}개 생성 완료")
         except Exception as img_e:
             logger.warning(f"발행용 이미지 생성 실패, 텍스트만 발행: {img_e}")
