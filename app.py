@@ -1218,6 +1218,13 @@ def publish_to_wordpress():
         title_tag = soup.find('h1') or soup.find('title')
         title = title_tag.text.strip() if title_tag else '제목 없음'
         
+        # 제목에서 도메인명 제거 (예: "제목 - unpre.co.kr" -> "제목")
+        site_domains = [' - unpre.co.kr', ' - untab.co.kr', ' - skewese.com', ' - tistory.com']
+        for domain in site_domains:
+            if title.endswith(domain):
+                title = title[:-len(domain)].strip()
+                break
+        
         # 메타 설명 추출
         meta_desc = soup.find('meta', {'name': 'description'})
         meta_description = meta_desc['content'] if meta_desc else ''
@@ -1580,6 +1587,13 @@ def quick_publish():
                             # HTML 파싱해서 콘텐츠 추출
                             soup = BeautifulSoup(html_content, 'html.parser')
                             title = soup.find('title').text if soup.find('title') else topic
+                            
+                            # 제목에서 도메인명 제거 (예: "제목 - unpre.co.kr" -> "제목")
+                            site_domains = [' - unpre.co.kr', ' - untab.co.kr', ' - skewese.com', ' - tistory.com']
+                            for domain in site_domains:
+                                if title.endswith(domain):
+                                    title = title[:-len(domain)].strip()
+                                    break
                             meta_desc = soup.find('meta', {'name': 'description'})
                             meta_description = meta_desc['content'] if meta_desc else ''
                             
