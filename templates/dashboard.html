@@ -2264,11 +2264,12 @@
                 let targetDate;
                 
                 if (weekType === 'current') {
-                    // 하드코딩: 이번주 월요일 (8월 12일이 화요일이면 8월 11일이 월요일)
-                    targetDate = '2025-08-11';
+                    targetDate = getThisMonday();
                 } else {
-                    // 다음주 월요일
-                    targetDate = '2025-08-18';
+                    // 다음 주 월요일 = 이번 주 월요일 + 7일
+                    const thisMonday = new Date(getThisMonday());
+                    thisMonday.setDate(thisMonday.getDate() + 7);
+                    targetDate = thisMonday.toISOString().split('T')[0];
                 }
                 
                 console.log('Today:', today.toISOString().split('T')[0]);
