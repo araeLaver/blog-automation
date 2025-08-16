@@ -2255,7 +2255,8 @@
                 let targetDate;
                 
                 if (weekType === 'current') {
-                    targetDate = getThisMonday();
+                    // 임시로 실제 데이터가 있는 날짜 사용
+                    targetDate = '2025-08-11';
                 } else {
                     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
                     const dayOfWeek = nextWeek.getDay();
@@ -2263,6 +2264,9 @@
                     targetDate = new Date(nextWeek.setDate(diff)).toISOString().split('T')[0];
                 }
                 
+                console.log('Today:', today.toISOString().split('T')[0]);
+                console.log('Calculated target date:', targetDate);
+                console.log('Week type:', weekType);
                 console.log('Fetching schedule for:', targetDate);
                 const response = await fetch(`/api/schedule/weekly?week_start=${targetDate}`);
                 const scheduleData = await response.json();
