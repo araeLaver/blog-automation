@@ -17,6 +17,7 @@ psycopg2-binary==2.9.9
 python-dateutil==2.9.0
 pytz==2024.2
 colorama==0.4.6
+Pillow==10.0.0
 
 # SEO
 yake==0.4.8

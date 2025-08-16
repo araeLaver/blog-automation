@@ -704,16 +704,21 @@ def generate_wordpress():
                         content_length='medium'
                     )
                     
-                    # 이미지 생성
-                    logger.info(f"이미지 생성 시작...")
-                    from src.utils.safe_image_generator import SafeImageGenerator
-                    img_gen = SafeImageGenerator()
-                    images = img_gen.generate_images_for_content(
-                        title=generated_content['title'],
-                        keywords=data.get('keywords', [topic]),
-                        count=2
-                    )
-                    logger.info(f"이미지 {len(images)}개 생성 완료")
+                    # 이미지 생성 (실패해도 계속 진행)
+                    images = []
+                    try:
+                        logger.info(f"이미지 생성 시작...")
+                        from src.utils.safe_image_generator import SafeImageGenerator
+                        img_gen = SafeImageGenerator()
+                        images = img_gen.generate_images_for_content(
+                            title=generated_content['title'],
+                            keywords=data.get('keywords', [topic]),
+                            count=2
+                        )
+                        logger.info(f"이미지 {len(images)}개 생성 완료")
+                    except Exception as img_e:
+                        logger.warning(f"이미지 생성 실패, 텍스트만 진행: {img_e}")
+                        images = []
                     
                     # WordPress Exporter 사용하여 HTML 생성
                     from src.generators.wordpress_content_exporter import WordPressContentExporter
@@ -722,6 +727,11 @@ def generate_wordpress():
                     
                     title = generated_content['title']
                     logger.info(f"Claude API 콘텐츠 생성 완료: {title[:50]}...")
+                    logger.info(f"생성된 파일 경로: {file_path}")
+                    
+                    # 파일 경로 확인
+                    if not file_path or not os.path.exists(file_path):
+                        raise Exception(f"파일 생성 실패 또는 경로 없음: {file_path}")
                     
                 else:
                     # Fallback 콘텐츠
@@ -1298,15 +1308,21 @@ def publish_to_wordpress():
             tag_spans = tags_div.find_all('span', class_='tag')
             tags = [span.text.replace('#', '').strip() for span in tag_spans]
         
-        # 이미지 생성 (발행 시점에 생성)
-        logger.info(f"WordPress 발행용 이미지 생성 시작...")
-        from src.utils.safe_image_generator import SafeImageGenerator
-        img_gen = SafeImageGenerator()
-        images = img_gen.generate_images_for_content(
-            title=title,
-            keywords=tags[:3] if tags else [site],
-            count=1  # 대표이미지만
-        )
+        # 이미지 생성 (발행 시점에 생성, 실패해도 계속 진행)
+        images = []
+        try:
+            logger.info(f"WordPress 발행용 이미지 생성 시작...")
+            from src.utils.safe_image_generator import SafeImageGenerator
+            img_gen = SafeImageGenerator()
+            images = img_gen.generate_images_for_content(
+                title=title,
+                keywords=tags[:3] if tags else [site],
+                count=1  # 대표이미지만
+            )
+            logger.info(f"발행용 이미지 {len(images)}개 생성 완료")
+        except Exception as img_e:
+            logger.warning(f"발행용 이미지 생성 실패, 텍스트만 발행: {img_e}")
+            images = []
         
         # WordPress Publisher 사용
         from src.publishers.wordpress_publisher import WordPressPublisher
