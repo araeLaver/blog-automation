@@ -541,6 +541,9 @@ class WordPressPublisher:
                     else:
                         print("경고: 최종 결과가 비어있음!")
                     
+                    # 콘텐츠 서식 개선
+                    final_result = self._improve_content_formatting(final_result)
+                    
                     return final_result
                 else:
                     print("경고: content-container div를 찾을 수 없음!")
@@ -580,11 +583,15 @@ class WordPressPublisher:
         for i, section in enumerate(content.get('sections', [])):
             html.append(f"<h2>{section['heading']}</h2>")
             
-            # 단락 나누기
+            # 단락 나누기 및 서식 개선
             paragraphs = section['content'].split('\n\n')
             for para in paragraphs:
                 if para.strip():
-                    html.append(f"<p>{para.strip()}</p>")
+                    formatted_para = self._improve_text_formatting(para.strip())
+                    html.append(f"<p>{formatted_para}</p>")
+                    # 문단 간 구분선 추가 (긴 문단인 경우)
+                    if len(para.strip()) > 300:
+                        html.append('<hr class="wp-block-separator has-alpha-channel-opacity" />')
             
             # 중간 이미지 삽입
             if image_ids and i == 1 and len(image_ids) > 1:
@@ -606,6 +613,59 @@ class WordPressPublisher:
             html.append("</ul>")
         
         return "\n".join(html)
+    
+    def _improve_content_formatting(self, html_content: str) -> str:
+        """HTML 콘텐츠 서식 개선"""
+        import re
+        from bs4 import BeautifulSoup
+        
+        try:
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # 모든 텍스트 노드에서 마크다운 스타일 개선
+            for element in soup.find_all(text=True):
+                if element.parent.name not in ['script', 'style']:
+                    improved_text = self._improve_text_formatting(str(element))
+                    element.replace_with(improved_text)
+            
+            # 문단 간 구분선 추가 (긴 단락들 사이에)
+            paragraphs = soup.find_all('p')
+            for i, p in enumerate(paragraphs):
+                if p.get_text() and len(p.get_text().strip()) > 300:
+                    # 긴 문단 뒤에 구분선 추가
+                    if i < len(paragraphs) - 1:  # 마지막 문단이 아닌 경우
+                        hr = soup.new_tag('hr', **{'class': 'wp-block-separator has-alpha-channel-opacity'})
+                        p.insert_after(hr)
+            
+            return str(soup)
+            
+        except Exception as e:
+            print(f"콘텐츠 서식 개선 오류: {e}")
+            return html_content
+    
+    def _improve_text_formatting(self, text: str) -> str:
+        """텍스트 서식 개선 (마크다운 스타일 -> HTML)"""
+        import re
+        
+        # ** -> <strong> (굵은 글씨)
+        text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
+        
+        # * -> <em> (기울임)  
+        text = re.sub(r'(?<!\*)\*(?!\*)([^*]+)\*(?!\*)', r'<em>\1</em>', text)
+        
+        # ``` -> <code> (인라인 코드)
+        text = re.sub(r'`([^`]+)`', r'<code>\1</code>', text)
+        
+        # ### -> <strong> (소제목 강조)
+        text = re.sub(r'###\s*([^\n]+)', r'<strong>\1</strong>', text)
+        
+        # 번호 목록 개선 (1. 2. 3. -> HTML 목록)
+        text = re.sub(r'(\d+)\.\s+([^\n]+)', r'<span class="list-item"><strong>\1.</strong> \2</span>', text)
+        
+        # • 또는 - 로 시작하는 목록 개선
+        text = re.sub(r'[•-]\s+([^\n]+)', r'<span class="bullet-item">• \1</span>', text)
+        
+        return text
     
     def update_post(self, post_id: int, updates: Dict) -> bool:
         """기존 포스트 업데이트"""
