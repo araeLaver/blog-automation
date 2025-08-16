@@ -2226,8 +2226,10 @@
             const today = new Date();
             const dayOfWeek = today.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
             
-            // 월요일까지의 일수 계산 (일요일인 경우 -6, 나머지는 1-dayOfWeek)
-            const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            // 이번 주 월요일까지의 일수 계산  
+            // 일요일(0) -> -6일 (지난주 월요일이 아니라 이번주 월요일로 가려면 +1일)
+            // 월요일(1) -> 0일, 화요일(2) -> -1일, ..., 토요일(6) -> -5일
+            const daysToMonday = dayOfWeek === 0 ? 1 : 1 - dayOfWeek;
             
             const monday = new Date(today);
             monday.setDate(today.getDate() + daysToMonday);
@@ -2275,7 +2277,12 @@
                 console.log('Week type:', weekType);
                 console.log('Fetching schedule for:', targetDate);
                 const response = await fetch(`/api/schedule/weekly?week_start=${targetDate}`);
-                const scheduleData = await response.json();
+                
+                // 디버깅: 원시 텍스트 응답 확인
+                const responseText = await response.text();
+                console.log('Raw response text:', responseText.substring(0, 500));
+                
+                const scheduleData = JSON.parse(responseText);
                 
                 console.log('Schedule API response:', scheduleData);
                 console.log('Schedule data keys:', Object.keys(scheduleData));
