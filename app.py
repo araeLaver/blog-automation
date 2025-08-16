@@ -694,7 +694,8 @@ def generate_wordpress():
                         'tags': data.get('keywords', [topic]),
                         'word_count': 1000,  # 대략적인 값
                         'reading_time': 5,  # 대략 5분
-                        'file_size': os.path.getsize(file_path) if os.path.exists(file_path) else 1000
+                        'file_size': os.path.getsize(file_path) if os.path.exists(file_path) else 1000,
+                        'status': 'published'
                     }
                 )
                 
@@ -812,7 +813,8 @@ def generate_tistory():
                         'tags': data.get('keywords', [topic]),
                         'word_count': len(content.split()),
                         'reading_time': len(content.split()) // 200 + 1,
-                        'file_size': len(content.encode('utf-8'))
+                        'file_size': len(content.encode('utf-8')),
+                        'status': 'published'
                     }
                 )
                 

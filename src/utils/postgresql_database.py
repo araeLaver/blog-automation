@@ -297,8 +297,8 @@ class PostgreSQLDatabase:
                 cursor.execute("""
                     INSERT INTO content_files 
                     (site, title, file_path, file_type, word_count, reading_time, 
-                     tags, categories, file_size, content_hash)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     tags, categories, file_size, content_hash, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """, (
                     site, title, file_path, file_type,
@@ -307,7 +307,8 @@ class PostgreSQLDatabase:
                     json.dumps(metadata.get('tags', []), ensure_ascii=False),
                     json.dumps(metadata.get('categories', []), ensure_ascii=False),
                     metadata.get('file_size', 0),
-                    metadata.get('content_hash', '')
+                    metadata.get('content_hash', ''),
+                    metadata.get('status', 'published')  # 기본값을 published로 설정
                 ))
                 
                 file_id = cursor.fetchone()[0]

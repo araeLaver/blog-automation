@@ -2255,8 +2255,7 @@
                 let targetDate;
                 
                 if (weekType === 'current') {
-                    // 임시로 실제 데이터가 있는 날짜 사용
-                    targetDate = '2025-08-11';
+                    targetDate = getThisMonday();
                 } else {
                     const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
                     const dayOfWeek = nextWeek.getDay();
