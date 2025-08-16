@@ -327,7 +327,7 @@ class PostgreSQLDatabase:
         conn = self.get_connection()
         try:
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-                query = "SELECT * FROM unble.content_files WHERE 1=1"
+                query = "SELECT * FROM unble.content_files WHERE status != 'draft'"
                 params = []
                 
                 if site:
@@ -733,11 +733,12 @@ class PostgreSQLDatabase:
                            reading_time, status, tags, categories, created_at, 
                            published_at, file_size
                     FROM {self.schema}.content_files
+                    WHERE status != 'draft'
                 """
                 params = []
                 
                 if file_type:
-                    query += " WHERE file_type = %s"
+                    query += " AND file_type = %s"
                     params.append(file_type)
                 
                 query += " ORDER BY created_at DESC LIMIT %s"
