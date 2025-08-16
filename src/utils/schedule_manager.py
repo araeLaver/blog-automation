@@ -111,7 +111,7 @@ class ScheduleManager:
                     for site_idx, site in enumerate(sites):
                         # 각 사이트별로 다른 주제 할당
                         site_topics = self._get_site_topic_plans(site)
-                        topic_idx = (day * 3 + site_idx) % len(site_topics)
+                        topic_idx = (day * 4 + site_idx) % len(site_topics)
                         topic_plan = site_topics[topic_idx]
                         
                         # 기존 계획 체크
