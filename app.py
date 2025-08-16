@@ -183,7 +183,7 @@ def get_recent_posts():
                            created_at::text, 
                            CASE WHEN status = 'published' THEN true ELSE false END as published
                     FROM unble.content_files 
-                    WHERE site = %s AND status != 'draft'
+                    WHERE site = %s
                     ORDER BY created_at DESC 
                     LIMIT 5
                 """, (site,))
@@ -226,7 +226,7 @@ def get_posts():
                                created_at::text, 
                                CASE WHEN status = 'published' THEN true ELSE false END as published
                         FROM unble.content_files 
-                        WHERE site = %s AND status != 'draft'
+                        WHERE site = %s
                     """
                     params = [site]
                     
