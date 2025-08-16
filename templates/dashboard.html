@@ -2326,9 +2326,16 @@
             const scheduleEntries = Object.entries(scheduleData);
             console.log('Processing schedule entries:', scheduleEntries);
             scheduleEntries.forEach(([date, dayInfo]) => {
-                const dayData = dayInfo;
-                console.log('Processing date:', date, 'dayData:', dayData);
-                if (!dayData) {
+                console.log('Raw dayInfo for', date, ':', dayInfo);
+                console.log('dayInfo type:', typeof dayInfo);
+                console.log('dayInfo keys:', dayInfo ? Object.keys(dayInfo) : 'null');
+                
+                // 직접 scheduleData에서 가져오기
+                const dayData = scheduleData[date];
+                console.log('Direct access dayData:', dayData);
+                console.log('Direct access keys:', dayData ? Object.keys(dayData) : 'null');
+                
+                if (!dayData || Object.keys(dayData).length === 0) {
                     console.log('No day data for date:', date);
                     return;
                 }
