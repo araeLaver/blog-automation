@@ -695,7 +695,7 @@ def generate_wordpress():
                         'word_count': 1000,  # 대략적인 값
                         'reading_time': 5,  # 대략 5분
                         'file_size': os.path.getsize(file_path) if os.path.exists(file_path) else 1000,
-                        'status': 'published'
+                        'status': 'draft'  # 새로 생성된 콘텐츠는 draft로 설정
                     }
                 )
                 
@@ -814,7 +814,7 @@ def generate_tistory():
                         'word_count': len(content.split()),
                         'reading_time': len(content.split()) // 200 + 1,
                         'file_size': len(content.encode('utf-8')),
-                        'status': 'published'
+                        'status': 'draft'  # 새로 생성된 콘텐츠는 draft로 설정
                     }
                 )
                 

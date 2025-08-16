@@ -2289,7 +2289,7 @@
             const container = document.getElementById('schedule-overview-content');
             console.log('Container found:', container);
             
-            if (!scheduleData || Object.keys(scheduleData).length === 0) {
+            if (!scheduleData || !scheduleData.schedule || Object.keys(scheduleData.schedule).length === 0) {
                 console.log('No schedule data, showing empty message');
                 container.innerHTML = `
                     <div class="text-center py-4">
@@ -2313,17 +2313,17 @@
             `;
             
             // API 응답 데이터를 날짜별로 표시
-            const dates = Object.keys(scheduleData);
-            console.log('Processing dates:', dates);
-            dates.forEach(date => {
-                const dayData = scheduleData[date];
-                console.log('Processing date:', date, 'dayData:', dayData);
-                if (!dayData) {
-                    console.log('No day data for:', date);
+            const scheduleEntries = Object.entries(scheduleData.schedule);
+            console.log('Processing schedule entries:', scheduleEntries);
+            scheduleEntries.forEach(([dayIndex, dayInfo]) => {
+                const dayData = dayInfo;
+                console.log('Processing day:', dayIndex, 'dayData:', dayData);
+                if (!dayData || !dayData.sites) {
+                    console.log('No day data for day:', dayIndex);
                     return;
                 }
                 
-                const dateObj = new Date(date);
+                const dateObj = new Date(dayData.date);
                 const dayName = dateObj.toLocaleDateString('ko-KR', { weekday: 'long' });
                 
                 html += `
@@ -2331,7 +2331,7 @@
                         <div class="card schedule-day-card">
                             <div class="card-header bg-light">
                                 <h6 class="mb-0">${dayName}</h6>
-                                <small class="text-muted">${date}</small>
+                                <small class="text-muted">${dayData.date}</small>
                             </div>
                             <div class="card-body p-2">
                 `;
@@ -2339,8 +2339,8 @@
                 // 사이트별 계획 표시
                 const sites = ['unpre', 'untab', 'skewese', 'tistory'];
                 sites.forEach(site => {
-                    if (dayData[site]) {
-                        const plan = dayData[site];
+                    if (dayData.sites && dayData.sites[site]) {
+                        const plan = dayData.sites[site];
                         
                         html += `
                             <div class="schedule-site-item mb-2 p-2 bg-light rounded">
