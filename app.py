@@ -604,6 +604,31 @@ def get_weekly_schedule():
             ['일본 와비사비', '덴마크 라곰'],
             ['명상과 마음챙김', '디지털 디톡스'],
             ['제로웨이스트', '비건 라이프스타일']
+        ],
+        'tistory': [
+            # IT 트렌드 주간
+            ['2024년 AI 혁신', 'ChatGPT-4 활용법'],
+            ['메타버스 전망', 'NFT 시장 동향'],
+            ['블록체인 기술', '가상화폐 분석'],
+            ['클라우드 미래', '에지 컴퓨팅'],
+            
+            # 사회 이슈 주간
+            ['기후변화 대응', '탄소중립 실천'],
+            ['인구감소 대책', '고령화 사회'],
+            ['교육 혁신', '디지털 리터러시'],
+            ['일자리 변화', '원격근무 문화'],
+            
+            # 경제 트렌드 주간
+            ['글로벌 경제 위기', '인플레이션 대응'],
+            ['부동산 시장 전망', '주식 투자 전략'],
+            ['신재생 에너지', '그린 뉴딜'],
+            ['스타트업 생태계', '벤처 투자'],
+            
+            # 라이프스타일 주간
+            ['건강한 삶', '웰니스 트렌드'],
+            ['지속가능한 소비', 'ESG 경영'],
+            ['워라밸 문화', '번아웃 예방'],
+            ['디지털 노마드', '원격근무 팁']
         ]
     }
     
@@ -623,6 +648,7 @@ def get_weekly_schedule():
         unpre_index = (week_number * 3 + day_of_week) % len(topic_pools['unpre'])
         untab_index = (week_number * 2 + day_of_week + 1) % len(topic_pools['untab'])  
         skewese_index = (week_number * 4 + day_of_week + 2) % len(topic_pools['skewese'])
+        tistory_index = (week_number * 5 + day_of_week + 3) % len(topic_pools['tistory'])
         
         schedule[date] = {
             'unpre': {
@@ -638,6 +664,11 @@ def get_weekly_schedule():
             'skewese': {
                 'time': '03:00',
                 'topics': topic_pools['skewese'][skewese_index],
+                'status': 'scheduled'
+            },
+            'tistory': {
+                'time': '03:00',
+                'topics': topic_pools['tistory'][tistory_index],
                 'status': 'scheduled'
             }
         }
