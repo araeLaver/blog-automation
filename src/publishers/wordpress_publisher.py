@@ -646,7 +646,31 @@ class WordPressPublisher:
                 html.append(f'<li><a href="{link["url"]}">{link["title"]}</a></li>')
             html.append("</ul>")
         
-        return "\n".join(html)
+        # 커스텀 CSS 스타일 추가
+        custom_css = """
+<style>
+.highlight-text strong { color: #e74c3c; font-weight: bold; }
+.point-text em { color: #3498db; font-style: italic; }
+.code-block { background: #f8f9fa; padding: 10px; border-left: 4px solid #007cba; margin: 10px 0; }
+.inline-code code { background: #f1f1f1; padding: 2px 6px; border-radius: 3px; }
+.sub-heading { color: #2c3e50; margin: 20px 0 10px 0; }
+.section-heading { color: #34495e; margin: 25px 0 15px 0; }
+.numbered-item { margin: 8px 0; }
+.number-badge { background: #3498db; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.9em; }
+.bullet-item { margin: 5px 0; padding-left: 10px; }
+.bullet-icon { color: #e67e22; }
+.keyword-badge { background: #f39c12; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.success-badge { background: #27ae60; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.error-badge { background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+.percentage { color: #8e44ad; font-weight: bold; }
+.money { color: #27ae60; font-weight: bold; }
+.date { color: #e67e22; font-weight: bold; }
+.external-link { color: #3498db; text-decoration: none; }
+.email-link { color: #9b59b6; text-decoration: none; }
+</style>
+"""
+        
+        return custom_css + "\n" + "\n".join(html)
     
     def _improve_content_formatting(self, html_content: str) -> str:
         """HTML 콘텐츠 서식 개선"""
@@ -678,26 +702,49 @@ class WordPressPublisher:
             return html_content
     
     def _improve_text_formatting(self, text: str) -> str:
-        """텍스트 서식 개선 (마크다운 스타일 -> HTML)"""
+        """텍스트 서식 개선 (마크다운 → 예쁜 HTML)"""
         import re
         
-        # ** -> <strong> (굵은 글씨)
-        text = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', text)
+        # ** -> 강조 스타일 (굵은 글씨)
+        text = re.sub(r'\*\*(.*?)\*\*', r'<span class="highlight-text"><strong>▶ \1</strong></span>', text)
         
-        # * -> <em> (기울임)  
-        text = re.sub(r'(?<!\*)\*(?!\*)([^*]+)\*(?!\*)', r'<em>\1</em>', text)
+        # * -> 포인트 강조 (기울임)  
+        text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<span class="point-text"><em>※ \1</em></span>', text)
         
-        # ``` -> <code> (인라인 코드)
-        text = re.sub(r'`([^`]+)`', r'<code>\1</code>', text)
+        # ``` -> 코드 박스
+        text = re.sub(r'```([^`]+)```', r'<div class="code-block">【코드】 <code>\1</code></div>', text)
+        text = re.sub(r'`([^`]+)`', r'<span class="inline-code">『\1』</span>', text)
         
-        # ### -> <strong> (소제목 강조)
-        text = re.sub(r'###\s*([^\n]+)', r'<strong>\1</strong>', text)
+        # ### -> 소제목 강조
+        text = re.sub(r'###\s*([^\n]+)', r'<h4 class="sub-heading">◆ \1</h4>', text)
         
-        # 번호 목록 개선 (1. 2. 3. -> HTML 목록)
-        text = re.sub(r'(\d+)\.\s+([^\n]+)', r'<span class="list-item"><strong>\1.</strong> \2</span>', text)
+        # ## -> 중간 제목
+        text = re.sub(r'##\s*([^\n]+)', r'<h3 class="section-heading">■ \1</h3>', text)
+        
+        # 번호 목록 개선 (1. 2. 3. -> 예쁜 HTML 목록)
+        text = re.sub(r'(\d+)\.\s+([^\n]+)', r'<div class="numbered-item"><span class="number-badge">❶ \1</span> \2</div>', text)
         
         # • 또는 - 로 시작하는 목록 개선
-        text = re.sub(r'[•-]\s+([^\n]+)', r'<span class="bullet-item">• \1</span>', text)
+        text = re.sub(r'[•-]\s+([^\n]+)', r'<div class="bullet-item"><span class="bullet-icon">▸</span> \1</div>', text)
+        
+        # 특수 키워드 강조
+        text = re.sub(r'\b(중요|주의|참고|팁|TIP|NOTE)\b', r'<span class="keyword-badge">【\1】</span>', text, flags=re.IGNORECASE)
+        text = re.sub(r'\b(완료|성공|SUCCESS)\b', r'<span class="success-badge">✓ \1</span>', text, flags=re.IGNORECASE)
+        text = re.sub(r'\b(오류|에러|ERROR|실패)\b', r'<span class="error-badge">✗ \1</span>', text, flags=re.IGNORECASE)
+        
+        # 퍼센트, 숫자 강조
+        text = re.sub(r'(\d+)%', r'<span class="percentage">【\1%】</span>', text)
+        text = re.sub(r'(\d{1,3}(?:,\d{3})*)(원|달러|\$)', r'<span class="money">￦ \1\2</span>', text)
+        
+        # 날짜 형식 예쁘게
+        text = re.sub(r'(\d{4})-(\d{1,2})-(\d{1,2})', r'<span class="date">▷ \1년 \2월 \3일</span>', text)
+        text = re.sub(r'(\d{4})년\s*(\d{1,2})월', r'<span class="date">▷ \1년 \2월</span>', text)
+        
+        # 링크 형태 개선
+        text = re.sub(r'(https?://[^\s]+)', r'<a href="\1" class="external-link" target="_blank">→ 참조링크</a>', text)
+        
+        # 이메일 주소 개선
+        text = re.sub(r'([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', r'<a href="mailto:\1" class="email-link">@ \1</a>', text)
         
         return text
     
