@@ -361,75 +361,26 @@ def trending_page():
 @app.route('/api/trending')
 @app.route('/api/trending/<period>')
 def get_trending(period='current'):
-    """트렌딩 토픽 조회"""
+    """트렌딩 토픽 조회 - 주간 업데이트"""
     try:
-        # 목업 트렌딩 데이터
-        mock_trends = {
-            'current': {
-                'period': '이번주 트렌드',
-                'week_start': '2025-08-11',
-                'cross_category_issues': [
-                    {
-                        'title': 'AI 기술 혁신',
-                        'category': 'Technology',
-                        'trend_type': 'hot',
-                        'priority': 9,
-                        'description': 'ChatGPT와 Claude 등 AI 기술이 급속도로 발전하고 있습니다.',
-                        'keywords': ['AI', 'ChatGPT', 'Claude', '인공지능']
-                    },
-                    {
-                        'title': '부동산 정책 변화',
-                        'category': 'Real Estate',
-                        'trend_type': 'rising',
-                        'priority': 8,
-                        'description': '새로운 부동산 정책이 발표되어 시장에 큰 영향을 미치고 있습니다.',
-                        'keywords': ['부동산', '정책', '시장변화']
-                    }
-                ],
-                'site_trends': {
-                    'unpre': [
-                        {
-                            'title': 'React 18 새 기능',
-                            'category': 'Frontend',
-                            'trend_type': 'rising',
-                            'priority': 7,
-                            'description': 'React 18의 새로운 기능들이 개발자들 사이에서 화제가 되고 있습니다.',
-                            'keywords': ['React', 'Frontend', '웹개발']
-                        },
-                        {
-                            'title': 'Python 성능 최적화',
-                            'category': 'Backend',
-                            'trend_type': 'hot',
-                            'priority': 8,
-                            'description': 'Python 성능 최적화 기법들이 주목받고 있습니다.',
-                            'keywords': ['Python', '성능', '최적화']
-                        }
-                    ],
-                    'untab': [
-                        {
-                            'title': '언어학습 앱 트렌드',
-                            'category': 'Education',
-                            'trend_type': 'rising',
-                            'priority': 6,
-                            'description': '새로운 언어학습 방법론이 주목받고 있습니다.',
-                            'keywords': ['언어학습', '교육', '앱']
-                        }
-                    ],
-                    'skewese': [
-                        {
-                            'title': '조선시대 문화 재조명',
-                            'category': 'History',
-                            'trend_type': 'predicted',
-                            'priority': 5,
-                            'description': '조선시대 문화에 대한 새로운 연구 결과가 발표되었습니다.',
-                            'keywords': ['조선시대', '역사', '문화']
-                        }
-                    ]
-                }
-            }
-        }
+        from datetime import datetime, timedelta
         
-        trends = mock_trends.get(period, mock_trends['current'])
+        # 현재 주차 계산
+        today = datetime.now().date()
+        week_start = today - timedelta(days=today.weekday())
+        week_number = week_start.isocalendar()[1]  # ISO 주차
+        
+        # 주차별 동적 트렌딩 생성
+        trending_generator = WeeklyTrendingGenerator()
+        
+        if period == 'current':
+            trends = trending_generator.generate_current_week_trends(week_start, week_number)
+        elif period == 'next':
+            next_week_start = week_start + timedelta(days=7)
+            next_week_number = next_week_start.isocalendar()[1]
+            trends = trending_generator.generate_next_week_trends(next_week_start, next_week_number)
+        else:
+            trends = trending_generator.generate_current_week_trends(week_start, week_number)
         
         return jsonify({
             'status': 'success',
@@ -447,6 +398,166 @@ def get_trending(period='current'):
                 'site_trends': {}
             }
         })
+
+class WeeklyTrendingGenerator:
+    """주간 트렌딩 토픽 생성기"""
+    
+    def __init__(self):
+        # 2025년 주요 이슈들 (주차별로 다양하게 구성)
+        self.global_trending_pool = [
+            # AI & 기술
+            {'title': 'ChatGPT-5 출시 임박', 'category': 'AI/Tech', 'keywords': ['ChatGPT', 'AI', '인공지능', 'OpenAI']},
+            {'title': 'Apple Vision Pro 2세대 발표', 'category': 'Tech', 'keywords': ['Apple', 'VisionPro', '가상현실', 'AR']},
+            {'title': '테슬라 자율주행 완전 상용화', 'category': 'Tech', 'keywords': ['Tesla', '자율주행', 'FSD', '전기차']},
+            {'title': '구글 Gemini Ultra 업그레이드', 'category': 'AI', 'keywords': ['Google', 'Gemini', 'AI', '멀티모달']},
+            {'title': 'NVIDIA RTX 5090 출시', 'category': 'Hardware', 'keywords': ['NVIDIA', 'RTX', 'GPU', '게이밍']},
+            {'title': '메타 Quest 4 공개', 'category': 'VR/AR', 'keywords': ['Meta', 'Quest', 'VR', '메타버스']},
+            {'title': '삼성 갤럭시 S25 AI 기능 강화', 'category': 'Mobile', 'keywords': ['Samsung', 'Galaxy', 'AI', '스마트폰']},
+            {'title': 'Microsoft Copilot Pro 확장', 'category': 'Productivity', 'keywords': ['Microsoft', 'Copilot', 'AI', '생산성']},
+            
+            # 경제 & 금융
+            {'title': '비트코인 10만 달러 돌파', 'category': 'Crypto', 'keywords': ['Bitcoin', '암호화폐', '10만달러', '투자']},
+            {'title': '한국 기준금리 추가 인하', 'category': 'Economy', 'keywords': ['기준금리', '한국은행', '인하', '경제정책']},
+            {'title': '미국 인플레이션 2% 목표 달성', 'category': 'Economy', 'keywords': ['인플레이션', '미국', '연준', '금리']},
+            {'title': '일본 엔화 급등', 'category': 'Finance', 'keywords': ['엔화', '일본', '환율', '투자']},
+            {'title': 'TSMC 3나노 칩 양산 확대', 'category': 'Semiconductor', 'keywords': ['TSMC', '3나노', '반도체', '칩']},
+            {'title': '중국 부동산 시장 회복 신호', 'category': 'Real Estate', 'keywords': ['중국', '부동산', '회복', '시장']},
+            
+            # 정치 & 사회
+            {'title': '2025년 대선 후보 등록 시작', 'category': 'Politics', 'keywords': ['대선', '후보등록', '2025년', '정치']},
+            {'title': '기후변화 대응 글로벌 협약', 'category': 'Environment', 'keywords': ['기후변화', '협약', '탄소중립', '환경']},
+            {'title': '우크라이나 전쟁 휴전 협상', 'category': 'International', 'keywords': ['우크라이나', '러시아', '휴전', '협상']},
+            {'title': '북한 핵 협상 재개', 'category': 'International', 'keywords': ['북한', '핵협상', '외교', '평화']},
+            {'title': 'EU 디지털 서비스법 시행', 'category': 'Policy', 'keywords': ['EU', '디지털법', '빅테크', '규제']},
+            
+            # 헬스케어 & 바이오
+            {'title': 'mRNA 암 백신 임상 성공', 'category': 'Healthcare', 'keywords': ['mRNA', '암백신', '임상', '바이오']},
+            {'title': '알츠하이머 신약 FDA 승인', 'category': 'Medicine', 'keywords': ['알츠하이머', '신약', 'FDA', '치매']},
+            {'title': '줄기세포 치료법 상용화', 'category': 'Biotech', 'keywords': ['줄기세포', '치료법', '재생의학', '바이오']},
+            {'title': '디지털 헬스케어 급성장', 'category': 'Digital Health', 'keywords': ['디지털헬스', '원격의료', '헬스테크', '의료']},
+            
+            # 문화 & 엔터테인먼트
+            {'title': 'K-드라마 글로벌 흥행 지속', 'category': 'Entertainment', 'keywords': ['K드라마', '한류', '글로벌', '넷플릭스']},
+            {'title': 'BTS 재결합 컴백 발표', 'category': 'K-Pop', 'keywords': ['BTS', '재결합', '컴백', 'K-Pop']},
+            {'title': '올림픽 e스포츠 정식 종목 확정', 'category': 'Sports', 'keywords': ['올림픽', 'e스포츠', '게임', '스포츠']},
+            {'title': 'AI 생성 영화 아카데미 후보', 'category': 'Cinema', 'keywords': ['AI영화', '아카데미', '영화제', '인공지능']},
+            
+            # 스타트업 & 비즈니스
+            {'title': '한국 유니콘 기업 30개 돌파', 'category': 'Startup', 'keywords': ['유니콘', '스타트업', '한국', '투자']},
+            {'title': '배달 로봇 상용화 확산', 'category': 'Robotics', 'keywords': ['배달로봇', '자동화', '물류', '로봇']},
+            {'title': '메타버스 쇼핑몰 급성장', 'category': 'E-commerce', 'keywords': ['메타버스', '쇼핑몰', 'VR', '커머스']},
+            {'title': '탄소 포집 기술 상용화', 'category': 'CleanTech', 'keywords': ['탄소포집', '기후기술', '탄소중립', '환경']},
+        ]
+        
+        # 사이트별 전문 트렌딩
+        self.site_trends = {
+            'unpre': [
+                {'title': 'GitHub Copilot 무료화', 'category': 'Developer Tools', 'keywords': ['GitHub', 'Copilot', '개발도구', 'AI']},
+                {'title': 'Python 3.13 성능 혁신', 'category': 'Programming', 'keywords': ['Python', '3.13', '성능', '프로그래밍']},
+                {'title': 'Rust 웹 프레임워크 급부상', 'category': 'Web Dev', 'keywords': ['Rust', '웹프레임워크', '성능', '백엔드']},
+                {'title': 'WebAssembly 브라우저 표준화', 'category': 'Web Tech', 'keywords': ['WebAssembly', '브라우저', '표준', '성능']},
+                {'title': 'Kubernetes 보안 강화', 'category': 'DevOps', 'keywords': ['Kubernetes', '보안', 'DevOps', '컨테이너']},
+                {'title': 'React 19 서버 컴포넌트', 'category': 'Frontend', 'keywords': ['React', '19', '서버컴포넌트', '프론트엔드']},
+                {'title': 'TypeScript 5.5 새 기능', 'category': 'Language', 'keywords': ['TypeScript', '5.5', '새기능', '개발']},
+                {'title': 'AI 코드 리뷰 도구 확산', 'category': 'AI Tools', 'keywords': ['AI', '코드리뷰', '자동화', '개발도구']},
+                {'title': 'Edge Computing 플랫폼 성장', 'category': 'Infrastructure', 'keywords': ['Edge', 'Computing', '플랫폼', '인프라']},
+                {'title': 'NoSQL 데이터베이스 진화', 'category': 'Database', 'keywords': ['NoSQL', '데이터베이스', '진화', 'DB']},
+            ],
+            'untab': [
+                {'title': '서울 아파트 가격 안정화', 'category': 'Real Estate', 'keywords': ['서울', '아파트', '가격안정', '부동산']},
+                {'title': '부동산 PF 시장 회복', 'category': 'Finance', 'keywords': ['부동산PF', '시장회복', '금융', '투자']},
+                {'title': '지방 부동산 투자 급증', 'category': 'Investment', 'keywords': ['지방', '부동산투자', '급증', '수익률']},
+                {'title': '재개발 사업 활성화', 'category': 'Development', 'keywords': ['재개발', '사업', '활성화', '도시개발']},
+                {'title': '전세금 반환보증 강화', 'category': 'Policy', 'keywords': ['전세금', '반환보증', '강화', '정책']},
+                {'title': '부동산 세제 개편안', 'category': 'Tax', 'keywords': ['부동산세제', '개편', '세금', '정책']},
+                {'title': '스마트홈 기술 확산', 'category': 'Smart Home', 'keywords': ['스마트홈', '기술확산', 'IoT', '주거']},
+                {'title': '친환경 건축 인증 확대', 'category': 'Green Building', 'keywords': ['친환경건축', '인증', '그린빌딩', '건설']},
+                {'title': '부동산 경매 시장 동향', 'category': 'Auction', 'keywords': ['부동산경매', '시장동향', '투자', '경매']},
+                {'title': '임대주택 공급 확대', 'category': 'Rental', 'keywords': ['임대주택', '공급확대', '주거', '정책']},
+            ],
+            'skewese': [
+                {'title': '조선왕조실록 디지털화', 'category': 'Digital Heritage', 'keywords': ['조선왕조실록', '디지털화', '문화재', '역사']},
+                {'title': '한국사 교육과정 개편', 'category': 'Education', 'keywords': ['한국사', '교육과정', '개편', '역사교육']},
+                {'title': '문화재 복원 기술 혁신', 'category': 'Cultural Heritage', 'keywords': ['문화재복원', '기술혁신', '전통', '보존']},
+                {'title': 'K-컬처 역사 콘텐츠 인기', 'category': 'Culture', 'keywords': ['K컬처', '역사콘텐츠', '한류', '문화']},
+                {'title': '전통 공예 현대적 재해석', 'category': 'Traditional Craft', 'keywords': ['전통공예', '현대재해석', '공예', '문화']},
+                {'title': '박물관 디지털 전시 확산', 'category': 'Museum', 'keywords': ['박물관', '디지털전시', '가상현실', '문화']},
+                {'title': '고고학 AI 발굴 기술', 'category': 'Archaeology', 'keywords': ['고고학', 'AI발굴', '기술', '역사']},
+                {'title': '한복 글로벌 패션 트렌드', 'category': 'Fashion', 'keywords': ['한복', '글로벌', '패션트렌드', '전통']},
+                {'title': '역사 다큐멘터리 르네상스', 'category': 'Documentary', 'keywords': ['역사다큐', '르네상스', '방송', '콘텐츠']},
+                {'title': '전통음식 레시피 복원', 'category': 'Food Culture', 'keywords': ['전통음식', '레시피복원', '음식문화', '전통']},
+            ]
+        }
+    
+    def generate_current_week_trends(self, week_start, week_number):
+        """이번주 트렌딩 생성"""
+        import random
+        
+        # 주차에 따라 시드 설정 (일관성 있는 랜덤)
+        random.seed(week_number * 100)
+        
+        # 글로벌 이슈 5-8개 선택
+        global_issues = random.sample(self.global_trending_pool, 7)
+        
+        # 트렌드 타입과 우선순위 랜덤 할당
+        trend_types = ['hot', 'rising', 'predicted', 'viral']
+        for i, issue in enumerate(global_issues):
+            issue['trend_type'] = random.choice(trend_types)
+            issue['priority'] = 10 - i  # 우선순위 설정
+            issue['description'] = f"{issue['title']}이(가) 이번주 주요 이슈로 떠오르고 있습니다."
+        
+        # 사이트별 트렌드 3-5개씩
+        site_trends = {}
+        for site, trends in self.site_trends.items():
+            selected = random.sample(trends, 4)
+            for i, trend in enumerate(selected):
+                trend['trend_type'] = random.choice(trend_types)
+                trend['priority'] = 8 - i
+                trend['description'] = f"{trend['title']}이(가) {site} 분야에서 주목받고 있습니다."
+            site_trends[site] = selected
+        
+        return {
+            'period': f'이번주 트렌드 ({week_start})',
+            'week_start': week_start.strftime('%Y-%m-%d'),
+            'week_number': week_number,
+            'cross_category_issues': global_issues,
+            'site_trends': site_trends,
+            'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+    
+    def generate_next_week_trends(self, week_start, week_number):
+        """다음주 예측 트렌딩 생성"""
+        import random
+        
+        # 다음주용 시드
+        random.seed(week_number * 200)
+        
+        # 예측된 이슈들
+        predicted_issues = random.sample(self.global_trending_pool, 6)
+        
+        for i, issue in enumerate(predicted_issues):
+            issue['trend_type'] = 'predicted'
+            issue['priority'] = 9 - i
+            issue['description'] = f"{issue['title']}이(가) 다음주 주요 이슈가 될 것으로 예측됩니다."
+        
+        # 사이트별 예측 트렌드
+        site_trends = {}
+        for site, trends in self.site_trends.items():
+            selected = random.sample(trends, 3)
+            for i, trend in enumerate(selected):
+                trend['trend_type'] = 'predicted'
+                trend['priority'] = 7 - i
+                trend['description'] = f"{trend['title']}이(가) 다음주 {site} 분야 핫이슈가 될 전망입니다."
+            site_trends[site] = selected
+        
+        return {
+            'period': f'다음주 예측 트렌드 ({week_start})',
+            'week_start': week_start.strftime('%Y-%m-%d'),
+            'week_number': week_number,
+            'cross_category_issues': predicted_issues,
+            'site_trends': site_trends,
+            'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
 
 @app.route('/api/chart_data')
 def get_chart_data():
