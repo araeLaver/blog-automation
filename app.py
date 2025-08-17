@@ -496,8 +496,8 @@ class WeeklyTrendingGenerator:
         # 주차에 따라 시드 설정 (일관성 있는 랜덤)
         random.seed(week_number * 100)
         
-        # 글로벌 이슈 5-8개 선택
-        global_issues = random.sample(self.global_trending_pool, 7)
+        # 글로벌 이슈 8-10개 선택
+        global_issues = random.sample(self.global_trending_pool, 9)
         
         # 트렌드 타입과 우선순위 랜덤 할당
         trend_types = ['hot', 'rising', 'predicted', 'viral']
@@ -506,10 +506,10 @@ class WeeklyTrendingGenerator:
             issue['priority'] = 10 - i  # 우선순위 설정
             issue['description'] = f"{issue['title']}이(가) 이번주 주요 이슈로 떠오르고 있습니다."
         
-        # 사이트별 트렌드 3-5개씩
+        # 사이트별 트렌드 7-8개씩
         site_trends = {}
         for site, trends in self.site_trends.items():
-            selected = random.sample(trends, 4)
+            selected = random.sample(trends, 7)
             for i, trend in enumerate(selected):
                 trend['trend_type'] = random.choice(trend_types)
                 trend['priority'] = 8 - i
@@ -533,7 +533,7 @@ class WeeklyTrendingGenerator:
         random.seed(week_number * 200)
         
         # 예측된 이슈들
-        predicted_issues = random.sample(self.global_trending_pool, 6)
+        predicted_issues = random.sample(self.global_trending_pool, 8)
         
         for i, issue in enumerate(predicted_issues):
             issue['trend_type'] = 'predicted'
@@ -543,7 +543,7 @@ class WeeklyTrendingGenerator:
         # 사이트별 예측 트렌드
         site_trends = {}
         for site, trends in self.site_trends.items():
-            selected = random.sample(trends, 3)
+            selected = random.sample(trends, 7)
             for i, trend in enumerate(selected):
                 trend['trend_type'] = 'predicted'
                 trend['priority'] = 7 - i
