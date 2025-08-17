@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 import pytz
 import json
 import logging
+import logging.handlers
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
@@ -38,16 +39,59 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
 
 # 로깅 설정
-logging.basicConfig(level=logging.INFO)
+# 로깅 설정 강화 - 파일과 콘솔 동시 출력
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('blog_automation.log', encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
+
+# 인메모리 로그 저장소
+_memory_logs = []
+
+def add_system_log(level: str, message: str, category: str = 'SYSTEM'):
+    """시스템 로그 추가"""
+    global _memory_logs
+    
+    log_entry = {
+        'time': datetime.now().strftime('%H:%M:%S'),
+        'level': level.lower(),
+        'message': f"[{category}] {message}",
+        'timestamp': datetime.now().timestamp()
+    }
+    
+    _memory_logs.append(log_entry)
+    
+    # 최근 200개만 유지
+    if len(_memory_logs) > 200:
+        _memory_logs = _memory_logs[-200:]
+    
+    # 실제 로그도 기록
+    if level.upper() == 'ERROR':
+        logger.error(f"[{category}] {message}")
+    elif level.upper() == 'WARNING':
+        logger.warning(f"[{category}] {message}")
+    else:
+        logger.info(f"[{category}] {message}")
+
+def get_recent_logs():
+    """최근 로그 가져오기"""
+    global _memory_logs
+    return _memory_logs.copy()
 
 # AI 콘텐츠 생성기 초기화
 try:
     from src.generators.content_generator import ContentGenerator
     content_generator = ContentGenerator()
     logger.info("✅ Claude API 콘텐츠 생성기 초기화 완료 - v2.0")
+    add_system_log('INFO', 'Claude API 콘텐츠 생성기 초기화 완료', 'STARTUP')
 except Exception as e:
     logger.warning(f"⚠️ Claude API 초기화 실패: {e}")
+    add_system_log('ERROR', f'Claude API 초기화 실패: {e}', 'STARTUP')
     content_generator = None
 
 # 한국 시간대 설정
@@ -615,15 +659,122 @@ def get_chart_data():
 
 @app.route('/api/logs')
 def get_logs():
-    """최근 로그 조회"""
-    logs = [
-        {
-            'time': datetime.now(KST).strftime('%H:%M:%S'),
-            'level': 'info',
-            'message': '시스템 정상 작동 중'
-        }
-    ]
-    return jsonify(logs)
+    """실시간 로그 조회 - 자동발행 모니터링"""
+    try:
+        # 인메모리 로그 가져오기
+        logs = get_recent_logs()
+        
+        # 로그 파일에서도 가져오기 (백업)
+        import os
+        log_file = 'blog_automation.log'
+        if os.path.exists(log_file):
+            try:
+                with open(log_file, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()[-50:]  # 최근 50줄
+                    for line in lines:
+                        if line.strip():
+                            parts = line.strip().split(' - ', 3)
+                            if len(parts) >= 3:
+                                log_time = parts[0]
+                                log_level = parts[1].lower()
+                                log_message = ' - '.join(parts[2:])
+                                
+                                # 시간 포맷 변환
+                                try:
+                                    parsed_time = datetime.strptime(log_time, '%Y-%m-%d %H:%M:%S,%f')
+                                    formatted_time = parsed_time.strftime('%H:%M:%S')
+                                except:
+                                    formatted_time = log_time
+                                
+                                logs.append({
+                                    'time': formatted_time,
+                                    'level': log_level,
+                                    'message': log_message
+                                })
+            except Exception as e:
+                print(f"로그 파일 읽기 오류: {e}")
+        
+        # 시간순 정렬 (최신순)
+        logs.sort(key=lambda x: x['time'], reverse=True)
+        
+        return jsonify(logs[:100])  # 최근 100개만
+        
+    except Exception as e:
+        logger.error(f"로그 조회 오류: {e}")
+        return jsonify([
+            {
+                'time': datetime.now(KST).strftime('%H:%M:%S'),
+                'level': 'info',
+                'message': '시스템 정상 작동 중'
+            }
+        ])
+
+
+@app.route('/api/schedule/status')
+def get_schedule_status():
+    """자동발행 스케줄 상태 확인"""
+    try:
+        from config.sites_config import PUBLISHING_SCHEDULE
+        import pytz
+        
+        now = datetime.now(pytz.timezone('Asia/Seoul'))
+        today = now.date()
+        current_time = now.strftime('%H:%M')
+        
+        schedule_info = {}
+        
+        for site, config in PUBLISHING_SCHEDULE.items():
+            schedule_time = config['time']
+            days = config['days']
+            
+            # 오늘 발행 예정인지 확인
+            today_weekday = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'][today.weekday()]
+            is_today = today_weekday in days
+            
+            # 발행 시간까지 남은 시간 계산
+            if is_today:
+                schedule_datetime = datetime.combine(today, datetime.strptime(schedule_time, '%H:%M').time())
+                schedule_datetime = pytz.timezone('Asia/Seoul').localize(schedule_datetime)
+                
+                if now < schedule_datetime:
+                    time_until = schedule_datetime - now
+                    hours, remainder = divmod(int(time_until.total_seconds()), 3600)
+                    minutes, _ = divmod(remainder, 60)
+                    status = f'{hours}시간 {minutes}분 후 발행 예정'
+                else:
+                    status = '오늘 발행 완료 또는 진행 중'
+            else:
+                # 다음 발행일 찾기
+                next_publish_days = []
+                for i in range(1, 8):
+                    future_date = today + timedelta(days=i)
+                    future_weekday = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'][future_date.weekday()]
+                    if future_weekday in days:
+                        next_publish_days.append(future_date.strftime('%m/%d'))
+                        break
+                
+                status = f'다음 발행: {next_publish_days[0] if next_publish_days else "없음"} {schedule_time}'
+            
+            schedule_info[site] = {
+                'schedule_time': schedule_time,
+                'is_today': is_today,
+                'status': status,
+                'days': days
+            }
+        
+        add_system_log('INFO', f'스케줄 상태 조회 - 현재 시간: {current_time}', 'SCHEDULE_CHECK')
+        
+        return jsonify({
+            'current_time': current_time,
+            'current_date': today.strftime('%Y-%m-%d'),
+            'schedule_info': schedule_info,
+            'auto_publish_enabled': True
+        })
+        
+    except Exception as e:
+        logger.error(f"스케줄 상태 조회 오류: {e}")
+        add_system_log('ERROR', f'스케줄 상태 조회 오류: {e}', 'SCHEDULE_CHECK')
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/schedule/weekly')
 def get_weekly_schedule():
@@ -1599,6 +1750,8 @@ def quick_publish():
         import threading
         def background_publish():
             try:
+                add_system_log('INFO', f'{len(sites)}개 사이트 자동발행 시작', 'AUTO_PUBLISH')
+                
                 from src.utils.schedule_manager import schedule_manager
                 from datetime import datetime, timedelta
                 import requests
@@ -1607,11 +1760,16 @@ def quick_publish():
                 week_start = today - timedelta(days=today.weekday())
                 day_of_week = today.weekday()
                 
+                add_system_log('INFO', f'발행 대상 날짜: {today} (주차: {week_start}, 요일: {day_of_week})', 'AUTO_PUBLISH')
+                
                 # 오늘의 스케줄 가져오기
                 schedule_data = schedule_manager.get_weekly_schedule(week_start)
+                add_system_log('INFO', f'스케줄 데이터 로드 완료', 'SCHEDULE')
                 
                 for i, site in enumerate(sites):
                     try:
+                        add_system_log('INFO', f'{site} 사이트 발행 시작 ({i+1}/{len(sites)})', 'PUBLISH')
+                        
                         publish_status.update({
                             'current_site': site,
                             'progress': int((i / len(sites)) * 90),
@@ -1638,11 +1796,11 @@ def quick_publish():
                                 topic = site_plan.get('topic', topic)
                                 keywords = site_plan.get('keywords', keywords)
                                 category = site_plan.get('category', category)
-                                logger.info(f"[SCHEDULE] {site} 스케줄 주제 사용: {topic} (카테고리: {category})")
+                                add_system_log('INFO', f'{site} 스케줄 주제 사용: {topic} (카테고리: {category})', 'SCHEDULE')
                             else:
-                                logger.info(f"[SCHEDULE] {site} 스케줄 없음, 기본값 사용: {topic}")
+                                add_system_log('WARNING', f'{site} 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULE')
                         else:
-                            logger.info(f"[SCHEDULE] 오늘({day_of_week}) 스케줄 없음, 기본값 사용: {topic}")
+                            add_system_log('WARNING', f'오늘({day_of_week}) 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULE')
                         
                         # 1. 콘텐츠 생성 (사이트별로 다른 API 사용)
                         generate_payload = {
@@ -2830,5 +2988,10 @@ def _format_section_content(content):
 app._create_beautiful_html_template = _create_beautiful_html_template
 
 if __name__ == "__main__":
+    # 시작 로그
+    add_system_log('INFO', '블로그 자동화 시스템 시작', 'STARTUP')
+    add_system_log('INFO', '새벽 3시 자동발행 스케줄 활성화됨', 'STARTUP')
+    add_system_log('INFO', f'웹 대시보드 서버 시작 - http://localhost:8000', 'STARTUP')
+    
     port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port, debug=False)
