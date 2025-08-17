@@ -167,7 +167,7 @@ class ContentGenerator:
     "sections": [
 {sections_json}
     ],
-    "conclusion": "핵심 내용 요약과 독자에게 도움이 되는 마무리 ({settings['conclusion_length']})",
+    "additional_content": "주제와 관련된 추가 유용한 정보나 심화 내용 ({settings['conclusion_length']})",
     "tags": ["태그1", "태그2", "태그3", "태그4", "태그5"],
     "keywords": ["키워드1", "키워드2", "키워드3"]
 }}
@@ -398,8 +398,8 @@ class ContentGenerator:
                 "content": "이론을 실제 프로젝트에 적용하는 방법을 알아봅니다. 효율적인 개발을 위한 팁과 노하우를 공유합니다."
             },
             {
-                "heading": "마무리",
-                "content": "배운 내용을 정리하고 다음 단계로 나아가는 방법을 제시합니다. 지속적인 학습과 개선의 중요성을 강조합니다."
+                "heading": "심화 학습",
+                "content": "더 깊이 있는 학습을 위한 리소스와 실무에서 활용할 수 있는 고급 기법들을 소개합니다."
             }
         ]
         
@@ -408,7 +408,7 @@ class ContentGenerator:
             "meta_description": "실용적인 개발 기술과 베스트 프랙티스를 다루는 가이드입니다.",
             "introduction": introduction,
             "sections": sections,
-            "conclusion": "이상으로 핵심 내용을 알아보았습니다. 지속적인 학습과 실전 적용을 통해 더 나은 개발자가 되시길 바랍니다.",
+            "additional_content": "관련 기술들과 함께 활용하면 더욱 효과적인 결과를 얻을 수 있습니다. 실무 프로젝트에서 이런 접근 방식들이 어떻게 적용되는지 살펴보세요.",
             "tags": ["개발", "프로그래밍", "기술", "가이드", "실전"],
             "keywords": ["개발", "프로그래밍", "기술"]
         }

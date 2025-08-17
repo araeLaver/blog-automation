@@ -629,9 +629,13 @@ class WordPressPublisher:
                            f'[gallery ids="{image_ids[1]}"]'
                            f'[/caption]')
         
-        # 결론
-        if content.get('conclusion'):
-            html.append(f"<h2>마무리</h2>")
+        # 추가 유용한 내용
+        if content.get('additional_content'):
+            html.append(f"<h2>더 알아보기</h2>")
+            html.append(f"<p>{content['additional_content']}</p>")
+        elif content.get('conclusion'):
+            # 기존 호환성 유지
+            html.append(f"<h2>추가 정보</h2>")
             html.append(f"<p>{content['conclusion']}</p>")
         
         # 관련 링크 (내부 링크)

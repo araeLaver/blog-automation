@@ -131,9 +131,9 @@ SEO_SETTINGS = {
     }
 }
 
-# 발행 스케줄 (Tistory 제외)
+# 발행 스케줄 - 새벽 3시 자동 발행
 PUBLISHING_SCHEDULE = {
-    "unpre": {"time": "12:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]},
-    "untab": {"time": "09:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]}, 
-    "skewese": {"time": "15:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]}
+    "unpre": {"time": "03:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]},
+    "untab": {"time": "03:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]}, 
+    "skewese": {"time": "03:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]}
 }
