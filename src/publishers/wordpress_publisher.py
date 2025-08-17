@@ -486,86 +486,116 @@ class WordPressPublisher:
         return None
     
     def _format_content(self, content: Dict, image_ids: List[int]) -> str:
-        """콘텐츠 HTML 포맷팅"""
+        """콘텐츠 HTML 포맷팅 - 실제 발행용 (태그 제거 및 깨끗한 HTML)"""
         
-        # 이미 완성된 HTML이 있으면 그대로 사용 (하위 호환성)
+        # 이미 완성된 HTML이 있으면 WordPress 발행용으로 변환
         if 'content' in content and content['content'] and not content.get('sections'):
             raw_html = content['content']
-            print(f"원본 HTML 콘텐츠 길이: {len(raw_html)}")
-            print(f"HTML 콘텐츠 미리보기: {raw_html[:200]}...")
+            print(f"[WP_FORMAT] 원본 HTML 길이: {len(raw_html)}")
             
-            # HTML에서 본문 내용만 추출 (WordPress용)
+            # HTML에서 본문 내용만 추출하고 불필요한 요소들 제거
             import re
             from bs4 import BeautifulSoup
             
             try:
-                # BeautifulSoup을 사용해서 더 정확하게 파싱
-                print("BeautifulSoup 파싱 시작...")
                 soup = BeautifulSoup(raw_html, 'html.parser')
                 
                 # content-container div 찾기
                 container_div = soup.find('div', class_='content-container')
                 if container_div:
-                    print(f"content-container div 발견! 원본 길이: {len(str(container_div))}")
+                    print(f"[WP_FORMAT] content-container 발견")
                     
-                    # 불필요한 요소들 제거
-                    removed_count = 0
-                    for element in container_div.find_all(['div'], class_=['meta-info', 'wordpress-actions', 'site-badge']):
-                        print(f"제거하는 요소: {element.name} with class {element.get('class')}")
-                        element.decompose()
-                        removed_count += 1
+                    # 1. 불필요한 요소들 완전 제거
+                    for selector in [
+                        {'class': ['meta-info', 'wordpress-actions', 'site-badge', 'tags', 'metadata']},
+                        {'name': 'script'},
+                        {'name': 'style'},
+                        {'class': lambda x: x and any(cls in x for cls in ['meta', 'badge', 'action', 'tag'])},
+                    ]:
+                        if 'class' in selector and callable(selector['class']):
+                            elements = container_div.find_all(attrs={'class': selector['class']})
+                        elif 'class' in selector:
+                            elements = container_div.find_all(class_=selector['class'])
+                        else:
+                            elements = container_div.find_all(selector['name'])
+                        
+                        for element in elements:
+                            element.decompose()
                     
-                    # script 태그 제거
-                    for script in container_div.find_all('script'):
-                        print("script 태그 제거")
-                        script.decompose()
-                        removed_count += 1
+                    # 2. div class="tags" 완전 제거
+                    tags_divs = container_div.find_all('div', class_='tags')
+                    for tags_div in tags_divs:
+                        tags_div.decompose()
                     
-                    print(f"총 {removed_count}개 요소 제거됨")
+                    # 3. 모든 span class="tag" 제거
+                    tag_spans = container_div.find_all('span', class_='tag')
+                    for tag_span in tag_spans:
+                        tag_span.decompose()
                     
-                    # 내용 추출 (HTML 태그 유지)
-                    extracted = str(container_div)
-                    print(f"str() 변환 후 길이: {len(extracted)}")
+                    # 4. #으로 시작하는 태그 텍스트 제거
+                    for text_node in container_div.find_all(text=True):
+                        if text_node.strip().startswith('#'):
+                            text_node.replace_with('')
                     
-                    # content-container div 태그 자체는 제거
-                    before_regex = len(extracted)
-                    extracted = re.sub(r'^<div[^>]*class="[^"]*content-container[^"]*"[^>]*>|</div>\s*$', '', extracted, flags=re.MULTILINE)
-                    after_regex = len(extracted)
-                    print(f"div 태그 제거: {before_regex} -> {after_regex}")
+                    # 5. container div 내용만 추출 (div 태그 자체는 제거)
+                    clean_content = ''
+                    for child in container_div.children:
+                        if hasattr(child, 'name'):  # 태그인 경우
+                            clean_content += str(child)
+                        elif child.strip():  # 텍스트인 경우
+                            clean_content += str(child)
                     
-                    final_result = extracted.strip()
-                    print(f"최종 추출된 콘텐츠 길이: {len(final_result)}")
-                    if final_result:
-                        print(f"추출된 콘텐츠 처음 200자: {final_result[:200]}...")
-                        print(f"추출된 콘텐츠 마지막 200자: ...{final_result[-200:]}")
-                    else:
-                        print("경고: 최종 결과가 비어있음!")
+                    print(f"[WP_FORMAT] 정리된 콘텐츠 길이: {len(clean_content)}")
                     
-                    # 콘텐츠 서식 개선
-                    final_result = self._improve_content_formatting(final_result)
+                    # 6. 추가 정리 - 빈 태그들과 불필요한 구조 제거
+                    clean_soup = BeautifulSoup(clean_content, 'html.parser')
                     
-                    return final_result
+                    # 빈 p, div 태그 제거
+                    for empty_tag in clean_soup.find_all(['p', 'div']):
+                        if not empty_tag.get_text().strip():
+                            empty_tag.decompose()
+                    
+                    # 연속된 br 태그 정리
+                    clean_html = str(clean_soup)
+                    clean_html = re.sub(r'(<br\s*/?>\s*){3,}', '<br><br>', clean_html)
+                    
+                    # WordPress 스타일 구분선 추가
+                    clean_html = re.sub(r'<hr[^>]*>', '<hr class="wp-block-separator" />', clean_html)
+                    
+                    print(f"[WP_FORMAT] 최종 WordPress 콘텐츠 길이: {len(clean_html)}")
+                    print(f"[WP_FORMAT] 최종 콘텐츠 미리보기: {clean_html[:300]}...")
+                    
+                    return clean_html.strip()
+                    
                 else:
-                    print("경고: content-container div를 찾을 수 없음!")
-                    # 전체 body에서 찾아보기
+                    print("[WP_FORMAT] content-container를 찾을 수 없음, body에서 추출")
                     body = soup.find('body')
                     if body:
-                        print(f"body 태그 발견, 길이: {len(str(body))}")
-                    else:
-                        print("body 태그도 없음!")
+                        # body 내용에서도 불필요한 요소들 제거
+                        for unwanted in body.find_all(['script', 'style']):
+                            unwanted.decompose()
+                        for meta_div in body.find_all('div', class_=['meta-info', 'tags', 'wordpress-actions']):
+                            meta_div.decompose()
+                        return str(body).replace('<body>', '').replace('</body>', '').strip()
+                    
             except Exception as e:
-                print(f"BeautifulSoup 파싱 오류: {e}")
-                import traceback
-                traceback.print_exc()
+                print(f"[WP_FORMAT] BeautifulSoup 파싱 오류: {e}")
             
-            # BeautifulSoup 실패시 정규식 백업
-            body_match = re.search(r'<body[^>]*>(.*?)</body>', raw_html, re.DOTALL | re.IGNORECASE)
+            # 백업: 정규식으로 기본 정리
+            clean_content = raw_html
+            
+            # 태그 div와 관련 요소들 정규식으로 제거
+            clean_content = re.sub(r'<div[^>]*class="[^"]*tags[^"]*"[^>]*>.*?</div>', '', clean_content, flags=re.DOTALL)
+            clean_content = re.sub(r'<span[^>]*class="[^"]*tag[^"]*"[^>]*>.*?</span>', '', clean_content, flags=re.DOTALL)
+            clean_content = re.sub(r'<div[^>]*class="[^"]*meta-info[^"]*"[^>]*>.*?</div>', '', clean_content, flags=re.DOTALL)
+            clean_content = re.sub(r'#[가-힣a-zA-Z0-9\s]+(?=\s|$)', '', clean_content)  # 해시태그 제거
+            
+            # body 내용만 추출
+            body_match = re.search(r'<body[^>]*>(.*?)</body>', clean_content, re.DOTALL | re.IGNORECASE)
             if body_match:
-                print("정규식 백업 방식 사용")
                 return body_match.group(1).strip()
-            else:
-                print("body 태그를 찾을 수 없음, 원본 HTML 사용")
-                return raw_html
+            
+            return clean_content
         
         html = []
         
