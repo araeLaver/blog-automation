@@ -746,6 +746,48 @@ def trigger_scheduler():
             'error': str(e)
         }), 500
 
+@app.route('/api/schedule/create', methods=['POST'])
+def create_weekly_schedule():
+    """주간 스케줄 수동 생성"""
+    try:
+        from src.utils.schedule_manager import schedule_manager
+        from datetime import datetime, timedelta
+        
+        data = request.get_json()
+        week_start = data.get('week_start')
+        
+        if week_start:
+            start_date = datetime.strptime(week_start, '%Y-%m-%d').date()
+        else:
+            # 다음 주 월요일 기본값
+            today = datetime.now().date()
+            days_ahead = 7 - today.weekday()  
+            start_date = today + timedelta(days=days_ahead)
+        
+        add_system_log('INFO', f'{start_date} 주간 스케줄 생성 시작', 'SCHEDULE')
+        
+        success = schedule_manager.create_weekly_schedule(start_date)
+        
+        if success:
+            add_system_log('SUCCESS', f'{start_date} 주간 스케줄 생성 완료', 'SCHEDULE')
+            return jsonify({
+                'success': True,
+                'message': f'{start_date} 주간 스케줄이 생성되었습니다.',
+                'week_start': start_date.strftime('%Y-%m-%d')
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': '스케줄 생성에 실패했습니다.'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"주간 스케줄 생성 오류: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/logs')
 def get_logs():
     """실시간 로그 조회 - 자동발행 모니터링"""

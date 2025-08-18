@@ -48,25 +48,33 @@ class ScheduleManager:
             print(f"[SCHEDULE] 테이블 생성 오류: {e}")
     
     def _auto_initialize_schedules(self):
-        """자동으로 이번 주, 다음 주 스케줄 생성"""
+        """자동으로 이번 주, 다음 주, 다다음 주 스케줄 생성"""
         try:
             today = datetime.now().date()
             
             # 이번 주 월요일 계산 (오늘이 포함된 주)
             current_week_start = today - timedelta(days=today.weekday())
             
-            # 다음 주 월요일 계산
+            # 다음 주, 다다음 주 월요일 계산
             next_week_start = current_week_start + timedelta(days=7)
+            week_after_next = current_week_start + timedelta(days=14)
             
-            # 이번 주 스케줄 생성 (오늘 포함)
-            if not self._week_schedule_exists(current_week_start):
-                print(f"[AUTO_SCHEDULE] {current_week_start} 주 (이번주) 자동 스케줄 생성")
-                self.create_weekly_schedule(current_week_start)
+            weeks_to_create = [
+                (current_week_start, "이번주"),
+                (next_week_start, "다음주"), 
+                (week_after_next, "다다음주")
+            ]
             
-            # 다음 주 스케줄 생성
-            if not self._week_schedule_exists(next_week_start):
-                print(f"[AUTO_SCHEDULE] {next_week_start} 주 (다음주) 자동 스케줄 생성")
-                self.create_weekly_schedule(next_week_start)
+            for week_start, week_name in weeks_to_create:
+                if not self._week_schedule_exists(week_start):
+                    print(f"[AUTO_SCHEDULE] {week_start} 주 ({week_name}) 자동 스케줄 생성")
+                    success = self.create_weekly_schedule(week_start)
+                    if success:
+                        print(f"[AUTO_SCHEDULE] {week_name} 스케줄 생성 성공")
+                    else:
+                        print(f"[AUTO_SCHEDULE] {week_name} 스케줄 생성 실패")
+                else:
+                    print(f"[AUTO_SCHEDULE] {week_name} 스케줄 이미 존재")
                 
         except Exception as e:
             print(f"[AUTO_SCHEDULE] 자동 스케줄 초기화 오류: {e}")
@@ -462,14 +470,6 @@ class ScheduleManager:
                 {'category': '부동산', 'topic': '지방 부동산 활성화 vs 수도권 집중 심화', 'keywords': ['지방부동산', '수도권', '집중'], 'length': 'medium'},
                 {'category': '부동산', 'topic': '재건축 규제 완화, 시장 변화 예상', 'keywords': ['재건축', '규제완화', '시장변화'], 'length': 'medium'},
             ]
-                
-                # 경제 & 금융 트렌드
-                {'category': 'economy', 'topic': '글로벌 인플레이션과 경제 전망', 'keywords': ['글로벌인플레이션', '경제전망', '물가'], 'length': 'long'},
-                {'category': 'economy', 'topic': '가상화폐 시장의 변화와 투자 전망', 'keywords': ['가상화폐', '시장변화', '투자전망'], 'length': 'medium'},
-                {'category': 'economy', 'topic': 'ESG 경영과 지속가능한 투자', 'keywords': ['ESG경영', '지속가능투자', '기업'], 'length': 'long'},
-                {'category': 'economy', 'topic': '중앙은행 디지털화폐(CBDC) 도입 현황', 'keywords': ['CBDC', '디지털화폐', '중앙은행'], 'length': 'medium'},
-                {'category': 'economy', 'topic': '신흥국 경제 성장과 글로벌 영향', 'keywords': ['신흥국경제', '성장', '글로벌영향'], 'length': 'medium'},
-                {'category': 'economy', 'topic': '스타트업 생태계와 벤처 투자 트렌드', 'keywords': ['스타트업', '생태계', '벤처투자'], 'length': 'long'},
                 
                 # 사회 이슈 & 정책
                 {'category': 'society', 'topic': '고령화 사회와 미래 사회보장 제도', 'keywords': ['고령화사회', '사회보장', '제도'], 'length': 'long'},
