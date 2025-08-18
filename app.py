@@ -15,6 +15,10 @@ import logging.handlers
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+import atexit
+import threading
 
 # 프로젝트 경로 추가
 sys.path.append(str(Path(__file__).parent))
@@ -656,6 +660,61 @@ def get_chart_data():
         'daily': daily_data,
         'bySite': site_data
     })
+
+@app.route('/api/scheduler/status')
+def get_scheduler_status():
+    """스케줄러 상태 확인 API"""
+    try:
+        global scheduler
+        if scheduler and scheduler.running:
+            jobs = scheduler.get_jobs()
+            job_info = []
+            for job in jobs:
+                job_info.append({
+                    'id': job.id,
+                    'name': job.name,
+                    'next_run': job.next_run_time.strftime('%Y-%m-%d %H:%M:%S KST') if job.next_run_time else None,
+                    'trigger': str(job.trigger)
+                })
+            
+            return jsonify({
+                'status': 'running',
+                'jobs': job_info,
+                'message': '스케줄러가 정상 작동 중입니다.'
+            })
+        else:
+            return jsonify({
+                'status': 'stopped',
+                'jobs': [],
+                'message': '스케줄러가 실행되고 있지 않습니다.'
+            })
+    except Exception as e:
+        logger.error(f"스케줄러 상태 확인 오류: {e}")
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+@app.route('/api/scheduler/trigger', methods=['POST'])
+def trigger_scheduler():
+    """수동으로 자동 발행 작업 실행"""
+    try:
+        add_system_log('INFO', '수동 자동 발행 작업 트리거', 'API')
+        
+        # 백그라운드에서 실행
+        thread = threading.Thread(target=auto_publish_task)
+        thread.start()
+        
+        return jsonify({
+            'success': True,
+            'message': '자동 발행 작업이 시작되었습니다.'
+        })
+    except Exception as e:
+        logger.error(f"수동 트리거 오류: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/api/logs')
 def get_logs():
@@ -2986,6 +3045,83 @@ def _format_section_content(content):
 
 # Flask 앱 인스턴스에 메서드 추가
 app._create_beautiful_html_template = _create_beautiful_html_template
+
+# 자동 발행 스케줄러 설정
+scheduler = None
+
+def auto_publish_task():
+    """매일 새벽 3시 자동 발행 작업"""
+    try:
+        add_system_log('INFO', '자동 발행 작업 시작', 'SCHEDULER')
+        logger.info("🚀 새벽 3시 자동 발행 작업 시작")
+        
+        # 스케줄러 import
+        from src.scheduler import BlogAutomationScheduler
+        blog_scheduler = BlogAutomationScheduler()
+        
+        # 모든 사이트에 대해 발행
+        sites = ['unpre', 'untab', 'skewese']
+        for site in sites:
+            try:
+                success = blog_scheduler.create_and_publish_post(site)
+                if success:
+                    add_system_log('SUCCESS', f'{site.upper()} 자동 발행 성공', 'SCHEDULER')
+                    logger.info(f"✅ {site.upper()} 자동 발행 성공")
+                else:
+                    add_system_log('WARNING', f'{site.upper()} 자동 발행 실패', 'SCHEDULER')
+                    logger.warning(f"⚠️ {site.upper()} 자동 발행 실패")
+            except Exception as e:
+                add_system_log('ERROR', f'{site.upper()} 자동 발행 오류: {str(e)}', 'SCHEDULER')
+                logger.error(f"❌ {site.upper()} 자동 발행 오류: {e}")
+        
+        add_system_log('INFO', '자동 발행 작업 완료', 'SCHEDULER')
+        logger.info("✅ 새벽 3시 자동 발행 작업 완료")
+        
+    except Exception as e:
+        add_system_log('ERROR', f'자동 발행 작업 실패: {str(e)}', 'SCHEDULER')
+        logger.error(f"❌ 자동 발행 작업 실패: {e}")
+
+def init_scheduler():
+    """스케줄러 초기화 및 시작"""
+    global scheduler
+    
+    try:
+        scheduler = BackgroundScheduler(timezone='Asia/Seoul')
+        
+        # 매일 새벽 3시에 자동 발행
+        scheduler.add_job(
+            func=auto_publish_task,
+            trigger=CronTrigger(hour=3, minute=0),
+            id='daily_auto_publish',
+            name='Daily Auto Publishing at 3AM KST',
+            replace_existing=True
+        )
+        
+        # 스케줄러 시작
+        scheduler.start()
+        
+        # 프로세스 종료 시 스케줄러 정리
+        atexit.register(lambda: scheduler.shutdown())
+        
+        add_system_log('INFO', '자동 발행 스케줄러 시작됨 (매일 새벽 3시)', 'SCHEDULER')
+        logger.info("✅ 자동 발행 스케줄러 시작됨 (매일 새벽 3시 KST)")
+        
+        # 다음 실행 시간 로그
+        job = scheduler.get_job('daily_auto_publish')
+        if job:
+            next_run = job.next_run_time
+            add_system_log('INFO', f'다음 자동 발행: {next_run}', 'SCHEDULER')
+            logger.info(f"⏰ 다음 자동 발행 예정 시간: {next_run}")
+        
+        return True
+        
+    except Exception as e:
+        add_system_log('ERROR', f'스케줄러 초기화 실패: {str(e)}', 'SCHEDULER')
+        logger.error(f"❌ 스케줄러 초기화 실패: {e}")
+        return False
+
+# 스케줄러 초기화 (앱 시작 시)
+scheduler_initialized = init_scheduler()
 
 if __name__ == "__main__":
     # 시작 로그
