@@ -19,6 +19,9 @@ pytz==2024.2
 colorama==0.4.6
 Pillow==10.0.0
 
+# Scheduler
+APScheduler==3.10.4
+
 # SEO
 yake==0.4.8
 textstat==0.7.4
