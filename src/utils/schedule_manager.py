@@ -470,55 +470,6 @@ class ScheduleManager:
                 {'category': '부동산', 'topic': '지방 부동산 활성화 vs 수도권 집중 심화', 'keywords': ['지방부동산', '수도권', '집중'], 'length': 'medium'},
                 {'category': '부동산', 'topic': '재건축 규제 완화, 시장 변화 예상', 'keywords': ['재건축', '규제완화', '시장변화'], 'length': 'medium'},
             ]
-                
-                # 사회 이슈 & 정책
-                {'category': 'society', 'topic': '고령화 사회와 미래 사회보장 제도', 'keywords': ['고령화사회', '사회보장', '제도'], 'length': 'long'},
-                {'category': 'society', 'topic': '저출산 문제와 인구 정책 방향', 'keywords': ['저출산', '인구정책', '방향'], 'length': 'long'},
-                {'category': 'society', 'topic': '원격근무 확산과 일하는 방식의 변화', 'keywords': ['원격근무', '확산', '일하는방식'], 'length': 'medium'},
-                {'category': 'society', 'topic': '젠더 갈등과 성평등 사회 구축', 'keywords': ['젠더갈등', '성평등', '사회구축'], 'length': 'long'},
-                {'category': 'society', 'topic': '청년 주거 문제와 정책 대안', 'keywords': ['청년주거', '문제', '정책대안'], 'length': 'medium'},
-                {'category': 'society', 'topic': '다문화 사회와 사회 통합 방안', 'keywords': ['다문화사회', '사회통합', '방안'], 'length': 'medium'},
-                
-                # 환경 & 기후변화
-                {'category': 'environment', 'topic': '탄소중립 실현을 위한 정책과 기술', 'keywords': ['탄소중립', '실현', '정책기술'], 'length': 'long'},
-                {'category': 'environment', 'topic': '신재생 에너지 산업의 성장과 전망', 'keywords': ['신재생에너지', '산업성장', '전망'], 'length': 'long'},
-                {'category': 'environment', 'topic': '플라스틱 오염과 순환 경제 구축', 'keywords': ['플라스틱오염', '순환경제', '구축'], 'length': 'medium'},
-                {'category': 'environment', 'topic': '기후변화로 인한 자연재해 대응책', 'keywords': ['기후변화', '자연재해', '대응책'], 'length': 'medium'},
-                {'category': 'environment', 'topic': '도시 열섬현상과 녹색 도시 계획', 'keywords': ['도시열섬', '녹색도시', '계획'], 'length': 'medium'},
-                
-                # 국제 정치 & 외교
-                {'category': 'international', 'topic': '미중 갈등과 글로벌 질서 재편', 'keywords': ['미중갈등', '글로벌질서', '재편'], 'length': 'long'},
-                {'category': 'international', 'topic': '러시아-우크라이나 전쟁의 국제적 영향', 'keywords': ['러우전쟁', '국제영향', '분석'], 'length': 'long'},
-                {'category': 'international', 'topic': '북한 핵 문제와 한반도 평화 프로세스', 'keywords': ['북한핵', '한반도평화', '프로세스'], 'length': 'long'},
-                {'category': 'international', 'topic': '인도-태평양 전략과 지역 안보', 'keywords': ['인도태평양', '전략', '지역안보'], 'length': 'medium'},
-                {'category': 'international', 'topic': 'NATO 확장과 유럽 안보 체제', 'keywords': ['NATO확장', '유럽안보', '체제'], 'length': 'medium'},
-                
-                # 교육 & 미래 세대
-                {'category': 'education', 'topic': '디지털 교육 혁신과 에듀테크', 'keywords': ['디지털교육', '혁신', '에듀테크'], 'length': 'medium'},
-                {'category': 'education', 'topic': '온라인 학습의 미래와 교육 격차', 'keywords': ['온라인학습', '미래', '교육격차'], 'length': 'medium'},
-                {'category': 'education', 'topic': 'MZ세대의 가치관과 사회 변화', 'keywords': ['MZ세대', '가치관', '사회변화'], 'length': 'medium'},
-                {'category': 'education', 'topic': '평생 교육 시대와 리스킬링', 'keywords': ['평생교육', '시대', '리스킬링'], 'length': 'medium'},
-                
-                # 헬스케어 & 의료 혁신
-                {'category': 'healthcare', 'topic': '개인 맞춤 의료와 정밀 의학', 'keywords': ['개인맞춤의료', '정밀의학', '혁신'], 'length': 'long'},
-                {'category': 'healthcare', 'topic': '디지털 헬스케어와 원격 진료', 'keywords': ['디지털헬스케어', '원격진료', '의료'], 'length': 'medium'},
-                {'category': 'healthcare', 'topic': '고령화와 치매 예방 연구 동향', 'keywords': ['고령화', '치매예방', '연구동향'], 'length': 'medium'},
-                {'category': 'healthcare', 'topic': '팬데믹 이후 공중보건 체계 변화', 'keywords': ['팬데믹', '공중보건', '체계변화'], 'length': 'long'},
-                
-                # 문화 & 라이프스타일 트렌드
-                {'category': 'lifestyle', 'topic': 'K-컬처의 글로벌 확산과 문화 산업', 'keywords': ['K컬처', '글로벌확산', '문화산업'], 'length': 'long'},
-                {'category': 'lifestyle', 'topic': 'OTT 플랫폼과 콘텐츠 산업 변화', 'keywords': ['OTT플랫폼', '콘텐츠산업', '변화'], 'length': 'medium'},
-                {'category': 'lifestyle', 'topic': '워라밸 문화와 일과 삶의 균형', 'keywords': ['워라밸', '문화', '일삶균형'], 'length': 'medium'},
-                {'category': 'lifestyle', 'topic': '펫코노미 성장과 반려동물 문화', 'keywords': ['펫코노미', '성장', '반려동물'], 'length': 'medium'},
-                {'category': 'lifestyle', 'topic': '비건 트렌드와 지속가능한 소비', 'keywords': ['비건트렌드', '지속가능소비', '라이프스타일'], 'length': 'medium'},
-                
-                # 미래 예측 & 전망
-                {'category': 'future', 'topic': '2030년 미래 직업과 일자리 변화', 'keywords': ['2030년', '미래직업', '일자리변화'], 'length': 'long'},
-                {'category': 'future', 'topic': '스마트시티 구축과 도시의 미래', 'keywords': ['스마트시티', '구축', '도시미래'], 'length': 'medium'},
-                {'category': 'future', 'topic': '우주 산업의 발전과 상업화', 'keywords': ['우주산업', '발전', '상업화'], 'length': 'medium'},
-                {'category': 'future', 'topic': '로봇과 인간의 공존 사회', 'keywords': ['로봇', '인간공존', '사회'], 'length': 'medium'},
-                {'category': 'future', 'topic': '바이오 기술과 인간 수명 연장', 'keywords': ['바이오기술', '수명연장', '인간'], 'length': 'long'},
-            ]
         else:
             # 기본 개발 주제 (fallback)
             return [
