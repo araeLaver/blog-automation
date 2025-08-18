@@ -646,31 +646,282 @@ class WordPressPublisher:
                 html.append(f'<li><a href="{link["url"]}">{link["title"]}</a></li>')
             html.append("</ul>")
         
-        # 커스텀 CSS 스타일 추가
+        # 커스텀 CSS 스타일 추가 - 대폭 개선된 디자인
         custom_css = """
 <style>
-.highlight-text strong { color: #e74c3c; font-weight: bold; }
-.point-text em { color: #3498db; font-style: italic; }
-.code-block { background: #f8f9fa; padding: 10px; border-left: 4px solid #007cba; margin: 10px 0; }
-.inline-code code { background: #f1f1f1; padding: 2px 6px; border-radius: 3px; }
-.sub-heading { color: #2c3e50; margin: 20px 0 10px 0; }
-.section-heading { color: #34495e; margin: 25px 0 15px 0; }
-.numbered-item { margin: 8px 0; }
-.number-badge { background: #3498db; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.9em; }
-.bullet-item { margin: 5px 0; padding-left: 10px; }
-.bullet-icon { color: #e67e22; }
-.keyword-badge { background: #f39c12; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
-.success-badge { background: #27ae60; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
-.error-badge { background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
-.percentage { color: #8e44ad; font-weight: bold; }
-.money { color: #27ae60; font-weight: bold; }
-.date { color: #e67e22; font-weight: bold; }
-.external-link { color: #3498db; text-decoration: none; }
-.email-link { color: #9b59b6; text-decoration: none; }
+/* 기본 레이아웃 개선 */
+.wp-blog-content {
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.8;
+    color: #2c3e50;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 강조 텍스트 스타일 */
+.highlight-text strong { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+    position: relative;
+}
+.highlight-text strong::before {
+    content: '★';
+    color: #f39c12;
+    margin-right: 5px;
+}
+
+/* 포인트 텍스트 */
+.point-text em { 
+    background: linear-gradient(45deg, #3498db, #2ecc71);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-style: normal;
+    font-weight: 600;
+    position: relative;
+}
+.point-text em::before {
+    content: '◆';
+    color: #e74c3c;
+    margin-right: 3px;
+}
+
+/* 코드 블록 개선 */
+.code-block { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin: 20px 0;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+.code-block::before {
+    content: '{ }';
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 18px;
+    opacity: 0.7;
+}
+.code-block code {
+    background: none;
+    color: #ffffff;
+    font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+    font-size: 14px;
+}
+
+/* 인라인 코드 */
+.inline-code {
+    background: linear-gradient(135deg, #ff7eb3, #ff758c);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9em;
+    box-shadow: 0 2px 10px rgba(255, 126, 179, 0.3);
+}
+
+/* 헤딩 스타일 개선 */
+.sub-heading { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 1.3em;
+    font-weight: 700;
+    margin: 30px 0 15px 0;
+    position: relative;
+    padding-left: 20px;
+}
+.sub-heading::before {
+    content: '▶';
+    color: #e74c3c;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+.section-heading { 
+    background: linear-gradient(135deg, #ff7eb3, #ff758c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-size: 1.5em;
+    font-weight: 800;
+    margin: 35px 0 20px 0;
+    position: relative;
+    padding-left: 25px;
+    border-left: 5px solid #ff758c;
+    padding-left: 15px;
+}
+
+/* 번호 목록 개선 */
+.numbered-item { 
+    margin: 15px 0;
+    padding: 15px;
+    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(252, 182, 159, 0.3);
+    position: relative;
+    padding-left: 60px;
+}
+.number-badge { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 50%;
+    font-size: 1em;
+    font-weight: bold;
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+/* 불릿 목록 */
+.bullet-item { 
+    margin: 12px 0;
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    border-radius: 8px;
+    padding-left: 45px;
+    position: relative;
+    box-shadow: 0 3px 10px rgba(168, 237, 234, 0.3);
+}
+.bullet-icon { 
+    color: #e67e22;
+    font-size: 1.2em;
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* 키워드 배지들 */
+.keyword-badge { 
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: bold;
+    box-shadow: 0 5px 15px rgba(240, 147, 251, 0.4);
+    margin: 0 3px;
+}
+.success-badge { 
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: bold;
+    box-shadow: 0 5px 15px rgba(79, 172, 254, 0.4);
+    margin: 0 3px;
+}
+.error-badge { 
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: bold;
+    box-shadow: 0 5px 15px rgba(250, 112, 154, 0.4);
+    margin: 0 3px;
+}
+
+/* 수치 강조 */
+.percentage { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+    font-size: 1.1em;
+}
+.money { 
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+    font-size: 1.1em;
+}
+.date { 
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 700;
+    font-size: 1.05em;
+}
+
+/* 링크 스타일 */
+.external-link { 
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-decoration: none;
+    padding: 8px 15px;
+    border-radius: 25px;
+    font-weight: 600;
+    display: inline-block;
+    margin: 5px 0;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    transition: all 0.3s ease;
+}
+.external-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+}
+.email-link { 
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    color: #8e44ad;
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    display: inline-block;
+    margin: 3px 0;
+    box-shadow: 0 3px 10px rgba(168, 237, 234, 0.3);
+}
+
+/* 구분선 스타일 */
+.wp-block-separator {
+    border: none;
+    height: 3px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    margin: 30px 0;
+    border-radius: 2px;
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+}
+
+/* 추가 장식 요소들 */
+.content-wrapper {
+    background: #fafafa;
+    border-radius: 15px;
+    padding: 30px;
+    margin: 20px 0;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .wp-blog-content { padding: 15px; }
+    .numbered-item, .bullet-item { padding: 10px; }
+    .code-block { padding: 15px; }
+}
 </style>
 """
         
-        return custom_css + "\n" + "\n".join(html)
+        # HTML을 wrapper로 감싸서 스타일 적용
+        wrapped_html = f'<div class="wp-blog-content">{"\n".join(html)}</div>'
+        return custom_css + "\n" + wrapped_html
     
     def _improve_content_formatting(self, html_content: str) -> str:
         """HTML 콘텐츠 서식 개선"""
