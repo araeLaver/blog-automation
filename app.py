@@ -165,6 +165,16 @@ def get_mock_data():
                 'url': 'https://skewese.com/joseon-science-technology',
                 'created_at': today_3am.strftime('%Y-%m-%d %H:%M:%S'),
                 'published': True
+            },
+            {
+                'id': 4,
+                'title': '📊 2025년 AI 시장 전망과 투자 트렌드',
+                'site': 'tistory',
+                'category': '트렌드/이슈',
+                'url': None,  # 발행되지 않음
+                'created_at': today_3am.strftime('%Y-%m-%d %H:%M:%S'),
+                'published': False,
+                'note': '생성됨 (수동 발행 필요)'
             }
         ])
     
@@ -172,7 +182,7 @@ def get_mock_data():
     yesterday_3am = today_3am - timedelta(days=1)
     posts.extend([
         {
-            'id': 4,
+            'id': 5,
             'title': 'React 18의 새로운 기능들',
             'site': 'unpre',
             'category': '프로그래밍',
@@ -181,13 +191,23 @@ def get_mock_data():
             'published': True
         },
         {
-            'id': 5,
+            'id': 6,
             'title': '부동산 투자 전략 가이드',
             'site': 'untab',
             'category': '부동산',
             'url': 'https://untab.co.kr/real-estate-investment',
             'created_at': yesterday_3am.strftime('%Y-%m-%d %H:%M:%S'),
             'published': True
+        },
+        {
+            'id': 7,
+            'title': '🔥 MZ세대 소비 트렌드 변화 분석',
+            'site': 'tistory',
+            'category': '사회/트렌드',
+            'url': None,
+            'created_at': yesterday_3am.strftime('%Y-%m-%d %H:%M:%S'),
+            'published': False,
+            'note': '생성됨 (수동 발행 필요)'
         }
     ])
     
@@ -263,7 +283,10 @@ def get_posts():
             date_filter = request.args.get('date', '')
             
             posts = []
-            for site in ['unpre', 'untab', 'skewese']:
+            # WordPress 사이트들 + 티스토리 포함
+            all_sites = ['unpre', 'untab', 'skewese', 'tistory']
+            
+            for site in all_sites:
                 if site_filter == 'all' or site_filter == site:
                     query = """
                         SELECT id, title, site, 
@@ -286,6 +309,13 @@ def get_posts():
                     
                     cursor.execute(query, params)
                     site_posts = cursor.fetchall()
+                    
+                    # 티스토리 콘텐츠는 특별 표시
+                    if site == 'tistory' and site_posts:
+                        for post in site_posts:
+                            post['note'] = '생성됨 (수동 발행 필요)'
+                            post['published'] = False  # 티스토리는 항상 발행되지 않은 상태
+                    
                     posts.extend(site_posts if site_posts else [])
             
             cursor.close()
@@ -866,33 +896,67 @@ def get_weekly_schedule():
             formatted_schedule[date_str] = {}
             
             sites_data = day_info.get('sites', {})
-            for site, site_info in sites_data.items():
-                if not isinstance(site_info, dict):
-                    continue
-                    
+            
+            # 모든 사이트 (WordPress + 티스토리) 포함
+            all_sites = ['unpre', 'untab', 'skewese', 'tistory']
+            
+            for site in all_sites:
+                site_info = sites_data.get(site, {})
+                
                 # 단일 주제로 표시
-                topic = site_info.get('topic', f'{site} 기본 주제')
+                if site_info and isinstance(site_info, dict):
+                    topic = site_info.get('topic', f'{site} 기본 주제')
+                else:
+                    # 티스토리나 데이터가 없는 경우 기본 주제 생성
+                    if site == 'tistory':
+                        import random
+                        trending_topics = [
+                            "AI 기술 트렌드와 미래 전망",
+                            "MZ세대 투자 패턴 분석", 
+                            "K-문화 글로벌 확산 현황",
+                            "경제 불확실성 대응 전략",
+                            "환경 이슈와 탄소중립",
+                            "사회 갈등과 통합 방안"
+                        ]
+                        topic = random.choice(trending_topics)
+                    else:
+                        topic = f'{site} 기본 주제'
                 
                 # 상태 결정
                 current_date = datetime.now(KST).date()
                 target_date = day_info['date']
                 
                 if target_date < current_date:
-                    status = 'published'
+                    if site == 'tistory':
+                        status = 'generated'  # 티스토리는 생성만
+                    else:
+                        status = 'published'
                 elif target_date == current_date:
                     current_time = datetime.now(KST).time()
                     if current_time >= datetime.strptime('03:00', '%H:%M').time():
-                        status = 'published' 
+                        if site == 'tistory':
+                            status = 'generated'
+                        else:
+                            status = 'published'
                     else:
                         status = 'scheduled'
                 else:
                     status = 'scheduled'
                 
-                formatted_schedule[date_str][site] = {
-                    'time': '03:00',
-                    'topic': topic,
-                    'status': status
-                }
+                # 티스토리는 다른 시간표 (콘텐츠 생성만)
+                if site == 'tistory':
+                    formatted_schedule[date_str][site] = {
+                        'time': '03:00',
+                        'topic': topic,
+                        'status': status,
+                        'note': '콘텐츠 생성만 (수동 발행)'
+                    }
+                else:
+                    formatted_schedule[date_str][site] = {
+                        'time': '03:00',
+                        'topic': topic,
+                        'status': status
+                    }
         
         return jsonify(formatted_schedule)
         

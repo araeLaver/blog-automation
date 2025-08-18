@@ -97,7 +97,7 @@ class ScheduleManager:
                     days_ahead += 7
                 start_date = today + timedelta(days=days_ahead)
             
-            # 4개 사이트 × 7일 = 28개 발행 계획
+            # 4개 사이트 × 7일 = 28개 발행 계획 (티스토리 포함)
             sites = ['unpre', 'untab', 'skewese', 'tistory']
             
             # 주제 카테고리와 세부 주제들
