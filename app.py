@@ -3052,33 +3052,105 @@ scheduler = None
 def auto_publish_task():
     """매일 새벽 3시 자동 발행 작업"""
     try:
-        add_system_log('INFO', '자동 발행 작업 시작', 'SCHEDULER')
+        add_system_log('INFO', '🚀 자동 발행 작업 시작 (새벽 3시)', 'SCHEDULER')
         logger.info("🚀 새벽 3시 자동 발행 작업 시작")
+        
+        # 시간 기록
+        from datetime import datetime
+        import pytz
+        kst = pytz.timezone('Asia/Seoul')
+        start_time = datetime.now(kst)
         
         # 스케줄러 import
         from src.scheduler import BlogAutomationScheduler
-        blog_scheduler = BlogAutomationScheduler()
+        from src.generators.content_generator import ContentGenerator
+        from config.sites_config import SITE_CONFIGS
         
-        # 모든 사이트에 대해 발행
-        sites = ['unpre', 'untab', 'skewese']
-        for site in sites:
+        blog_scheduler = BlogAutomationScheduler()
+        content_gen = ContentGenerator()
+        
+        # WordPress 사이트들 자동 발행
+        wordpress_sites = ['unpre', 'untab', 'skewese']
+        success_count = 0
+        
+        for site in wordpress_sites:
             try:
+                add_system_log('INFO', f'{site.upper()} 발행 시작...', 'SCHEDULER')
                 success = blog_scheduler.create_and_publish_post(site)
                 if success:
-                    add_system_log('SUCCESS', f'{site.upper()} 자동 발행 성공', 'SCHEDULER')
+                    success_count += 1
+                    add_system_log('SUCCESS', f'✅ {site.upper()} 자동 발행 성공', 'SCHEDULER')
                     logger.info(f"✅ {site.upper()} 자동 발행 성공")
                 else:
-                    add_system_log('WARNING', f'{site.upper()} 자동 발행 실패', 'SCHEDULER')
+                    add_system_log('WARNING', f'⚠️ {site.upper()} 자동 발행 실패', 'SCHEDULER')
                     logger.warning(f"⚠️ {site.upper()} 자동 발행 실패")
             except Exception as e:
-                add_system_log('ERROR', f'{site.upper()} 자동 발행 오류: {str(e)}', 'SCHEDULER')
+                add_system_log('ERROR', f'❌ {site.upper()} 발행 오류: {str(e)}', 'SCHEDULER')
                 logger.error(f"❌ {site.upper()} 자동 발행 오류: {e}")
         
-        add_system_log('INFO', '자동 발행 작업 완료', 'SCHEDULER')
-        logger.info("✅ 새벽 3시 자동 발행 작업 완료")
+        # 티스토리 콘텐츠 생성 (발행하지 않고 저장만)
+        try:
+            add_system_log('INFO', 'TISTORY 콘텐츠 생성 시작...', 'SCHEDULER')
+            
+            # 현재 트렌딩 이슈 주제 선택
+            trending_topics = [
+                "2024년 최신 AI 기술 트렌드와 전망",
+                "MZ세대 투자 패턴 변화 분석",
+                "K-콘텐츠 글로벌 진출 성공 사례",
+                "2024 파리올림픽 이슈와 화제",
+                "글로벌 경제 불확실성과 대응 전략",
+                "메타버스 플랫폼 최신 동향",
+                "ESG 경영 트렌드와 기업 사례",
+                "부동산 정책 변화와 시장 전망"
+            ]
+            
+            import random
+            topic = random.choice(trending_topics)
+            
+            # 콘텐츠 생성
+            tistory_config = {
+                "name": "tistory",
+                "platform": "tistory",
+                "categories": ["트렌드", "이슈", "시사"],
+                "content_style": "시사적이고 분석적인 톤, 최신 트렌드 중심",
+                "target_audience": "20-40대 트렌드에 관심있는 독자"
+            }
+            
+            content = content_gen.generate_content(
+                site_config=tistory_config,
+                topic=topic,
+                category="트렌드"
+            )
+            
+            if content:
+                # DB에 저장 (발행하지 않음)
+                db = get_database()
+                db.add_content(
+                    site='tistory',
+                    title=content['title'],
+                    category='트렌드',
+                    keywords=content.get('keywords', []),
+                    content=str(content),
+                    url=None,  # 발행하지 않으므로 URL 없음
+                    published=False
+                )
+                
+                add_system_log('SUCCESS', f'✅ TISTORY 콘텐츠 생성 완료: {content["title"][:30]}...', 'SCHEDULER')
+                logger.info(f"✅ TISTORY 콘텐츠 생성 완료")
+                
+        except Exception as e:
+            add_system_log('ERROR', f'❌ TISTORY 콘텐츠 생성 실패: {str(e)}', 'SCHEDULER')
+            logger.error(f"❌ TISTORY 콘텐츠 생성 실패: {e}")
+        
+        # 작업 완료 통계
+        end_time = datetime.now(kst)
+        duration = (end_time - start_time).total_seconds()
+        
+        add_system_log('INFO', f'📊 자동 발행 완료: {success_count}/3 성공, 소요시간: {duration:.1f}초', 'SCHEDULER')
+        logger.info(f"✅ 새벽 3시 자동 발행 작업 완료 ({success_count}/3 성공)")
         
     except Exception as e:
-        add_system_log('ERROR', f'자동 발행 작업 실패: {str(e)}', 'SCHEDULER')
+        add_system_log('ERROR', f'❌ 자동 발행 작업 실패: {str(e)}', 'SCHEDULER')
         logger.error(f"❌ 자동 발행 작업 실패: {e}")
 
 def init_scheduler():
@@ -3086,39 +3158,166 @@ def init_scheduler():
     global scheduler
     
     try:
-        scheduler = BackgroundScheduler(timezone='Asia/Seoul')
+        # 타임존 명시적 설정
+        from datetime import datetime
+        import pytz
+        kst = pytz.timezone('Asia/Seoul')
         
-        # 매일 새벽 3시에 자동 발행
+        scheduler = BackgroundScheduler(
+            timezone=kst,
+            job_defaults={'misfire_grace_time': 3600}  # 1시간 지연까지 허용
+        )
+        
+        # 매일 새벽 3시에 자동 발행 (월-일 매일)
         scheduler.add_job(
             func=auto_publish_task,
-            trigger=CronTrigger(hour=3, minute=0),
+            trigger=CronTrigger(
+                hour=3, 
+                minute=0, 
+                second=0,
+                timezone=kst
+            ),
             id='daily_auto_publish',
             name='Daily Auto Publishing at 3AM KST',
-            replace_existing=True
+            replace_existing=True,
+            max_instances=1,  # 중복 실행 방지
+            coalesce=True     # 누락된 실행을 하나로 합침
+        )
+        
+        # 추가 안전장치: 매일 오전 9시에도 체크 (발행 안 된 경우)
+        scheduler.add_job(
+            func=check_and_retry_publish,
+            trigger=CronTrigger(
+                hour=9, 
+                minute=0, 
+                second=0,
+                timezone=kst
+            ),
+            id='daily_check_publish',
+            name='Daily Check and Retry at 9AM KST',
+            replace_existing=True,
+            max_instances=1
         )
         
         # 스케줄러 시작
         scheduler.start()
         
         # 프로세스 종료 시 스케줄러 정리
-        atexit.register(lambda: scheduler.shutdown())
+        atexit.register(lambda: scheduler.shutdown() if scheduler else None)
         
-        add_system_log('INFO', '자동 발행 스케줄러 시작됨 (매일 새벽 3시)', 'SCHEDULER')
+        # 현재 시간과 다음 실행 시간 로그
+        now = datetime.now(kst)
+        add_system_log('SUCCESS', f'🎯 자동 발행 스케줄러 시작 완료! 현재: {now.strftime("%Y-%m-%d %H:%M:%S")}', 'SCHEDULER')
         logger.info("✅ 자동 발행 스케줄러 시작됨 (매일 새벽 3시 KST)")
         
-        # 다음 실행 시간 로그
-        job = scheduler.get_job('daily_auto_publish')
-        if job:
+        # 등록된 작업 목록 로그
+        jobs = scheduler.get_jobs()
+        for job in jobs:
             next_run = job.next_run_time
-            add_system_log('INFO', f'다음 자동 발행: {next_run}', 'SCHEDULER')
-            logger.info(f"⏰ 다음 자동 발행 예정 시간: {next_run}")
+            add_system_log('INFO', f'⏰ {job.name}: {next_run.strftime("%Y-%m-%d %H:%M:%S KST")}', 'SCHEDULER')
+            logger.info(f"⏰ {job.name}: {next_run}")
+        
+        # 테스트용 즉시 실행 (첫 시작 시에만)
+        from datetime import timedelta
+        add_system_log('INFO', '🔧 스케줄러 테스트를 위해 30초 후 테스트 실행 예약', 'SCHEDULER')
+        scheduler.add_job(
+            func=test_scheduler_health,
+            trigger='date',
+            run_date=datetime.now(kst) + timedelta(seconds=30),
+            id='scheduler_test',
+            name='Scheduler Health Test'
+        )
         
         return True
         
     except Exception as e:
-        add_system_log('ERROR', f'스케줄러 초기화 실패: {str(e)}', 'SCHEDULER')
+        add_system_log('ERROR', f'❌ 스케줄러 초기화 실패: {str(e)}', 'SCHEDULER')
         logger.error(f"❌ 스케줄러 초기화 실패: {e}")
         return False
+
+def check_and_retry_publish():
+    """오전 9시 체크: 새벽 3시에 발행되지 않은 경우 재시도"""
+    try:
+        from datetime import datetime, timedelta
+        import pytz
+        kst = pytz.timezone('Asia/Seoul')
+        
+        today = datetime.now(kst).date()
+        today_3am = datetime.combine(today, datetime.min.time().replace(hour=3)).replace(tzinfo=kst)
+        
+        add_system_log('INFO', '🔍 오전 9시 발행 상태 체크 시작', 'SCHEDULER')
+        
+        # 오늘 새벽 3시 이후 발행된 게시물 확인
+        db = get_database()
+        sites_to_retry = []
+        
+        for site in ['unpre', 'untab', 'skewese']:
+            recent_posts = db.get_recent_posts(site, 1)
+            
+            if not recent_posts:
+                sites_to_retry.append(site)
+                add_system_log('WARNING', f'{site.upper()}: 오늘 발행된 게시물 없음', 'SCHEDULER')
+            else:
+                last_post_time = recent_posts[0].get('created_at')
+                if last_post_time:
+                    # 날짜 문자열을 datetime으로 변환
+                    if isinstance(last_post_time, str):
+                        last_post_dt = datetime.fromisoformat(last_post_time.replace('Z', '+00:00'))
+                        if last_post_dt.tzinfo is None:
+                            last_post_dt = last_post_dt.replace(tzinfo=kst)
+                    else:
+                        last_post_dt = last_post_time
+                    
+                    if last_post_dt < today_3am:
+                        sites_to_retry.append(site)
+                        add_system_log('WARNING', f'{site.upper()}: 마지막 발행이 새벽 3시 이전', 'SCHEDULER')
+                    else:
+                        add_system_log('SUCCESS', f'{site.upper()}: 오늘 정상 발행됨', 'SCHEDULER')
+        
+        # 재시도가 필요한 사이트들 발행
+        if sites_to_retry:
+            add_system_log('INFO', f'🔄 재시도 발행 시작: {", ".join(sites_to_retry)}', 'SCHEDULER')
+            
+            from src.scheduler import BlogAutomationScheduler
+            blog_scheduler = BlogAutomationScheduler()
+            
+            for site in sites_to_retry:
+                try:
+                    success = blog_scheduler.create_and_publish_post(site)
+                    if success:
+                        add_system_log('SUCCESS', f'✅ {site.upper()} 재시도 발행 성공', 'SCHEDULER')
+                    else:
+                        add_system_log('ERROR', f'❌ {site.upper()} 재시도 발행 실패', 'SCHEDULER')
+                except Exception as e:
+                    add_system_log('ERROR', f'❌ {site.upper()} 재시도 오류: {str(e)}', 'SCHEDULER')
+        else:
+            add_system_log('SUCCESS', '✅ 모든 사이트 정상 발행 확인됨', 'SCHEDULER')
+            
+    except Exception as e:
+        add_system_log('ERROR', f'❌ 발행 상태 체크 실패: {str(e)}', 'SCHEDULER')
+
+def test_scheduler_health():
+    """스케줄러 상태 테스트"""
+    try:
+        from datetime import datetime
+        import pytz
+        kst = pytz.timezone('Asia/Seoul')
+        now = datetime.now(kst)
+        
+        add_system_log('SUCCESS', f'✅ 스케줄러 정상 작동 중! 테스트 시간: {now.strftime("%H:%M:%S")}', 'SCHEDULER')
+        logger.info(f"✅ 스케줄러 헬스 체크 성공: {now}")
+        
+        # 다음 예정 작업들 확인
+        global scheduler
+        if scheduler:
+            jobs = scheduler.get_jobs()
+            add_system_log('INFO', f'📋 등록된 작업 수: {len(jobs)}개', 'SCHEDULER')
+            for job in jobs:
+                if job.next_run_time:
+                    add_system_log('INFO', f'  - {job.name}: {job.next_run_time.strftime("%m/%d %H:%M")}', 'SCHEDULER')
+        
+    except Exception as e:
+        add_system_log('ERROR', f'❌ 스케줄러 헬스 체크 실패: {str(e)}', 'SCHEDULER')
 
 # 스케줄러 초기화 (앱 시작 시)
 scheduler_initialized = init_scheduler()

@@ -389,16 +389,79 @@ class ScheduleManager:
                 {'category': 'travel', 'topic': '박물관과 미술관에서 만나는 역사', 'keywords': ['박물관', '미술관', '역사'], 'length': 'medium'},
             ]
         elif site == 'tistory':
-            # tistory - 시사, 트렌드, 현대 이슈 (다양한 카테고리로 확장)
+            # tistory - 시사, 트렌드, 현대 이슈 (2025년 최신 트렌드 반영)
             return [
-                # IT & 기술 트렌드
-                {'category': 'tech', 'topic': '2025년 AI 기술 발전과 산업 혁신', 'keywords': ['AI기술', '2025년', '산업혁신'], 'length': 'long'},
-                {'category': 'tech', 'topic': 'ChatGPT와 생성형 AI의 비즈니스 활용', 'keywords': ['chatgpt', '생성AI', '비즈니스'], 'length': 'long'},
-                {'category': 'tech', 'topic': '메타버스 플랫폼의 현재와 미래 전망', 'keywords': ['메타버스', '플랫폼', '미래전망'], 'length': 'medium'},
-                {'category': 'tech', 'topic': '블록체인 기술의 실용적 활용 사례', 'keywords': ['블록체인', '활용사례', '실용성'], 'length': 'medium'},
-                {'category': 'tech', 'topic': '6G 통신 기술과 초연결 사회', 'keywords': ['6G통신', '초연결사회', '기술'], 'length': 'medium'},
-                {'category': 'tech', 'topic': '양자컴퓨팅의 현실화와 파급효과', 'keywords': ['양자컴퓨팅', '현실화', '파급효과'], 'length': 'long'},
-                {'category': 'tech', 'topic': '자율주행차 기술 발전과 교통 혁신', 'keywords': ['자율주행차', '기술발전', '교통혁신'], 'length': 'medium'},
+                # AI & 기술 혁신 트렌드 (2025)
+                {'category': '기술트렌드', 'topic': '2025년 ChatGPT-5와 차세대 AI 혁신', 'keywords': ['ChatGPT5', 'AI혁신', '2025년'], 'length': 'long'},
+                {'category': '기술트렌드', 'topic': '애플 비전 프로 vs 메타 오큘러스: VR/AR 시장 패권 경쟁', 'keywords': ['애플비전프로', '메타오큘러스', 'VR'], 'length': 'long'},
+                {'category': '기술트렌드', 'topic': '테슬라 로봇택시 상용화와 모빌리티 혁명', 'keywords': ['테슬라', '로봇택시', '모빌리티'], 'length': 'medium'},
+                {'category': '기술트렌드', 'topic': '양자컴퓨터 실용화 원년, IBM vs 구글 경쟁', 'keywords': ['양자컴퓨터', 'IBM', '구글'], 'length': 'long'},
+                {'category': '기술트렌드', 'topic': 'NVIDIA AI 칩 독점체제 흔들리나? AMD·인텔 반격', 'keywords': ['NVIDIA', 'AI칩', 'AMD'], 'length': 'medium'},
+                {'category': '기술트렌드', 'topic': '6G 통신 표준화 경쟁: 한국 vs 중국 vs 미국', 'keywords': ['6G', '표준화', '통신'], 'length': 'medium'},
+                {'category': '기술트렌드', 'topic': '스페이스X 화성 이주 계획, 현실이 될까?', 'keywords': ['스페이스X', '화성이주', '일론머스크'], 'length': 'long'},
+                
+                # 경제 & 투자 이슈 (2025)
+                {'category': '경제이슈', 'topic': '2025년 비트코인 10만달러 돌파 후 전망', 'keywords': ['비트코인', '10만달러', '암호화폐'], 'length': 'long'},
+                {'category': '경제이슈', 'topic': '미국 대선 후 한미 경제관계 변화 전망', 'keywords': ['미국대선', '한미관계', '경제'], 'length': 'medium'},
+                {'category': '경제이슈', 'topic': 'MZ세대 영끌 투자 열풍, 부작용은 없을까?', 'keywords': ['MZ세대', '영끌투자', '부작용'], 'length': 'medium'},
+                {'category': '경제이슈', 'topic': '중국 경제 둔화가 한국에 미치는 영향', 'keywords': ['중국경제', '둔화', '한국영향'], 'length': 'long'},
+                {'category': '경제이슈', 'topic': 'ESG 투자 열풍, 이제는 필수가 된 지속가능성', 'keywords': ['ESG투자', '지속가능성', '그린워싱'], 'length': 'medium'},
+                {'category': '경제이슈', 'topic': '인플레이션 재부상? 2025년 물가 전망', 'keywords': ['인플레이션', '물가', '2025년'], 'length': 'medium'},
+                
+                # 사회 & 정치 이슈
+                {'category': '사회이슈', 'topic': '저출산 대책 실효성 논란, 정말 효과 있을까?', 'keywords': ['저출산', '대책', '실효성'], 'length': 'long'},
+                {'category': '사회이슈', 'topic': '청년 주거난 심화, 정부 대책은 충분한가?', 'keywords': ['청년주거', '주거난', '정부대책'], 'length': 'long'},
+                {'category': '사회이슈', 'topic': 'MZ세대 정치 참여 증가, 정치 지형 바뀐다', 'keywords': ['MZ세대', '정치참여', '정치지형'], 'length': 'medium'},
+                {'category': '사회이슈', 'topic': '다문화 사회 한국, 통합 vs 갈등의 기로', 'keywords': ['다문화사회', '통합', '갈등'], 'length': 'medium'},
+                {'category': '사회이슈', 'topic': '원격근무 정착, 일하는 방식의 패러다임 변화', 'keywords': ['원격근무', '패러다임', '워라밸'], 'length': 'medium'},
+                {'category': '사회이슈', 'topic': '고령화 사회 가속화, 준비된 대한민국?', 'keywords': ['고령화', '사회', '대비'], 'length': 'long'},
+                
+                # 환경 & 기후변화
+                {'category': '환경이슈', 'topic': '2024년 역대 최고 기온 기록, 기후 위기 현실화', 'keywords': ['기후위기', '최고기온', '환경'], 'length': 'long'},
+                {'category': '환경이슈', 'topic': '탄소중립 2050, 한국 실현 가능성은?', 'keywords': ['탄소중립', '2050년', '실현가능성'], 'length': 'medium'},
+                {'category': '환경이슈', 'topic': '신재생에너지 확대 vs 원전 재가동 논란', 'keywords': ['신재생에너지', '원전', '에너지정책'], 'length': 'long'},
+                {'category': '환경이슈', 'topic': '플라스틱 규제 강화, 기업과 소비자 대응은?', 'keywords': ['플라스틱', '규제', '환경보호'], 'length': 'medium'},
+                {'category': '환경이슈', 'topic': '전기차 의무화 정책, 준비된 인프라는?', 'keywords': ['전기차', '의무화', '인프라'], 'length': 'medium'},
+                
+                # 국제 정세 & 외교
+                {'category': '국제정세', 'topic': '러-우 전쟁 3년차, 세계 질서 재편 가속화', 'keywords': ['러우전쟁', '세계질서', '재편'], 'length': 'long'},
+                {'category': '국제정세', 'topic': '미중 패권 경쟁 심화, 한국의 선택은?', 'keywords': ['미중갈등', '패권경쟁', '한국외교'], 'length': 'long'},
+                {'category': '국제정세', 'topic': '북한 핵 위협 지속, 한반도 긴장 고조', 'keywords': ['북한핵', '한반도', '안보'], 'length': 'medium'},
+                {'category': '국제정세', 'topic': '일본 후쿠시마 오염수 방류 2년, 영향은?', 'keywords': ['후쿠시마', '오염수', '해양오염'], 'length': 'medium'},
+                {'category': '국제정세', 'topic': '인도-태평양 전략과 한국의 역할', 'keywords': ['인도태평양', '전략', '한국역할'], 'length': 'medium'},
+                
+                # K-문화 & 엔터테인먼트
+                {'category': 'K문화', 'topic': 'K-POP 4세대 아이돌 글로벌 시장 석권', 'keywords': ['KPOP', '4세대', '글로벌'], 'length': 'medium'},
+                {'category': 'K문화', 'topic': '넷플릭스 한국 콘텐츠, 또 다른 오징어게임 나올까?', 'keywords': ['넷플릭스', '한국콘텐츠', '오징어게임'], 'length': 'medium'},
+                {'category': 'K문화', 'topic': 'K-뷰티 세계 정복, 비결은 무엇?', 'keywords': ['K뷰티', '세계정복', '화장품'], 'length': 'medium'},
+                {'category': 'K문화', 'topic': '한국 웹툰 해외 진출 성공 비결', 'keywords': ['웹툰', '해외진출', '디지털콘텐츠'], 'length': 'medium'},
+                {'category': 'K문화', 'topic': 'K-푸드 글로벌화, 김치에서 한식까지', 'keywords': ['K푸드', '글로벌화', '한식'], 'length': 'medium'},
+                
+                # 건강 & 라이프스타일
+                {'category': '라이프스타일', 'topic': '포스트 코로나 시대 건강관리 트렌드', 'keywords': ['포스트코로나', '건강관리', '트렌드'], 'length': 'medium'},
+                {'category': '라이프스타일', 'topic': 'MZ세대 욜로 vs 파이어족 라이프스타일', 'keywords': ['MZ세대', '욜로', '파이어족'], 'length': 'medium'},
+                {'category': '라이프스타일', 'topic': '펫코노미 급성장, 반려동물이 가족이 된 시대', 'keywords': ['펫코노미', '반려동물', '가족'], 'length': 'medium'},
+                {'category': '라이프스타일', 'topic': '1인 가구 증가, 혼족 라이프스타일 변화', 'keywords': ['1인가구', '혼족', '라이프스타일'], 'length': 'medium'},
+                {'category': '라이프스타일', 'topic': '비건 트렌드 확산, 지속가능한 소비문화', 'keywords': ['비건', '트렌드', '지속가능'], 'length': 'medium'},
+                
+                # 교육 & 미래세대
+                {'category': '교육이슈', 'topic': 'AI 시대 교육 혁신, 미래 인재 양성법', 'keywords': ['AI교육', '교육혁신', '미래인재'], 'length': 'long'},
+                {'category': '교육이슈', 'topic': '사교육비 증가 vs 공교육 정상화', 'keywords': ['사교육비', '공교육', '정상화'], 'length': 'medium'},
+                {'category': '교육이슈', 'topic': '대학 입시제도 개편 논란, 공정성 vs 다양성', 'keywords': ['입시제도', '개편', '공정성'], 'length': 'long'},
+                {'category': '교육이슈', 'topic': '온라인 교육 확산, 전통 교육의 변화', 'keywords': ['온라인교육', '전통교육', '변화'], 'length': 'medium'},
+                
+                # 스포츠 & 이슈
+                {'category': '스포츠', 'topic': '2026 월드컵 공동개최, 한국 축구 재도약', 'keywords': ['2026월드컵', '공동개최', '한국축구'], 'length': 'medium'},
+                {'category': '스포츠', 'topic': '프로야구 관중 증가, K-스포츠 르네상스', 'keywords': ['프로야구', '관중증가', 'K스포츠'], 'length': 'medium'},
+                {'category': '스포츠', 'topic': 'e스포츠 아시안게임 정식 종목 채택 의미', 'keywords': ['e스포츠', '아시안게임', '정식종목'], 'length': 'medium'},
+                {'category': '스포츠', 'topic': '손흥민 토트넘 연장 계약, K-리그 영향은?', 'keywords': ['손흥민', '토트넘', 'K리그'], 'length': 'medium'},
+                
+                # 부동산 & 주거
+                {'category': '부동산', 'topic': '2025년 부동산 시장, 상승 vs 하락 전망', 'keywords': ['부동산시장', '2025년', '전망'], 'length': 'long'},
+                {'category': '부동산', 'topic': '청년 주택 공급 확대 정책 실효성 검증', 'keywords': ['청년주택', '공급확대', '정책'], 'length': 'medium'},
+                {'category': '부동산', 'topic': '지방 부동산 활성화 vs 수도권 집중 심화', 'keywords': ['지방부동산', '수도권', '집중'], 'length': 'medium'},
+                {'category': '부동산', 'topic': '재건축 규제 완화, 시장 변화 예상', 'keywords': ['재건축', '규제완화', '시장변화'], 'length': 'medium'},
+            ]
                 
                 # 경제 & 금융 트렌드
                 {'category': 'economy', 'topic': '글로벌 인플레이션과 경제 전망', 'keywords': ['글로벌인플레이션', '경제전망', '물가'], 'length': 'long'},
