@@ -920,7 +920,8 @@ class WordPressPublisher:
 """
         
         # HTML을 wrapper로 감싸서 스타일 적용
-        wrapped_html = f'<div class="wp-blog-content">{"\n".join(html)}</div>'
+        newline = "\n"
+        wrapped_html = f'<div class="wp-blog-content">{newline.join(html)}</div>'
         return custom_css + "\n" + wrapped_html
     
     def _improve_content_formatting(self, html_content: str) -> str:
