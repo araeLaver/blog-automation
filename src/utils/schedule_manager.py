@@ -132,11 +132,15 @@ class ScheduleManager:
                             'tistory': 47   # 다른 사이트와 겹치지 않도록
                         }
                         
-                        # 주차, 요일, 사이트별 오프셋을 모두 고려한 주제 선택 (다양성 확보)
+                        # 주차, 요일, 사이트별 오프셋을 모두 고려한 주제 선택 (주차별 다양성 확보)
                         import hashlib
-                        seed_str = f"{start_date}_{day}_{site}_{week_number}"
+                        # 주차별로 완전히 다른 패턴을 만들기 위해 여러 요소 조합
+                        seed_str = f"{site}_{week_number}_{day}_{start_date.year}_{start_date.month}"
                         hash_val = int(hashlib.md5(seed_str.encode()).hexdigest()[:8], 16)
-                        topic_idx = (hash_val + site_offset.get(site, 0)) % len(site_topics)
+                        
+                        # 주차가 바뀔 때마다 크게 변하도록 추가 오프셋 적용
+                        week_variation = (week_number * 13 + day * 7) * site_offset.get(site, 1)
+                        topic_idx = (hash_val + week_variation + site_offset.get(site, 0)) % len(site_topics)
                         topic_plan = site_topics[topic_idx]
                         
                         # 기존 계획 체크
