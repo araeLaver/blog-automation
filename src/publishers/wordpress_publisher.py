@@ -178,13 +178,10 @@ class WordPressPublisher:
                 print("경고: 포맷팅된 콘텐츠가 비어있습니다!")
                 return False, "콘텐츠가 비어있어서 발행할 수 없습니다"
             
-            # 4. 포스트 데이터 구성 (HTML 코드 방식으로 발행)
+            # 4. 포스트 데이터 구성
             post_data = {
                 "title": content['title'],
-                "content": {
-                    "raw": post_content,  # HTML 원본 그대로 저장 (코드 에디터)
-                    "rendered": post_content  # 렌더링된 내용
-                },
+                "content": post_content,  # WordPress API는 content를 문자열로 받음
                 "excerpt": content.get('meta_description', ''),
                 "status": "draft" if draft else "publish",
                 "categories": category_ids,
@@ -192,8 +189,7 @@ class WordPressPublisher:
                 "format": "standard",
                 "meta": {
                     "_yoast_wpseo_metadesc": content.get('meta_description', ''),
-                    "_yoast_wpseo_focuskw": content.get('keywords', [''])[0] if content.get('keywords') else '',
-                    "_classic_editor_remember": "classic-editor"  # 클래식 에디터 사용 강제
+                    "_yoast_wpseo_focuskw": content.get('keywords', [''])[0] if content.get('keywords') else ''
                 }
             }
             
@@ -238,21 +234,27 @@ class WordPressPublisher:
                             timeout=30
                         )
                     
+                    print(f"[PUBLISH] 응답 상태코드: {response.status_code}")
+                    print(f"[PUBLISH] 응답 헤더: {dict(response.headers)}")
+                    
                     if response.status_code in [200, 201]:
                         post = response.json()
                         post_id = post['id']
+                        print(f"[SUCCESS] 포스트 발행 성공! ID: {post_id}, URL: {post.get('link')}")
                         
                         # 이미지 관련 코드 제거
                         
                         return True, post['link']
                     elif response.status_code == 401 and attempt < 2:
-                        print(f"인증 실패 (시도 {attempt + 1}/3), 다른 방식으로 재시도...")
+                        print(f"[AUTH] 인증 실패 (시도 {attempt + 1}/3), 다른 방식으로 재시도...")
                         continue
                     else:
-                        error_msg = f"발행 실패 (시도 {attempt + 1}/3): {response.status_code} - {response.text[:500]}"
+                        print(f"[ERROR] 발행 실패 (시도 {attempt + 1}/3)")
+                        print(f"[ERROR] 상태코드: {response.status_code}")
+                        print(f"[ERROR] 응답 내용: {response.text[:1000]}")
+                        error_msg = f"발행 실패: {response.status_code} - {response.text[:500]}"
                         if attempt == 2:  # 마지막 시도
                             return False, error_msg
-                        print(error_msg)
                         
                 except requests.exceptions.RequestException as e:
                     if attempt == 2:
