@@ -947,7 +947,7 @@ def get_weekly_schedule():
                 
                 # 단일 주제로 표시
                 if site_info and isinstance(site_info, dict):
-                    topic = site_info.get('topic', f'{site} 기본 주제')
+                    topic = site_info.get('topic', f'{site} 시스템 자동 생성 주제')
                 else:
                     # 티스토리나 데이터가 없는 경우 기본 주제 생성
                     if site == 'tistory':
@@ -962,7 +962,7 @@ def get_weekly_schedule():
                         ]
                         topic = random.choice(trending_topics)
                     else:
-                        topic = f'{site} 기본 주제'
+                        topic = f'{site} 시스템 자동 생성 주제'
                 
                 # 상태 결정
                 current_date = datetime.now(KST).date()

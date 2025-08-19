@@ -143,14 +143,21 @@ class ScheduleManager:
                         topic_idx = (hash_val + week_variation + site_offset.get(site, 0)) % len(site_topics)
                         topic_plan = site_topics[topic_idx]
                         
-                        # 기존 계획 체크
+                        # 기존 계획 체크 및 업데이트
                         cursor.execute("""
                             SELECT id FROM publishing_schedule 
                             WHERE week_start_date = %s AND day_of_week = %s AND site = %s
                         """, (start_date, day, site))
                         
-                        if cursor.fetchone():
-                            continue  # 이미 계획 있음
+                        existing_schedule = cursor.fetchone()
+                        if existing_schedule:
+                            # 기존 스케줄이 있으면 주제만 업데이트
+                            cursor.execute("""
+                                UPDATE publishing_schedule 
+                                SET specific_topic = %s, keywords = %s, updated_at = CURRENT_TIMESTAMP
+                                WHERE id = %s
+                            """, (topic_plan['topic'], topic_plan['keywords'], existing_schedule[0]))
+                            continue
                         
                         # 중복 컨텐츠 검사
                         if self.check_duplicate_content(site, topic_plan['topic'], topic_plan['keywords']):
