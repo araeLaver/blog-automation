@@ -117,9 +117,26 @@ class ScheduleManager:
                     current_date = start_date + timedelta(days=day)
                     
                     for site_idx, site in enumerate(sites):
-                        # 각 사이트별로 다른 주제 할당
+                        # 각 사이트별로 다른 주제 할당 (주차와 요일, 사이트 인덱스를 조합)
                         site_topics = self._get_site_topic_plans(site)
-                        topic_idx = (day * 4 + site_idx) % len(site_topics)
+                        
+                        # 주차 번호 계산 (2025년 1월 1일 기준)
+                        base_date = datetime(2025, 1, 1).date()
+                        week_number = (start_date - base_date).days // 7
+                        
+                        # 사이트별로 다른 시작점을 가지도록 오프셋 적용
+                        site_offset = {
+                            'unpre': 0,
+                            'untab': 17,    # unpre와 겹치지 않도록
+                            'skewese': 31,  # unpre, untab와 겹치지 않도록  
+                            'tistory': 47   # 다른 사이트와 겹치지 않도록
+                        }
+                        
+                        # 주차, 요일, 사이트별 오프셋을 모두 고려한 주제 선택 (다양성 확보)
+                        import hashlib
+                        seed_str = f"{start_date}_{day}_{site}_{week_number}"
+                        hash_val = int(hashlib.md5(seed_str.encode()).hexdigest()[:8], 16)
+                        topic_idx = (hash_val + site_offset.get(site, 0)) % len(site_topics)
                         topic_plan = site_topics[topic_idx]
                         
                         # 기존 계획 체크

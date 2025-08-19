@@ -2047,24 +2047,19 @@ def quick_publish():
                             meta_desc = soup.find('meta', {'name': 'description'})
                             meta_description = meta_desc['content'] if meta_desc else ''
                             
-                            # HTML에서 본문 내용만 추출 (WordPress용)
-                            body_content = ""
-                            container_div = soup.find('div', class_='content-container')
-                            if container_div:
-                                # 불필요한 요소들 제거
-                                for unwanted in container_div.find_all(['script', 'style']):
-                                    unwanted.decompose()
-                                for meta_div in container_div.find_all('div', class_=['meta-info', 'tags', 'wordpress-actions']):
-                                    meta_div.decompose()
-                                body_content = str(container_div).replace('<div class="content-container">', '').replace('</div>', '', 1)
+                            # WordPress HTML 코드 모드용 - 전체 HTML 콘텐츠 사용
+                            # 불필요한 메타 요소들만 제거하고 디자인은 유지
+                            for unwanted in soup.find_all(['script', 'style']):
+                                unwanted.decompose()
+                            for meta_div in soup.find_all('div', class_=['wordpress-actions']):
+                                meta_div.decompose()
+                            
+                            # body 태그 내용 전체를 사용 (HTML 디자인 유지)
+                            body_tag = soup.find('body')
+                            if body_tag:
+                                body_content = str(body_tag).replace('<body>', '').replace('</body>', '')
                             else:
-                                body_tag = soup.find('body')
-                                if body_tag:
-                                    for unwanted in body_tag.find_all(['script', 'style']):
-                                        unwanted.decompose()
-                                    body_content = str(body_tag).replace('<body>', '').replace('</body>', '')
-                                else:
-                                    body_content = html_content  # fallback
+                                body_content = html_content  # fallback
                             
                             add_system_log('INFO', f'{site} HTML 콘텐츠 길이: {len(body_content)} 문자', 'CONTENT')
                             

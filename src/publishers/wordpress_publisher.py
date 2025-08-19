@@ -178,10 +178,13 @@ class WordPressPublisher:
                 print("경고: 포맷팅된 콘텐츠가 비어있습니다!")
                 return False, "콘텐츠가 비어있어서 발행할 수 없습니다"
             
-            # 4. 포스트 데이터 구성
+            # 4. 포스트 데이터 구성 (HTML 코드 방식으로 발행)
             post_data = {
                 "title": content['title'],
-                "content": post_content,
+                "content": {
+                    "raw": post_content,  # HTML 원본 그대로 저장 (코드 에디터)
+                    "rendered": post_content  # 렌더링된 내용
+                },
                 "excerpt": content.get('meta_description', ''),
                 "status": "draft" if draft else "publish",
                 "categories": category_ids,
@@ -189,7 +192,8 @@ class WordPressPublisher:
                 "format": "standard",
                 "meta": {
                     "_yoast_wpseo_metadesc": content.get('meta_description', ''),
-                    "_yoast_wpseo_focuskw": content.get('keywords', [''])[0] if content.get('keywords') else ''
+                    "_yoast_wpseo_focuskw": content.get('keywords', [''])[0] if content.get('keywords') else '',
+                    "_classic_editor_remember": "classic-editor"  # 클래식 에디터 사용 강제
                 }
             }
             
