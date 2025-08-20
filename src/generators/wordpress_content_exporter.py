@@ -343,7 +343,7 @@ class WordPressContentExporter:
                         # 코드 블록으로 래핑
                         code_id = f"code_{i}_{len(html)}"
                         html.append(f'<div class="code-block">')
-                        html.append(f'<button class="copy-btn" onclick="copyCode(\\'{code_id}\\')"><i class="bi bi-clipboard"></i> 복사</button>')
+                        html.append(f'<button class="copy-btn" onclick="copyCode(\'{code_id}\')"><i class="bi bi-clipboard"></i> 복사</button>')
                         html.append(f'<pre><code id="{code_id}">{para_html.replace("<strong>", "").replace("</strong>", "")}</code></pre>')
                         html.append(f'</div>')
                     else:
