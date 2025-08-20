@@ -2092,6 +2092,16 @@ def quick_publish():
                             success, result = wp_publisher.publish_post(content_data)
                             
                             if success:
+                                # 성공 결과 기록
+                                if 'results' not in publish_status:
+                                    publish_status['results'] = []
+                                publish_status['results'].append({
+                                    'site': site,
+                                    'success': True,
+                                    'message': f'{site} 발행 성공: {result}',
+                                    'url': result
+                                })
+                                
                                 publish_status.update({
                                     'current_site': site,
                                     'progress': int(((i + 1) / len(sites)) * 90),
@@ -2128,11 +2138,30 @@ def quick_publish():
                                         week_start, day_of_week, site, 'published', url=result
                                     )
                             else:
+                                # 실패 결과 기록
+                                if 'results' not in publish_status:
+                                    publish_status['results'] = []
+                                publish_status['results'].append({
+                                    'site': site,
+                                    'success': False,
+                                    'message': f'{site} 발행 실패: {result}',
+                                    'error': result
+                                })
                                 raise Exception(f'WordPress 발행 실패: {result}')
                         else:
                             raise Exception(f'생성된 파일을 찾을 수 없습니다: {file_path}')
                             
                     except Exception as e:
+                        # 예외 발생 시 실패 결과 기록
+                        if 'results' not in publish_status:
+                            publish_status['results'] = []
+                        publish_status['results'].append({
+                            'site': site,
+                            'success': False,
+                            'message': f'{site} 발행 실패: {str(e)}',
+                            'error': str(e)
+                        })
+                        
                         logger.error(f'{site} 발행 오류: {e}')
                         publish_status.update({
                             'current_site': site,
