@@ -172,14 +172,6 @@ class WordPressContentExporter:
             border-left: 4px solid #ffc107;
         }}
         
-        .meta-info {{
-            background-color: #f8f9fa;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 2rem;
-            font-size: 0.9em;
-            color: #6c757d;
-        }}
         
         .tags {{
             margin-top: 2rem;
@@ -235,15 +227,6 @@ class WordPressContentExporter:
             display: block;
         }}
         
-        .reading-time {{
-            color: #6c757d;
-            font-size: 0.9em;
-        }}
-        
-        .word-count {{
-            color: #6c757d;
-            font-size: 0.9em;
-        }}
         
         blockquote {{
             border-left: 4px solid {theme['primary']};
@@ -257,6 +240,64 @@ class WordPressContentExporter:
             background-color: #ffeb3b;
             padding: 2px 4px;
             border-radius: 3px;
+        }}
+        
+        .code-block {{
+            background-color: #2d3748;
+            border: 1px solid #4a5568;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            position: relative;
+            overflow-x: auto;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }}
+        
+        .code-block pre {{
+            margin: 0;
+            color: #e2e8f0;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.5;
+        }}
+        
+        .code-block code {{
+            color: #81c784;
+            font-size: 14px;
+        }}
+        
+        .copy-btn {{
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }}
+        
+        .copy-btn:hover {{
+            opacity: 1;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }}
+        
+        .copy-btn.copied {{
+            background: linear-gradient(45deg, #48bb78 0%, #38a169 100%);
+        }}
+        
+        .copy-btn i {{
+            font-size: 11px;
         }}
     </style>
 </head>
@@ -272,25 +313,8 @@ class WordPressContentExporter:
         <div class="content-container">
             <div class="site-badge">{site.upper()}</div>
             
-            <div class="meta-info">
-                <div class="row">
-                    <div class="col-md-6">
-                        <i class="bi bi-calendar"></i> 생성일: {datetime.now().strftime('%Y년 %m월 %d일 %H:%M')}
-                    </div>
-                    <div class="col-md-3">
-                        <span class="word-count">
-                            <i class="bi bi-file-text"></i> {len(self._extract_text_content(content))}자
-                        </span>
-                    </div>
-                    <div class="col-md-3">
-                        <span class="reading-time">
-                            <i class="bi bi-clock"></i> 약 {self._calculate_reading_time(content)}분
-                        </span>
-                    </div>
-                </div>
-            </div>
             
-            <h1>{content['title']}</h1>""")
+            <h1>{self._fix_year_in_title(content['title'])}</h1>""")
         
         # 서론
         if content.get('introduction'):
@@ -307,12 +331,27 @@ class WordPressContentExporter:
             paragraphs = section['content'].split('\n\n')
             for para in paragraphs:
                 if para.strip():
-                    # 키워드 하이라이팅
+                    # ** 특수기호를 <strong> 태그로 변환
                     para_html = para.strip()
-                    for keyword in content.get('keywords', [])[:3]:
-                        if keyword in para_html and len(keyword) > 2:
-                            para_html = para_html.replace(keyword, f'<span class="highlight">{keyword}</span>', 1)
-                    html.append(f"<p>{para_html}</p>")
+                    
+                    # **텍스트** -> <strong>텍스트</strong>
+                    import re
+                    para_html = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', para_html)
+                    
+                    # 코드 블록 감지 및 처리 (unpre 사이트용)
+                    if site == 'unpre' and ('```' in para_html or 'def ' in para_html or 'function ' in para_html or 'class ' in para_html or 'import ' in para_html):
+                        # 코드 블록으로 래핑
+                        code_id = f"code_{i}_{len(html)}"
+                        html.append(f'<div class="code-block">')
+                        html.append(f'<button class="copy-btn" onclick="copyCode(\\'{code_id}\\')"><i class="bi bi-clipboard"></i> 복사</button>')
+                        html.append(f'<pre><code id="{code_id}">{para_html.replace("<strong>", "").replace("</strong>", "")}</code></pre>')
+                        html.append(f'</div>')
+                    else:
+                        # 키워드 하이라이팅
+                        for keyword in content.get('keywords', [])[:3]:
+                            if keyword in para_html and len(keyword) > 2:
+                                para_html = para_html.replace(keyword, f'<span class="highlight">{keyword}</span>', 1)
+                        html.append(f"<p>{para_html}</p>")
             
             # 중간 이미지
             if images and i == 1 and len(images) > 1:
@@ -371,6 +410,22 @@ class WordPressContentExporter:
             }});
         }}
         
+        function copyCode(codeId) {{
+            const codeElement = document.getElementById(codeId);
+            const btn = codeElement.parentElement.querySelector('.copy-btn');
+            
+            navigator.clipboard.writeText(codeElement.textContent).then(() => {{
+                btn.innerHTML = '<i class="bi bi-check"></i> 복사됨';
+                btn.classList.add('copied');
+                setTimeout(() => {{
+                    btn.innerHTML = '<i class="bi bi-clipboard"></i> 복사';
+                    btn.classList.remove('copied');
+                }}, 2000);
+            }}).catch(() => {{
+                alert('복사하기를 실패했습니다.');
+            }});
+        }}
+        
         function downloadJSON() {{
             const metadata = {{
                 site: "{site}",
@@ -379,9 +434,7 @@ class WordPressContentExporter:
                 tags: {json.dumps(content.get('tags', []))},
                 categories: {json.dumps(content.get('categories', []))},
                 keywords: {json.dumps(content.get('keywords', []))},
-                created_at: "{datetime.now().isoformat()}",
-                word_count: {len(self._extract_text_content(content))},
-                reading_time: {self._calculate_reading_time(content)}
+                created_at: "{datetime.now().isoformat()}"
             }};
             
             const blob = new Blob([JSON.stringify(metadata, null, 2)], {{type: 'application/json'}});
@@ -419,7 +472,11 @@ class WordPressContentExporter:
             paragraphs = section['content'].split('\n\n')
             for para in paragraphs:
                 if para.strip():
-                    html.append(f"<p>{para.strip()}</p>")
+                    # ** 특수기호를 <strong> 태그로 변환
+                    para_html = para.strip()
+                    import re
+                    para_html = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', para_html)
+                    html.append(f"<p>{para_html}</p>")
             
             # 중간 이미지
             if images and i == 1 and len(images) > 1:
@@ -453,6 +510,19 @@ class WordPressContentExporter:
         # 한국어 기준 약 300자/분
         words = len(text)
         return max(1, round(words / 300))
+    
+    def _fix_year_in_title(self, title: str) -> str:
+        """제목에서 잘못된 연도를 현재 연도로 수정"""
+        import re
+        current_year = datetime.now().year
+        
+        # 2024년을 현재 연도로 변경
+        title = re.sub(r'2024년', f'{current_year}년', title)
+        
+        # [2024년]을 현재 연도로 변경
+        title = re.sub(r'\[2024년\]', f'[{current_year}년]', title)
+        
+        return title
     
     def create_batch_export(self, site: str, contents: List[Dict]) -> str:
         """여러 콘텐츠를 한번에 내보내기"""
