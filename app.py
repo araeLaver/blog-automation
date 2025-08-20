@@ -1036,13 +1036,29 @@ def generate_wordpress():
                 if current_generator:
                     logger.info(f"Claude API로 {topic} 콘텐츠 생성 시작...")
                     
-                    # 사이트 설정
-                    site_config = {
-                        'name': site,
-                        'target_audience': '개발자 및 IT 전문가',
-                        'content_style': '실용적이고 기술적인',
-                        'keywords_focus': data.get('keywords', [topic])
+                    # 사이트별 설정
+                    site_configs = {
+                        'unpre': {
+                            'name': 'unpre',
+                            'target_audience': '개발자 및 IT 전문가',
+                            'content_style': '실용적이고 기술적인',
+                            'keywords_focus': data.get('keywords', [topic])
+                        },
+                        'untab': {
+                            'name': 'untab',
+                            'target_audience': '부동산 투자자 및 일반인',
+                            'content_style': '실용적이고 상세한 가이드',
+                            'keywords_focus': data.get('keywords', [topic])
+                        },
+                        'skewese': {
+                            'name': 'skewese',
+                            'target_audience': '역사와 문화에 관심있는 일반인',
+                            'content_style': '흥미롭고 교육적인',
+                            'keywords_focus': data.get('keywords', [topic])
+                        }
                     }
+                    
+                    site_config = site_configs.get(site, site_configs['unpre'])
                     
                     # AI 콘텐츠 생성 (실제 Claude API 호출)
                     generated_content = current_generator.generate_content(
