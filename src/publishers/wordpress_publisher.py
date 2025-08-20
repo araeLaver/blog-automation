@@ -196,18 +196,29 @@ class WordPressPublisher:
                 print("경고: 콘텐츠가 비어있습니다!")
                 return False, "콘텐츠가 비어있어서 발행할 수 없습니다"
             
-            # 4. 포스트 데이터 구성
+            # 4. 포스트 데이터 구성 (코드 편집기 모드)
             post_data = {
                 "title": content['title'],
-                "content": post_content,  # WordPress API는 content를 문자열로 받음
+                "content": post_content,  # HTML 코드 그대로
                 "excerpt": content.get('meta_description', ''),
-                "status": "draft" if draft else "publish",
+                "status": "draft" if draft else "publish", 
                 "categories": category_ids,
                 "tags": tag_ids,
                 "format": "standard",
                 "meta": {
+                    # WordPress 코드 편집기 모드 강제 설정
+                    "_classic_editor_remember": "classic-editor",
+                    "_wp_editor_expand": "on",
+                    "_edit_lock": "",
+                    "_edit_last": "1",
+                    # Gutenberg 비활성화
+                    "_gutenberg_editor_disabled": "1",
+                    "_classic_editor_disabled": "0",
+                    # SEO 설정
                     "_yoast_wpseo_metadesc": content.get('meta_description', ''),
-                    "_yoast_wpseo_focuskw": content.get('keywords', [''])[0] if content.get('keywords') else ''
+                    "_yoast_wpseo_focuskw": content.get('keywords', [''])[0] if content.get('keywords') else '',
+                    # HTML 그대로 저장하도록 설정
+                    "_wp_page_template": "default"
                 }
             }
             
@@ -223,12 +234,14 @@ class WordPressPublisher:
             for attempt in range(3):  # 최대 3회 시도
                 try:
                     if attempt == 1:
-                        # 2차 시도: 다른 헤더 사용
+                        # 2차 시도: HTML 코드 그대로 허용하는 헤더
                         headers = {
                             "Authorization": self.headers["Authorization"],
                             "Content-Type": "application/json",
                             "User-Agent": "WordPress/BlogAutomation",
-                            "Cache-Control": "no-cache"
+                            "Cache-Control": "no-cache",
+                            "X-WP-Raw-Content": "true",  # HTML 필터링 비활성화
+                            "X-WP-Unfiltered": "true"    # 필터 없이 콘텐츠 허용
                         }
                     elif attempt == 2:
                         # 3차 시도: 최소 헤더와 JSON 파라미터
