@@ -167,15 +167,33 @@ class WordPressPublisher:
                 content.get('tags', [])
             )
             
-            # 3. 콘텐츠 포맷팅 (대표이미지 제외한 이미지들만 전달)
-            post_content = self._format_content(content, content_images)
-            print(f"포맷팅된 콘텐츠 길이: {len(post_content)}")
-            print(f"포맷팅된 콘텐츠 미리보기: {post_content[:300]}...")
-            print(f"포맷팅된 콘텐츠 전체 (디버깅): {post_content}")
+            # 3. HTML 구조 그대로 유지하면서 최소한만 정리
+            if 'content' in content and content['content']:
+                # 이미 완성된 HTML이 있으면 그대로 사용 (디자인 유지)
+                post_content = content['content']
+                print(f"[HTML_PRESERVED] 원본 HTML 그대로 사용, 길이: {len(post_content)}")
+                
+                # 최소한의 정리만 (WordPress에서 문제가 될 수 있는 요소만)
+                from bs4 import BeautifulSoup
+                soup = BeautifulSoup(post_content, 'html.parser')
+                
+                # WordPress 발행시 충돌할 수 있는 요소만 제거
+                for unwanted in soup.find_all(['script']):
+                    unwanted.decompose()
+                for meta_div in soup.find_all('div', class_=['wordpress-actions']):
+                    meta_div.decompose()
+                    
+                post_content = str(soup)
+            else:
+                # 섹션 기반 콘텐츠는 기존 방식 사용
+                post_content = self._format_content(content, content_images)
+            
+            print(f"최종 콘텐츠 길이: {len(post_content)}")
+            print(f"콘텐츠 미리보기: {post_content[:300]}...")
             
             # 콘텐츠가 비어있는지 확인
             if not post_content or post_content.strip() == "":
-                print("경고: 포맷팅된 콘텐츠가 비어있습니다!")
+                print("경고: 콘텐츠가 비어있습니다!")
                 return False, "콘텐츠가 비어있어서 발행할 수 없습니다"
             
             # 4. 포스트 데이터 구성

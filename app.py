@@ -2140,10 +2140,32 @@ def quick_publish():
                             'message': f'{site} 발행 실패: {str(e)}'
                         })
                 
+                # 발행 결과 요약
+                successful_sites = []
+                failed_sites = []
+                
+                for result in publish_status.get('results', []):
+                    if 'success' in result.get('message', ''):
+                        successful_sites.append(result.get('site', ''))
+                    else:
+                        failed_sites.append(result.get('site', ''))
+                
+                if successful_sites:
+                    success_msg = f"✅ 성공: {', '.join(successful_sites)}"
+                else:
+                    success_msg = ""
+                
+                if failed_sites:
+                    fail_msg = f"❌ 실패: {', '.join(failed_sites)}"
+                else:
+                    fail_msg = ""
+                
+                final_message = f"발행 완료! {success_msg} {fail_msg}".strip()
+                
                 publish_status.update({
                     'in_progress': False,
                     'progress': 100,
-                    'message': f'발행 완료! 사이트 확인: unpre.co.kr, untab.co.kr, skewese.com'
+                    'message': final_message
                 })
                 
             except Exception as e:
