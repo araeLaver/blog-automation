@@ -536,6 +536,63 @@ class ScheduleManager:
         
         return all_topics
     
+    def get_today_scheduled_topic(self, site: str) -> Dict:
+        """오늘의 계획된 주제 가져오기"""
+        try:
+            today = datetime.now().date()
+            weekday = today.weekday()  # 0=월요일, 6=일요일
+            
+            # 이번 주 월요일 계산
+            days_ahead = 0 - weekday
+            week_start = today + timedelta(days=days_ahead)
+            
+            conn = self.db.get_connection()
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT specific_topic, topic_category, keywords, target_length
+                    FROM publishing_schedule 
+                    WHERE week_start_date = %s AND day_of_week = %s AND site = %s
+                    AND status = 'planned'
+                """, (week_start, weekday, site))
+                
+                result = cursor.fetchone()
+                if result:
+                    return {
+                        'topic': result[0],
+                        'category': result[1],
+                        'keywords': result[2] or [],
+                        'length': result[3] or 'medium'
+                    }
+                else:
+                    print(f"[SCHEDULE] {site}에 대한 오늘의 계획된 주제가 없습니다")
+                    return None
+                    
+        except Exception as e:
+            print(f"[SCHEDULE] 오늘의 주제 조회 오류: {e}")
+            return None
+    
+    def mark_topic_as_used(self, site: str, topic: str):
+        """주제를 사용됨으로 표시"""
+        try:
+            today = datetime.now().date()
+            weekday = today.weekday()
+            days_ahead = 0 - weekday
+            week_start = today + timedelta(days=days_ahead)
+            
+            conn = self.db.get_connection()
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    UPDATE publishing_schedule 
+                    SET status = 'published', updated_at = CURRENT_TIMESTAMP
+                    WHERE week_start_date = %s AND day_of_week = %s AND site = %s 
+                    AND specific_topic = %s
+                """, (week_start, weekday, site, topic))
+                conn.commit()
+                print(f"[SCHEDULE] {site} 주제 사용됨으로 표시: {topic}")
+                
+        except Exception as e:
+            print(f"[SCHEDULE] 주제 상태 업데이트 오류: {e}")
+    
     def get_weekly_schedule(self, start_date: datetime = None) -> Dict:
         """일주일치 스케줄 조회"""
         try:

@@ -19,6 +19,7 @@ from src.generators.image_generator import ImageGenerator
 from src.publishers.wordpress_publisher import WordPressPublisher
 from src.publishers.tistory_publisher import TistoryPublisher
 from src.utils.database import ContentDatabase
+from src.utils.schedule_manager import ScheduleManager
 from src.utils.logger import blog_logger, timing
 
 load_dotenv()
@@ -30,6 +31,7 @@ class BlogAutomationScheduler:
         self.content_generator = ContentGenerator()
         self.image_generator = ImageGenerator()
         self.database = ContentDatabase()
+        self.schedule_manager = ScheduleManager()
         
         # 발행자들 (Tistory API 종료로 WordPress만 사용)
         self.publishers = {
@@ -125,15 +127,23 @@ class BlogAutomationScheduler:
             # 1. 사이트 설정 가져오기
             site_config = SITE_CONFIGS[site_key]
             
-            # 2. 사용하지 않은 주제 가져오기
-            topic_data = self.database.get_unused_topic(site_key)
-            if not topic_data:
-                blog_logger.warning(f"No unused topics for {site_key}")
-                # 새로운 주제 생성 로직 추가 가능
-                return False
-            
-            topic = topic_data["topic"]
-            category = topic_data["category"] or site_config["categories"][0]
+            # 2. 오늘의 계획된 주제 가져오기
+            scheduled_topic = self.schedule_manager.get_today_scheduled_topic(site_key)
+            if scheduled_topic:
+                topic = scheduled_topic["topic"]
+                category = scheduled_topic["category"]
+                blog_logger.info(f"Using scheduled topic for {site_key}: {topic}")
+            else:
+                # 3. 계획된 주제가 없으면 미사용 주제 가져오기 (fallback)
+                scheduled_topic = None  # fallback이므로 None으로 설정
+                topic_data = self.database.get_unused_topic(site_key)
+                if not topic_data:
+                    blog_logger.warning(f"No unused topics for {site_key}")
+                    return False
+                
+                topic = topic_data["topic"]
+                category = topic_data["category"] or site_config["categories"][0]
+                blog_logger.info(f"Using fallback topic for {site_key}: {topic}")
             
             # 3. 중복 체크
             if self.database.check_duplicate_title(site_key, topic):
@@ -178,6 +188,11 @@ class BlogAutomationScheduler:
                 blog_logger.success(
                     f"[{site_key.upper()}] Post published successfully: {content['title'][:50]}..."
                 )
+                
+                # 계획된 주제를 사용됨으로 표시
+                if scheduled_topic:
+                    self.schedule_manager.mark_topic_as_used(site_key, topic)
+                
                 blog_logger.log_performance(
                     site=site_key,
                     action="publish_post",

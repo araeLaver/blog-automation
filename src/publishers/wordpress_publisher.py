@@ -115,6 +115,41 @@ class WordPressPublisher:
             print(f"연결 테스트 실패: {e}")
             return False
     
+    def _fix_year_in_content(self, content: Dict) -> Dict:
+        """콘텐츠에서 잘못된 연도 수정"""
+        import re
+        from datetime import datetime
+        
+        current_year = datetime.now().year
+        fixed_content = content.copy()
+        
+        # 제목에서 2024년을 현재 연도로 수정
+        if 'title' in fixed_content:
+            fixed_content['title'] = re.sub(r'2024년?', f'{current_year}년', fixed_content['title'])
+            fixed_content['title'] = re.sub(r'\[2024년?\]', f'[{current_year}년]', fixed_content['title'])
+        
+        # 메타 설명에서도 수정
+        if 'meta_description' in fixed_content:
+            fixed_content['meta_description'] = re.sub(r'2024년?', f'{current_year}년', fixed_content['meta_description'])
+        
+        # 소개글에서도 수정
+        if 'introduction' in fixed_content:
+            fixed_content['introduction'] = re.sub(r'2024년?', f'{current_year}년', fixed_content['introduction'])
+        
+        # 섹션 내용에서도 수정
+        if 'sections' in fixed_content:
+            for section in fixed_content['sections']:
+                if 'content' in section:
+                    section['content'] = re.sub(r'2024년?', f'{current_year}년', section['content'])
+                if 'heading' in section:
+                    section['heading'] = re.sub(r'2024년?', f'{current_year}년', section['heading'])
+        
+        # 추가 콘텐츠에서도 수정
+        if 'additional_content' in fixed_content:
+            fixed_content['additional_content'] = re.sub(r'2024년?', f'{current_year}년', fixed_content['additional_content'])
+        
+        return fixed_content
+
     def publish_post(self, content: Dict, images: List[Dict] = None, 
                     draft: bool = False) -> Tuple[bool, str]:
         """
@@ -129,6 +164,9 @@ class WordPressPublisher:
             (성공여부, URL 또는 에러메시지)
         """
         try:
+            # 연도 수정 적용
+            content = self._fix_year_in_content(content)
+            
             # 1. 안전한 이미지 업로드 (로컬 파일만, 외부 API 없음)
             content_images = []
             featured_media_id = None
@@ -668,12 +706,15 @@ class WordPressPublisher:
         
         # 추가 유용한 내용
         if content.get('additional_content'):
-            html.append(f"<h2>더 알아보기</h2>")
-            html.append(f"<p>{content['additional_content']}</p>")
+            # 마무리 제목 없이 자연스럽게 추가 내용 삽입
+            html.append(f"<div class='additional-content' style='margin-top: 2rem; padding: 1.5rem; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #0073aa;'>")
+            html.append(f"<p style='margin: 0; font-style: italic;'>{content['additional_content']}</p>")
+            html.append(f"</div>")
         elif content.get('conclusion'):
-            # 기존 호환성 유지
-            html.append(f"<h2>추가 정보</h2>")
-            html.append(f"<p>{content['conclusion']}</p>")
+            # 기존 호환성 유지 - 제목 없이 자연스럽게
+            html.append(f"<div class='conclusion-content' style='margin-top: 2rem; padding: 1.5rem; background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #0073aa;'>")
+            html.append(f"<p style='margin: 0; font-style: italic;'>{content['conclusion']}</p>")
+            html.append(f"</div>")
         
         # 관련 링크 (내부 링크)
         if content.get('internal_links'):
@@ -995,7 +1036,7 @@ class WordPressPublisher:
         import re
         
         # ** -> 강조 스타일 (굵은 글씨)
-        text = re.sub(r'\*\*(.*?)\*\*', r'<span class="highlight-text"><strong>▶ \1</strong></span>', text)
+        text = re.sub(r'\*\*(.*?)\*\*', r'<span class="highlight-text"><strong>\1</strong></span>', text)
         
         # * -> 포인트 강조 (기울임)  
         text = re.sub(r'(?<!\*)\*([^*]+)\*(?!\*)', r'<span class="point-text"><em>※ \1</em></span>', text)
