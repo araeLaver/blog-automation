@@ -357,8 +357,14 @@ class WordPressContentExporter:
             if images and i == 1 and len(images) > 1:
                 html.append(f'<img src="{images[1].get("url", "이미지_URL")}" alt="설명 이미지" />')
         
-        # 결론
-        if content.get('conclusion'):
+        # 결론/추가 내용
+        if content.get('additional_content'):
+            html.append(f'<div class="conclusion">')
+            html.append(f"<h2><i class='bi bi-lightbulb'></i> 마무리</h2>")
+            html.append(f"<p>{content['additional_content']}</p>")
+            html.append(f'</div>')
+        elif content.get('conclusion'):
+            # 기존 호환성 유지
             html.append(f'<div class="conclusion">')
             html.append(f"<h2><i class='bi bi-lightbulb'></i> 마무리</h2>")
             html.append(f"<p>{content['conclusion']}</p>")
@@ -484,8 +490,12 @@ class WordPressContentExporter:
                 html.append(f'<img class="aligncenter size-medium" src="{images[1].get("url", "")}" alt="설명 이미지" />')
                 html.append(f'</p>')
         
-        # 결론
-        if content.get('conclusion'):
+        # 결론/추가 내용
+        if content.get('additional_content'):
+            html.append(f"<h2>마무리</h2>")
+            html.append(f"<p><em>{content['additional_content']}</em></p>")
+        elif content.get('conclusion'):
+            # 기존 호환성 유지
             html.append(f"<h2>마무리</h2>")
             html.append(f"<p><em>{content['conclusion']}</em></p>")
         
@@ -496,7 +506,7 @@ class WordPressContentExporter:
         text_parts = [
             content.get('title', ''),
             content.get('introduction', ''),
-            content.get('conclusion', '')
+            content.get('additional_content', '') or content.get('conclusion', '')
         ]
         
         for section in content.get('sections', []):

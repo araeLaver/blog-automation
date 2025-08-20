@@ -1014,19 +1014,19 @@ class WordPressPublisher:
         text = re.sub(r'(\d+)\.\s+([^\n]+)', r'<div class="numbered-item"><span class="number-badge">❶ \1</span> \2</div>', text)
         
         # • 또는 - 로 시작하는 목록 개선
-        text = re.sub(r'[•-]\s+([^\n]+)', r'<div class="bullet-item"><span class="bullet-icon">▸</span> \1</div>', text)
+        text = re.sub(r'[•-]\s+([^\n]+)', r'<div class="bullet-item"><span class="bullet-icon">→</span> \1</div>', text)
         
         # 특수 키워드 강조
         text = re.sub(r'\b(중요|주의|참고|팁|TIP|NOTE)\b', r'<span class="keyword-badge">【\1】</span>', text, flags=re.IGNORECASE)
         text = re.sub(r'\b(완료|성공|SUCCESS)\b', r'<span class="success-badge">✓ \1</span>', text, flags=re.IGNORECASE)
-        text = re.sub(r'\b(오류|에러|ERROR|실패)\b', r'<span class="error-badge">✗ \1</span>', text, flags=re.IGNORECASE)
+        text = re.sub(r'\b(오류|에러|ERROR|실패)\b', r'<span class="error-badge">X \1</span>', text, flags=re.IGNORECASE)
         
         # 퍼센트, 숫자 강조
         text = re.sub(r'(\d+)%', r'<span class="percentage">【\1%】</span>', text)
         text = re.sub(r'(\d{1,3}(?:,\d{3})*)(원|달러|\$)', r'<span class="money">￦ \1\2</span>', text)
         
         # 날짜 형식 예쁘게
-        text = re.sub(r'(\d{4})-(\d{1,2})-(\d{1,2})', r'<span class="date">▷ \1년 \2월 \3일</span>', text)
+        text = re.sub(r'(\d{4})-(\d{1,2})-(\d{1,2})', r'<span class="date">» \1년 \2월 \3일</span>', text)
         text = re.sub(r'(\d{4})년\s*(\d{1,2})월', r'<span class="date">▷ \1년 \2월</span>', text)
         
         # 링크 형태 개선
