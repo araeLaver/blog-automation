@@ -2503,12 +2503,83 @@
                 return;
             }
             
-            let html = `
-                <div class="schedule-week-view">
-                    <div class="text-center mb-3">
-                        <h5><i class="bi bi-calendar-week"></i> ${scheduleData.week_start} 주간 발행 계획</h5>
-                    </div>
+            // 캘린더 스타일을 위한 CSS 추가
+            const calendarCSS = `
+                <style>
+                .calendar-week {
+                    display: grid;
+                    grid-template-columns: repeat(7, 1fr);
+                    gap: 1px;
+                    background: #dee2e6;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    margin-bottom: 20px;
+                }
+                .calendar-day {
+                    background: white;
+                    min-height: 200px;
+                    padding: 8px;
+                    position: relative;
+                    overflow: hidden;
+                }
+                .calendar-day.today {
+                    background: #fff3cd;
+                    border: 2px solid #ffc107;
+                }
+                .day-header {
+                    font-size: 0.9rem;
+                    font-weight: bold;
+                    color: #495057;
+                    margin-bottom: 8px;
+                    text-align: center;
+                    border-bottom: 1px solid #dee2e6;
+                    padding-bottom: 4px;
+                }
+                .site-item {
+                    margin-bottom: 4px;
+                    padding: 3px 6px;
+                    border-radius: 4px;
+                    font-size: 0.75rem;
+                    line-height: 1.2;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .site-item:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                .site-unpre { background: #e3f2fd; color: #1976d2; }
+                .site-untab { background: #f3e5f5; color: #7b1fa2; }
+                .site-skewese { background: #e8f5e8; color: #388e3c; }
+                .site-tistory { background: #fff3e0; color: #f57c00; }
+                .status-published { border-left: 4px solid #28a745; }
+                .status-generated { border-left: 4px solid #ffc107; }
+                .status-planned { border-left: 4px solid #6c757d; }
+                .time-badge {
+                    position: absolute;
+                    top: 4px;
+                    right: 4px;
+                    background: #007bff;
+                    color: white;
+                    font-size: 0.6rem;
+                    padding: 2px 4px;
+                    border-radius: 3px;
+                }
+                </style>
             `;
+            
+            let html = calendarCSS + `
+                <div class="schedule-calendar-view">
+                    <div class="text-center mb-4">
+                        <h5><i class="bi bi-calendar-week"></i> ${scheduleData.week_start} 주간 발행 계획</h5>
+                        <small class="text-muted">매일 새벽 3시 자동 발행</small>
+                    </div>
+                    
+                    <div class="calendar-week">
+            `;
+            
+            // 오늘 날짜
+            const today = new Date().toISOString().split('T')[0];
             
             // scheduleData.schedule 객체를 순회
             console.log('🔄 스케줄 데이터 순회 시작');
@@ -2516,46 +2587,60 @@
             for (const [dayNum, dayData] of Object.entries(scheduleData.schedule)) {
                 console.log(`📅 Day ${dayNum}:`, dayData);
                 dayCount++;
+                
+                const isToday = dayData.date === today;
+                
                 html += `
-                    <div class="schedule-day mb-3 p-3 border rounded">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <strong>${dayData.day_name} (${dayData.date})</strong>
-                            <span class="badge bg-primary">매일 03:00</span>
+                    <div class="calendar-day ${isToday ? 'today' : ''}">
+                        <div class="day-header">
+                            ${dayData.day_name}
+                            <br><small>${dayData.date}</small>
                         </div>
-                        <div class="schedule-sites">
+                        ${isToday ? '<div class="time-badge">03:00</div>' : ''}
                 `;
                 
                 // 사이트별 스케줄 표시
                 for (const [site, siteData] of Object.entries(dayData.sites)) {
-                    const statusColor = siteData.status === 'published' ? 'success' : 
-                                       siteData.status === 'generated' ? 'warning' : 'secondary';
-                    const statusText = siteData.status === 'published' ? '발행완료' : 
-                                      siteData.status === 'generated' ? '생성완료' : '예정';
+                    const statusClass = `status-${siteData.status}`;
+                    const siteClass = `site-${site}`;
+                    
+                    const statusIcon = siteData.status === 'published' ? '✅' : 
+                                      siteData.status === 'generated' ? '⏳' : '📝';
                     
                     html += `
-                        <div class="site-schedule mb-2 p-2 bg-light rounded">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <strong class="text-primary">${site.toUpperCase()}</strong>
-                                    <span class="badge bg-${statusColor} ms-2">${statusText}</span>
-                                    <br>
-                                    <small class="text-muted">카테고리: ${siteData.category}</small>
-                                    <br>
-                                    <span class="text-dark">${siteData.topic}</span>
-                                    ${siteData.url ? `<br><a href="${siteData.url}" target="_blank" class="small text-decoration-none">🔗 발행된 글 보기</a>` : ''}
-                                </div>
+                        <div class="site-item ${siteClass} ${statusClass}" 
+                             title="${siteData.topic} (${siteData.category})"
+                             onclick="${siteData.url ? `window.open('${siteData.url}', '_blank')` : 'void(0)'}">
+                            <div style="font-weight: bold; margin-bottom: 2px;">
+                                ${statusIcon} ${site.toUpperCase()}
+                            </div>
+                            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                ${siteData.topic}
+                            </div>
+                            <div style="font-size: 0.6rem; color: #666; margin-top: 2px;">
+                                ${siteData.category}
                             </div>
                         </div>
                     `;
                 }
                 
-                html += `
-                        </div>
-                    </div>
-                `;
+                html += `</div>`;
             }
             
-            html += '</div>';
+            html += `
+                    </div>
+                    
+                    <div class="mt-4 text-center">
+                        <div class="d-flex justify-content-center gap-3 mb-3">
+                            <small><span style="display:inline-block;width:12px;height:12px;background:#28a745;margin-right:4px;"></span>발행완료</small>
+                            <small><span style="display:inline-block;width:12px;height:12px;background:#ffc107;margin-right:4px;"></span>생성완료</small>
+                            <small><span style="display:inline-block;width:12px;height:12px;background:#6c757d;margin-right:4px;"></span>예정</small>
+                        </div>
+                        <small class="text-muted">💡 발행된 글을 클릭하면 새 창에서 열립니다</small>
+                    </div>
+                </div>
+            `;
+            
             console.log('✅ 최종 HTML 길이:', html.length);
             console.log('✅ 처리된 일 수:', dayCount);
             console.log('🎯 컨테이너에 HTML 설정 중...');
