@@ -923,6 +923,9 @@
                         actionButtons += `<button class="btn btn-outline-secondary btn-sm me-1" onclick="downloadContent('${file.id}', 'wordpress')" title="다운로드">
                             <i class="bi bi-download"></i> 다운로드
                         </button>`;
+                        actionButtons += `<button class="btn btn-outline-info btn-sm me-1" onclick="previewContent('${file.id}')" title="미리보기">
+                            <i class="bi bi-eye"></i> 미리보기
+                        </button>`;
                     }
                     
                     if (actions.includes('delete')) {
@@ -1014,6 +1017,9 @@
                     if (actions.includes('download')) {
                         actionButtons += `<button class="btn btn-outline-secondary btn-sm me-1" onclick="downloadContent('${file.id}', 'tistory')" title="다운로드">
                             <i class="bi bi-download"></i> 다운로드
+                        </button>`;
+                        actionButtons += `<button class="btn btn-outline-info btn-sm me-1" onclick="previewContent('${file.id}')" title="미리보기">
+                            <i class="bi bi-eye"></i> 미리보기
                         </button>`;
                     }
                     
@@ -2846,6 +2852,18 @@
             } catch (error) {
                 console.error('다운로드 오류:', error);
                 showNotification(`❌ 다운로드 중 오류가 발생했습니다.`, 'error');
+            }
+        }
+        
+        function previewContent(fileId) {
+            // 미리보기 API 호출
+            const previewUrl = `/api/preview_content/${fileId}`;
+            const previewWindow = window.open(previewUrl, '_blank', 'width=1024,height=768,scrollbars=yes,resizable=yes');
+            
+            if (!previewWindow) {
+                showNotification('팝업이 차단되었습니다. 팝업 허용 후 다시 시도해주세요.', 'warning');
+            } else {
+                showNotification('미리보기 창이 열렸습니다.', 'success');
             }
         }
         

@@ -1313,12 +1313,41 @@ def quick_publish():
             """백그라운드에서 실제 콘텐츠 생성 - 실시간 상태 업데이트"""
             global publish_status_global
             
-            today_schedule = {
-                'unpre': {'topic': 'Google Cloud ACE 자격증 가이드', 'category': 'certification'},
-                'untab': {'topic': '부동산 경매 입찰 전 반드시 확인해야 할 15가지 체크리스트', 'category': 'auction'},
-                'skewese': {'topic': '4.19혁명과 민주주의 발전', 'category': 'koreanhistory'},
-                'tistory': {'topic': '2026 월드컵 공동개최, 한국 축구 재도약', 'category': '스포츠'}
-            }
+            # 실제 스케줄에서 오늘의 주제 가져오기
+            from src.utils.schedule_manager import ScheduleManager
+            schedule_manager = ScheduleManager()
+            
+            today_schedule = {}
+            for site in sites:
+                try:
+                    scheduled_topic = schedule_manager.get_today_scheduled_topic(site)
+                    if scheduled_topic and scheduled_topic.get('specific_topic'):
+                        today_schedule[site] = {
+                            'topic': scheduled_topic['specific_topic'],
+                            'category': scheduled_topic.get('topic_category', 'general')
+                        }
+                    else:
+                        # 스케줄이 없는 경우 기본 주제 사용
+                        fallback_topics = {
+                            'unpre': {'topic': 'Google Cloud ACE 자격증 가이드', 'category': 'certification'},
+                            'untab': {'topic': '부동산 경매 입찰 전 반드시 확인해야 할 15가지 체크리스트', 'category': 'auction'},
+                            'skewese': {'topic': '4.19혁명과 민주주의 발전', 'category': 'koreanhistory'},
+                            'tistory': {'topic': '2026 월드컵 공동개최, 한국 축구 재도약', 'category': '스포츠'}
+                        }
+                        today_schedule[site] = fallback_topics.get(site, {'topic': '일반 주제', 'category': 'general'})
+                        logger.warning(f"{site}에 대한 스케줄을 찾을 수 없어 기본 주제를 사용합니다.")
+                except Exception as e:
+                    logger.error(f"스케줄 조회 오류 ({site}): {e}")
+                    # 오류 시 기본 주제 사용
+                    fallback_topics = {
+                        'unpre': {'topic': 'Google Cloud ACE 자격증 가이드', 'category': 'certification'},
+                        'untab': {'topic': '부동산 경매 입찰 전 반드시 확인해야 할 15가지 체크리스트', 'category': 'auction'},
+                        'skewese': {'topic': '4.19혁명과 민주주의 발전', 'category': 'koreanhistory'},
+                        'tistory': {'topic': '2026 월드컵 공동개최, 한국 축구 재도약', 'category': '스포츠'}
+                    }
+                    today_schedule[site] = fallback_topics.get(site, {'topic': '일반 주제', 'category': 'general'})
+            
+            logger.info(f"오늘의 스케줄: {today_schedule}")
             
             for i, site in enumerate(sites):
                 try:
@@ -1553,3 +1582,191 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"Server start failed: {e}")
         print("Check .env PostgreSQL settings")
+
+
+@app.route('/api/preview_content/<int:file_id>')
+def preview_content(file_id):
+    """콘텐츠 미리보기 API"""
+    try:
+        db = get_database()
+        conn = db.get_connection()
+        
+        with conn.cursor() as cursor:
+            cursor.execute(f"""
+                SELECT title, file_path, file_type, site, tags, categories
+                FROM {db.schema}.content_files 
+                WHERE id = %s
+            """, (file_id,))
+            
+            file_info = cursor.fetchone()
+            if not file_info:
+                return "파일을 찾을 수 없습니다.", 404
+            
+            title, file_path, file_type, site, tags, categories = file_info
+        
+        # 파일 경로에서 실제 HTML 콘텐츠 읽기
+        from pathlib import Path
+        
+        if file_path == "processing":
+            # 처리중인 경우 간단한 메시지 표시
+            preview_html = f"""
+            <!DOCTYPE html>
+            <html lang="ko">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>처리중 - {title}</title>
+                <style>
+                    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                           line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; }}
+                    .processing {{ text-align: center; color: #6c757d; padding: 50px; }}
+                </style>
+            </head>
+            <body>
+                <div class="processing">
+                    <h1>⏳ 콘텐츠 생성 중...</h1>
+                    <p>현재 AI가 콘텐츠를 생성하고 있습니다. 잠시만 기다려주세요.</p>
+                    <p><strong>제목:</strong> {title}</p>
+                    <p><strong>사이트:</strong> {site.upper()}</p>
+                    <p><strong>타입:</strong> {file_type}</p>
+                </div>
+            </body>
+            </html>
+            """
+            return preview_html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+        
+        html_file = Path(file_path)
+        if not html_file.exists():
+            return f"파일이 존재하지 않습니다: {file_path}", 404
+        
+        # HTML 파일 내용 읽기
+        try:
+            with open(html_file, 'r', encoding='utf-8') as f:
+                html_content = f.read()
+        except UnicodeDecodeError:
+            with open(html_file, 'r', encoding='cp949') as f:
+                html_content = f.read()
+        
+        # 스타일링 개선된 미리보기 HTML 생성
+        preview_html = f"""
+        <!DOCTYPE html>
+        <html lang="ko">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>미리보기 - {title}</title>
+            <style>
+                body {{ 
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                    line-height: 1.8; 
+                    max-width: 800px; 
+                    margin: 0 auto; 
+                    padding: 20px;
+                    color: #333;
+                    background-color: #f8f9fa;
+                }}
+                .preview-header {{
+                    background: white;
+                    padding: 20px;
+                    margin-bottom: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }}
+                .preview-content {{
+                    background: white;
+                    padding: 30px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }}
+                .meta-info {{
+                    font-size: 0.9em;
+                    color: #6c757d;
+                    margin-bottom: 10px;
+                }}
+                h1 {{ color: #2c3e50; margin-bottom: 10px; }}
+                h2, h3 {{ color: #34495e; margin-top: 30px; }}
+                .tag {{ 
+                    display: inline-block; 
+                    background: #007bff; 
+                    color: white; 
+                    padding: 2px 8px; 
+                    border-radius: 4px; 
+                    font-size: 0.8em; 
+                    margin-right: 5px; 
+                }}
+                table {{ 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin: 20px 0; 
+                }}
+                th, td {{ 
+                    border: 1px solid #ddd; 
+                    padding: 12px; 
+                    text-align: left; 
+                }}
+                th {{ 
+                    background-color: #f8f9fa; 
+                    font-weight: 600; 
+                }}
+                .warning {{ 
+                    background: #fff3cd; 
+                    border: 1px solid #ffeaa7; 
+                    color: #856404; 
+                    padding: 10px; 
+                    border-radius: 4px; 
+                    margin-bottom: 20px; 
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="preview-header">
+                <div class="meta-info">
+                    <strong>사이트:</strong> {site.upper()} | 
+                    <strong>타입:</strong> {file_type} | 
+                    <strong>파일 ID:</strong> {file_id}
+                </div>
+                <h1>{title}</h1>
+                <div class="meta-info">
+                    <div style="margin-top: 10px;">
+                        {"".join([f'<span class="tag">{tag}</span>' for tag in (tags or [])]) if tags else ""}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="warning">
+                ⚠️ 이것은 미리보기입니다. 실제 발행된 콘텐츠와 약간 다를 수 있습니다.
+            </div>
+            
+            <div class="preview-content">
+                {html_content}
+            </div>
+        </body>
+        </html>
+        """
+        
+        return preview_html, 200, {'Content-Type': 'text/html; charset=utf-8'}
+        
+    except Exception as e:
+        logger.error(f"미리보기 생성 오류: {e}")
+        import traceback
+        error_html = f"""
+        <!DOCTYPE html>
+        <html lang="ko">
+        <head>
+            <meta charset="UTF-8">
+            <title>미리보기 오류</title>
+            <style>
+                body {{ font-family: monospace; padding: 20px; background: #f8f9fa; }}
+                .error {{ background: #f8d7da; color: #721c24; padding: 20px; border-radius: 8px; }}
+            </style>
+        </head>
+        <body>
+            <div class="error">
+                <h2>❌ 미리보기 생성 중 오류가 발생했습니다</h2>
+                <p><strong>오류 내용:</strong> {str(e)}</p>
+                <pre>{traceback.format_exc()}</pre>
+            </div>
+        </body>
+        </html>
+        """
+        return error_html, 500, {'Content-Type': 'text/html; charset=utf-8'}

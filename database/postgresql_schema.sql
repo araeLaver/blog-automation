@@ -148,7 +148,7 @@ CREATE TABLE IF NOT EXISTS unble.content_files (
     export_format VARCHAR(20) DEFAULT 'html',
     
     CONSTRAINT valid_file_type CHECK (file_type IN ('wordpress', 'tistory', 'markdown', 'json')),
-    CONSTRAINT valid_status_file CHECK (status IN ('draft', 'published', 'archived', 'error'))
+    CONSTRAINT valid_status_file CHECK (status IN ('draft', 'published', 'archived', 'error', 'processing'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_content_files_site_type ON unble.content_files(site, file_type);
