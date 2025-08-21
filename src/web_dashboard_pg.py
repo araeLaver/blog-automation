@@ -1282,29 +1282,21 @@ def quick_publish():
         today = datetime.now()
         day_of_week = today.weekday()  # 0=월요일, 6=일요일
         
-        # 오늘(목요일) 스케줄 직접 매칭 - API에서 확인한 정확한 주제
-        today_schedule = {
-            'unpre': {
-                'topic': 'Google Cloud ACE 자격증 가이드',
-                'category': 'certification',
-                'length': 'medium'
-            },
-            'untab': {
-                'topic': '부동산 경매 입찰 전 반드시 확인해야 할 15가지 체크리스트',
-                'category': 'auction', 
-                'length': 'long'
-            },
-            'skewese': {
-                'topic': '4.19혁명과 민주주의 발전',
-                'category': 'koreanhistory',
-                'length': 'medium'
-            },
-            'tistory': {
-                'topic': '2026 월드컵 공동개최, 한국 축구 재도약',
-                'category': '스포츠',
-                'length': 'medium'
-            }
-        }
+        # 발행계획 API에서 직접 오늘 스케줄 가져오기
+        monday = today - timedelta(days=day_of_week)
+        week_start = monday.strftime('%Y-%m-%d')
+        
+        # /api/schedule/weekly API와 동일한 방식으로 스케줄 가져오기
+        import requests
+        try:
+            schedule_response = requests.get(f'http://localhost:5000/api/schedule/weekly?week_start={week_start}')
+            schedule_api_data = schedule_response.json()
+            logger.info(f"Schedule API response: {schedule_api_data}")
+        except:
+            # 로컬 API 호출 실패 시 schedule_manager 직접 사용
+            from src.utils.schedule_manager import schedule_manager
+            schedule_api_data = schedule_manager.get_weekly_schedule(monday)
+            logger.info(f"Schedule manager response: {schedule_api_data}")
         
         results = {
             'success': True,
@@ -1312,15 +1304,32 @@ def quick_publish():
             'sites': {}
         }
         
-        logger.info(f"Using today's schedule for day {day_of_week}")
-        
-        # 각 사이트별로 콘텐츠 생성 및 발행 (오늘 스케줄 사용)
+        # 각 사이트별로 콘텐츠 생성 및 발행 (발행계획 API 데이터 사용)
         for site in sites:
-            site_plan = today_schedule.get(site, {
-                'topic': f'{site.upper()} 오늘의 핫이슈와 트렌드 분석',
-                'category': 'general',
-                'length': 'medium'
-            })
+            site_plan = None
+            
+            # 발행계획에서 오늘(목요일=3) 스케줄 찾기
+            if schedule_api_data and 'schedule' in schedule_api_data:
+                day_key = str(day_of_week)  # 목요일 = 3
+                if day_key in schedule_api_data['schedule']:
+                    day_data = schedule_api_data['schedule'][day_key]
+                    if 'sites' in day_data and site in day_data['sites']:
+                        site_info = day_data['sites'][site]
+                        site_plan = {
+                            'topic': site_info.get('topic', ''),
+                            'category': site_info.get('category', 'general'),
+                            'length': site_info.get('length', 'medium')
+                        }
+                        logger.info(f"Found schedule for {site}: {site_plan['topic']}")
+            
+            # 스케줄을 찾지 못한 경우 기본값
+            if not site_plan or not site_plan.get('topic'):
+                site_plan = {
+                    'topic': f'{site.upper()} 오늘의 핫이슈와 트렌드 분석',
+                    'category': 'general',
+                    'length': 'medium'
+                }
+                logger.warning(f"No schedule found for {site}, using default: {site_plan['topic']}")
             
             logger.info(f"Publishing {site} with topic: {site_plan['topic']}")
             
