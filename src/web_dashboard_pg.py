@@ -1282,17 +1282,13 @@ def quick_publish():
         today = datetime.now()
         day_of_week = today.weekday()  # 0=월요일, 6=일요일
         
-        # 실제 스케줄 API와 동일하게 데이터 가져오기
+        # 실제 스케줄 API에서 오늘 데이터 가져오기
         monday = today - timedelta(days=day_of_week)
         week_start = monday.strftime('%Y-%m-%d')
         
-        # 오늘 날짜로 스케줄 조회 (목요일=3)
-        today_topics = {
-            'unpre': 'Google Cloud ACE 자격증 완벽 가이드',
-            'untab': '부동산 경매 입찰 전 반드시 확인해야 할 15가지 체크리스트',
-            'skewese': '4.19혁명의 불꽃: 대한민국 민주주의의 새벽을 열다',
-            'tistory': '2026 월드컵 공동개최, 한국 축구 재도약의 기회가 될 수 있을까?'
-        }
+        # schedule_manager를 사용해서 실제 스케줄 가져오기
+        from src.utils.schedule_manager import schedule_manager
+        schedule_data = schedule_manager.get_weekly_schedule(monday)
         
         results = {
             'success': True,
@@ -1300,14 +1296,32 @@ def quick_publish():
             'sites': {}
         }
         
-        # 각 사이트별로 콘텐츠 생성 및 발행 (오늘 계획된 주제 사용)
+        logger.info(f"Today is day {day_of_week}, schedule_data: {schedule_data}")
+        
+        # 각 사이트별로 콘텐츠 생성 및 발행 (실제 스케줄 사용)
         for site in sites:
-            site_plan = {
-                'topic': today_topics.get(site, f'{site.upper()} 오늘의 핫이슈와 트렌드 분석'),
-                'length': 'medium',
-                'category': 'general'
-            }
-            logger.info(f"Using today's planned topic for {site}: {site_plan['topic']}")
+            site_plan = None
+            
+            # 오늘 스케줄에서 실제 주제 가져오기
+            if schedule_data and day_of_week in schedule_data:
+                day_schedule = schedule_data[day_of_week]
+                if 'sites' in day_schedule and site in day_schedule['sites']:
+                    site_info = day_schedule['sites'][site]
+                    site_plan = {
+                        'topic': site_info.get('topic', site_info.get('specific_topic', '')),
+                        'category': site_info.get('category', site_info.get('topic_category', 'general')),
+                        'length': site_info.get('length', site_info.get('target_length', 'medium'))
+                    }
+                    logger.info(f"Found scheduled topic for {site}: {site_plan['topic']}")
+            
+            # 스케줄이 없으면 기본값
+            if not site_plan:
+                site_plan = {
+                    'topic': f'{site.upper()} 오늘의 핫이슈와 트렌드 분석',
+                    'category': 'general',
+                    'length': 'medium'
+                }
+                logger.info(f"No schedule found for {site}, using default: {site_plan['topic']}")
             
             try:
                 # 콘텐츠 생성 및 발행
@@ -1326,9 +1340,29 @@ def quick_publish():
                     exporter = TistoryContentExporter()
                     result = exporter.export(content)
                     
+                    # 데이터베이스에 저장
+                    if result and result.get('success'):
+                        db = get_database()
+                        if db:
+                            try:
+                                db.save_content_file(
+                                    site=site,
+                                    title=content.get('title', site_plan['topic']),
+                                    content=content.get('content', ''),
+                                    file_type='tistory',
+                                    status='published',
+                                    categories=[site_plan.get('category', 'general')],
+                                    tags=content.get('tags', []),
+                                    published_url=result.get('url')
+                                )
+                                logger.info(f"Saved {site} content to database")
+                            except Exception as db_e:
+                                logger.error(f"Database save error for {site}: {db_e}")
+                    
                     results['sites'][site] = {
                         'status': 'success',
-                        'message': f"Tistory 콘텐츠 생성 완료: {site_plan['topic']}"
+                        'message': f"Tistory 콘텐츠 생성 완료: {site_plan['topic']}",
+                        'url': result.get('url') if result else None
                     }
                     
                 elif site in ['unpre', 'untab', 'skewese']:
@@ -1351,9 +1385,29 @@ def quick_publish():
                         category=site_plan.get('category', 'general')
                     )
                     
+                    # 데이터베이스에 저장
+                    if result and result.get('success'):
+                        db = get_database()
+                        if db:
+                            try:
+                                db.save_content_file(
+                                    site=site,
+                                    title=content.get('title', site_plan['topic']),
+                                    content=content.get('content', ''),
+                                    file_type='wordpress',
+                                    status='published',
+                                    categories=[site_plan.get('category', 'general')],
+                                    tags=content.get('tags', []),
+                                    published_url=result.get('url')
+                                )
+                                logger.info(f"Saved {site} content to database")
+                            except Exception as db_e:
+                                logger.error(f"Database save error for {site}: {db_e}")
+                    
                     results['sites'][site] = {
                         'status': 'success',
-                        'message': f"{site.upper()} 콘텐츠 생성 및 발행 완료: {site_plan['topic']}"
+                        'message': f"{site.upper()} 콘텐츠 생성 및 발행 완료: {site_plan['topic']}",
+                        'url': result.get('url') if result else None
                     }
                     
             except Exception as e:
