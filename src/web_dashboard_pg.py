@@ -457,10 +457,14 @@ def generate_wordpress():
         })
             
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         logger.error(f"WordPress generation error: {e}")
+        logger.error(f"Full traceback: {error_details}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'details': error_details
         }), 500
 
 
@@ -539,10 +543,14 @@ def generate_tistory():
         })
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         logger.error(f"Tistory generation error: {e}")
+        logger.error(f"Full traceback: {error_details}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': str(e),
+            'details': error_details
         }), 500
 
 
