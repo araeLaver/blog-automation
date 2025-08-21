@@ -1099,16 +1099,16 @@
         // 차트 업데이트
         async function updateCharts() {
             try {
-                // 차트 데이터 API 호출
-                const chartRes = await fetch('/api/chart_data');
-                if (!chartRes.ok) {
-                    throw new Error(`HTTP ${chartRes.status}`);
+                // 일별 차트 데이터 API 호출
+                const dailyRes = await fetch('/api/chart/daily');
+                if (!dailyRes.ok) {
+                    throw new Error(`HTTP ${dailyRes.status}`);
                 }
-                const chartData = await chartRes.json();
+                const dailyData = await dailyRes.json();
             
                 // 일별 차트 데이터 준비
-                const dailyLabels = chartData.daily ? chartData.daily.map(item => item.date) : [];
-                const dailyValues = chartData.daily ? chartData.daily.map(item => item.count) : [];
+                const dailyLabels = dailyData.labels || [];
+                const dailyValues = dailyData.data || [];
                 
                 const ctx1 = document.getElementById('dailyChart').getContext('2d');
                 if (dailyChart) dailyChart.destroy();
@@ -1134,9 +1134,16 @@
                     }
                 });
                 
+                // 사이트별 차트 데이터 API 호출
+                const siteRes = await fetch('/api/chart/site');
+                if (!siteRes.ok) {
+                    throw new Error(`HTTP ${siteRes.status}`);
+                }
+                const siteData = await siteRes.json();
+                
                 // 사이트별 차트 데이터 준비
-                const siteLabels = chartData.bySite ? Object.keys(chartData.bySite) : [];
-                const siteValues = chartData.bySite ? Object.values(chartData.bySite) : [];
+                const siteLabels = siteData.labels || [];
+                const siteValues = siteData.data || [];
                 
                 const ctx2 = document.getElementById('siteChart').getContext('2d');
                 if (siteChart) siteChart.destroy();
