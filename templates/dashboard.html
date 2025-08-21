@@ -2473,7 +2473,7 @@
         function displayWeeklySchedule(scheduleData) {
             const container = document.getElementById('weekly-schedule-content');
             
-            if (!scheduleData || (Array.isArray(scheduleData) && scheduleData.length === 0)) {
+            if (!scheduleData || !scheduleData.schedule) {
                 container.innerHTML = `
                     <div class="text-center py-4">
                         <div class="text-muted mb-3">
@@ -2488,110 +2488,55 @@
                 return;
             }
             
-            // scheduleData가 객체인 경우 (새로운 API 형식)
-            if (typeof scheduleData === 'object' && !Array.isArray(scheduleData)) {
-                let html = '<div class="schedule-week-view">';
-                
-                for (const [date, daySchedule] of Object.entries(scheduleData)) {
-                    const dayName = new Date(date + 'T00:00:00').toLocaleDateString('ko-KR', { weekday: 'short' });
-                    html += `
-                        <div class="schedule-day mb-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <strong>${date} (${dayName})</strong>
-                                <span class="badge bg-primary">매일 03:00</span>
-                            </div>
-                            <div class="schedule-sites">
-                    `;
-                    
-                    for (const [site, info] of Object.entries(daySchedule)) {
-                        const statusBadge = info.status === 'scheduled' ? 
-                            '<span class="badge bg-success">예정</span>' : 
-                            '<span class="badge bg-secondary">완료</span>';
-                        
-                        html += `
-                            <div class="site-schedule mb-1">
-                                <small>
-                                    <strong>${site}</strong> (${info.time}) 
-                                    ${statusBadge}
-                                    <br>
-                                    <span class="text-muted">주제: ${info.topic || '자동 선택'}</span>
-                                </small>
-                            </div>
-                        `;
-                    }
-                    
-                    html += `
-                            </div>
-                        </div>
-                        <hr>
-                    `;
-                }
-                
-                html += '</div>';
-                container.innerHTML = html;
-                return;
-            }
+            let html = `
+                <div class="schedule-week-view">
+                    <div class="text-center mb-3">
+                        <h5><i class="bi bi-calendar-week"></i> ${scheduleData.week_start} 주간 발행 계획</h5>
+                    </div>
+            `;
             
-            let html = `<div class="schedule-week mb-2">
-                            <small class="text-muted">📅 ${scheduleData.week_start} 주</small>
-                        </div>`;
-            
-            const statusColors = {
-                'planned': 'secondary',
-                'generating': 'warning',
-                'published': 'success',
-                'failed': 'danger'
-            };
-            
-            const statusTexts = {
-                'planned': '예정',
-                'generating': '생성중',
-                'published': '발행완료',
-                'failed': '실패'
-            };
-            
-            // 요일별로 표시
-            for (let day = 0; day < 7; day++) {
-                const dayInfo = scheduleData.schedule[day];
-                if (!dayInfo) continue;
-                
+            // scheduleData.schedule 객체를 순회
+            for (const [dayNum, dayData] of Object.entries(scheduleData.schedule)) {
                 html += `
-                    <div class="schedule-day mb-3 p-2 border-start border-primary border-3">
+                    <div class="schedule-day mb-3 p-3 border rounded">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <strong>${dayInfo.day_name}</strong>
-                            <small class="text-muted">${dayInfo.date}</small>
+                            <strong>${dayData.day_name} (${dayData.date})</strong>
+                            <span class="badge bg-primary">매일 03:00</span>
                         </div>
+                        <div class="schedule-sites">
                 `;
                 
-                // 사이트별 계획 표시
-                const sites = ['unpre', 'untab', 'skewese', 'tistory'];
-                for (const site of sites) {
-                    const plan = dayInfo.sites[site];
-                    if (plan) {
-                        const statusClass = statusColors[plan.status] || 'secondary';
-                        const statusText = statusTexts[plan.status] || plan.status;
-                        
-                        html += `
-                            <div class="schedule-item mb-2 p-2 bg-light rounded">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <div class="site-badge site-${site} mb-1">${site.toUpperCase()}</div>
-                                        <div class="fw-bold small">${plan.topic}</div>
-                                        <div class="text-muted small">
-                                            ${plan.keywords ? plan.keywords.join(', ') : ''}
-                                        </div>
-                                    </div>
-                                    <span class="badge bg-${statusClass}">${statusText}</span>
+                // 사이트별 스케줄 표시
+                for (const [site, siteData] of Object.entries(dayData.sites)) {
+                    const statusColor = siteData.status === 'published' ? 'success' : 
+                                       siteData.status === 'generated' ? 'warning' : 'secondary';
+                    const statusText = siteData.status === 'published' ? '발행완료' : 
+                                      siteData.status === 'generated' ? '생성완료' : '예정';
+                    
+                    html += `
+                        <div class="site-schedule mb-2 p-2 bg-light rounded">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong class="text-primary">${site.toUpperCase()}</strong>
+                                    <span class="badge bg-${statusColor} ms-2">${statusText}</span>
+                                    <br>
+                                    <small class="text-muted">카테고리: ${siteData.category}</small>
+                                    <br>
+                                    <span class="text-dark">${siteData.topic}</span>
+                                    ${siteData.url ? `<br><a href="${siteData.url}" target="_blank" class="small text-decoration-none">🔗 발행된 글 보기</a>` : ''}
                                 </div>
-                                ${plan.url ? `<div class="mt-1"><a href="${plan.url}" target="_blank" class="small text-decoration-none">🔗 발행된 글 보기</a></div>` : ''}
                             </div>
-                        `;
-                    }
+                        </div>
+                    `;
                 }
                 
-                html += '</div>';
+                html += `
+                        </div>
+                    </div>
+                `;
             }
             
+            html += '</div>';
             container.innerHTML = html;
         }
 
