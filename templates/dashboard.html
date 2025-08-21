@@ -2307,12 +2307,12 @@
                 const clonedData = JSON.parse(JSON.stringify(scheduleData));
                 console.log('Cloned data for display:', clonedData);
                 
-                displayScheduleOverview(clonedData, weekType);
+                displayWeeklySchedule(clonedData);
                 
             } catch (error) {
                 console.error('스케줄 로드 오류:', error);
-                document.getElementById('schedule-overview-content').innerHTML = 
-                    '<div class="text-center text-muted">스케줄을 불러올 수 없습니다.</div>';
+                const container = document.getElementById('weekly-schedule-content') || document.getElementById('schedule-overview-content');
+                container.innerHTML = '<div class="text-center text-muted">스케줄을 불러올 수 없습니다.</div>';
             }
         }
 
@@ -2480,7 +2480,7 @@
         // 스케줄 표시
         function displayWeeklySchedule(scheduleData) {
             console.log('🎨 displayWeeklySchedule 시작', scheduleData);
-            const container = document.getElementById('weekly-schedule-content');
+            const container = document.getElementById('weekly-schedule-content') || document.getElementById('schedule-overview-content');
             
             if (!scheduleData || !scheduleData.schedule) {
                 console.log('❌ 스케줄 데이터 없음:', !scheduleData, !scheduleData?.schedule);
