@@ -2458,8 +2458,16 @@
             const startDate = weekPicker.value || getThisMonday();
             
             try {
+                console.log('📅 스케줄 로딩 시작:', startDate);
                 const response = await fetch(`/api/schedule/weekly?week_start=${startDate}`);
                 const scheduleData = await response.json();
+                
+                console.log('📊 API 응답 데이터:', scheduleData);
+                console.log('📊 schedule 키 존재:', !!scheduleData.schedule);
+                console.log('📊 schedule 타입:', typeof scheduleData.schedule);
+                if (scheduleData.schedule) {
+                    console.log('📊 schedule 키들:', Object.keys(scheduleData.schedule));
+                }
                 
                 displayWeeklySchedule(scheduleData);
             } catch (error) {
@@ -2471,9 +2479,11 @@
 
         // 스케줄 표시
         function displayWeeklySchedule(scheduleData) {
+            console.log('🎨 displayWeeklySchedule 시작', scheduleData);
             const container = document.getElementById('weekly-schedule-content');
             
             if (!scheduleData || !scheduleData.schedule) {
+                console.log('❌ 스케줄 데이터 없음:', !scheduleData, !scheduleData?.schedule);
                 container.innerHTML = `
                     <div class="text-center py-4">
                         <div class="text-muted mb-3">
@@ -2496,7 +2506,11 @@
             `;
             
             // scheduleData.schedule 객체를 순회
+            console.log('🔄 스케줄 데이터 순회 시작');
+            let dayCount = 0;
             for (const [dayNum, dayData] of Object.entries(scheduleData.schedule)) {
+                console.log(`📅 Day ${dayNum}:`, dayData);
+                dayCount++;
                 html += `
                     <div class="schedule-day mb-3 p-3 border rounded">
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -2537,7 +2551,11 @@
             }
             
             html += '</div>';
+            console.log('✅ 최종 HTML 길이:', html.length);
+            console.log('✅ 처리된 일 수:', dayCount);
+            console.log('🎯 컨테이너에 HTML 설정 중...');
             container.innerHTML = html;
+            console.log('🎉 스케줄 표시 완료!');
         }
 
         // 수동 발행 트리거
