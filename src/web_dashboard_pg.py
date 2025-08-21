@@ -1300,6 +1300,118 @@ def publish_scheduled_content(site: str, plan: dict) -> bool:
         return False
 
 
+@app.route('/api/quick_publish', methods=['POST'])
+def quick_publish():
+    """빠른 수동 발행 API - 오늘 예정된 콘텐츠를 즉시 생성 및 발행"""
+    try:
+        data = request.json
+        sites = data.get('sites', ['unpre', 'untab', 'skewese', 'tistory'])
+        
+        logger.info(f"Quick publish requested for sites: {sites}")
+        
+        # 오늘 날짜
+        today = datetime.now()
+        day_of_week = today.weekday()  # 0=월요일, 6=일요일
+        
+        # 스케줄 매니저 가져오기
+        from src.utils.schedule_manager import schedule_manager
+        
+        # 이번 주 스케줄 가져오기
+        monday = today - timedelta(days=day_of_week)
+        week_schedule = schedule_manager.get_week_schedule(monday.strftime('%Y-%m-%d'))
+        
+        results = {
+            'success': True,
+            'message': '수동 발행이 시작되었습니다',
+            'sites': {}
+        }
+        
+        # 오늘 스케줄된 사이트들 처리
+        if week_schedule and str(day_of_week) in week_schedule:
+            today_schedule = week_schedule[str(day_of_week)]
+            
+            for site in sites:
+                if site in today_schedule.get('sites', {}):
+                    site_plan = today_schedule['sites'][site]
+                    
+                    try:
+                        # 콘텐츠 생성 및 발행
+                        if site == 'tistory':
+                            # Tistory 처리
+                            from src.generators.content_generator import ContentGenerator
+                            from src.generators.tistory_content_exporter import TistoryContentExporter
+                            
+                            generator = ContentGenerator()
+                            content = generator.generate_content(
+                                topic=site_plan['topic'],
+                                keywords=site_plan.get('keywords', []),
+                                content_type='blog_post',
+                                target_length=site_plan.get('length', 'medium')
+                            )
+                            
+                            exporter = TistoryContentExporter()
+                            result = exporter.export(content)
+                            
+                            results['sites'][site] = {
+                                'status': 'success',
+                                'message': f"Tistory 콘텐츠 생성 완료: {site_plan['topic']}"
+                            }
+                            
+                        elif site in ['unpre', 'untab', 'skewese']:
+                            # WordPress 사이트 처리
+                            from src.generators.content_generator import ContentGenerator
+                            from src.generators.wordpress_content_exporter import WordPressContentExporter
+                            
+                            generator = ContentGenerator()
+                            content = generator.generate_content(
+                                topic=site_plan['topic'],
+                                keywords=site_plan.get('keywords', []),
+                                content_type='blog_post',
+                                target_length=site_plan.get('length', 'medium'),
+                                site_name=site
+                            )
+                            
+                            exporter = WordPressContentExporter()
+                            result = exporter.export(
+                                content=content,
+                                site_name=site,
+                                category=site_plan.get('category', 'general')
+                            )
+                            
+                            results['sites'][site] = {
+                                'status': 'success',
+                                'message': f"{site.upper()} 콘텐츠 생성 및 발행 완료: {site_plan['topic']}"
+                            }
+                            
+                    except Exception as e:
+                        logger.error(f"Site {site} publish error: {e}")
+                        results['sites'][site] = {
+                            'status': 'error',
+                            'message': str(e)
+                        }
+                else:
+                    results['sites'][site] = {
+                        'status': 'skipped',
+                        'message': '오늘 스케줄 없음'
+                    }
+        else:
+            results['success'] = False
+            results['message'] = '오늘 발행 예정인 콘텐츠가 없습니다'
+            
+        return jsonify(results)
+        
+    except Exception as e:
+        logger.error(f"Quick publish error: {e}")
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"Full traceback: {error_details}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'details': error_details
+        }), 500
+
+
 # 에러 핸들러
 @app.errorhandler(Exception)
 def handle_exception(e):
