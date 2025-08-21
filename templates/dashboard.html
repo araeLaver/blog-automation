@@ -2311,7 +2311,7 @@
                 
             } catch (error) {
                 console.error('스케줄 로드 오류:', error);
-                const container = document.getElementById('weekly-schedule-content') || document.getElementById('schedule-overview-content');
+                const container = document.getElementById('schedule-overview-content') || document.getElementById('weekly-schedule-content');
                 container.innerHTML = '<div class="text-center text-muted">스케줄을 불러올 수 없습니다.</div>';
             }
         }
@@ -2483,7 +2483,7 @@
             console.log('🔍 Container search: weekly-schedule-content exists?', !!document.getElementById('weekly-schedule-content'));
             console.log('🔍 Container search: schedule-overview-content exists?', !!document.getElementById('schedule-overview-content'));
             
-            const container = document.getElementById('weekly-schedule-content') || document.getElementById('schedule-overview-content');
+            const container = document.getElementById('schedule-overview-content') || document.getElementById('weekly-schedule-content');
             console.log('✅ Selected container:', container);
             
             if (!scheduleData || !scheduleData.schedule) {
