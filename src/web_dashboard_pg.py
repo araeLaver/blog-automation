@@ -1326,77 +1326,81 @@ def quick_publish():
             'sites': {}
         }
         
-        # 오늘 스케줄된 사이트들 처리
-        if week_schedule and str(day_of_week) in week_schedule:
-            today_schedule = week_schedule[str(day_of_week)]
+        # 각 사이트별로 콘텐츠 생성 및 발행 (스케줄 확인 후 대체 로직)
+        for site in sites:
+            site_plan = None
             
-            for site in sites:
+            # 먼저 스케줄된 내용 확인
+            if week_schedule and str(day_of_week) in week_schedule:
+                today_schedule = week_schedule[str(day_of_week)]
                 if site in today_schedule.get('sites', {}):
                     site_plan = today_schedule['sites'][site]
+            
+            # 스케줄이 없으면 기본 토픽으로 생성
+            if not site_plan:
+                site_plan = {
+                    'topic': f'{site.upper()} 오늘의 핫이슈와 트렌드 분석',
+                    'keywords': ['트렌드', '분석', '최신'],
+                    'length': 'medium',
+                    'category': 'general'
+                }
+                logger.info(f"No schedule for {site}, using default topic: {site_plan['topic']}")
+            
+            try:
+                # 콘텐츠 생성 및 발행
+                if site == 'tistory':
+                    # Tistory 처리
+                    from src.generators.content_generator import ContentGenerator
+                    from src.generators.tistory_content_exporter import TistoryContentExporter
                     
-                    try:
-                        # 콘텐츠 생성 및 발행
-                        if site == 'tistory':
-                            # Tistory 처리
-                            from src.generators.content_generator import ContentGenerator
-                            from src.generators.tistory_content_exporter import TistoryContentExporter
-                            
-                            generator = ContentGenerator()
-                            content = generator.generate_content(
-                                topic=site_plan['topic'],
-                                keywords=site_plan.get('keywords', []),
-                                content_type='blog_post',
-                                target_length=site_plan.get('length', 'medium')
-                            )
-                            
-                            exporter = TistoryContentExporter()
-                            result = exporter.export(content)
-                            
-                            results['sites'][site] = {
-                                'status': 'success',
-                                'message': f"Tistory 콘텐츠 생성 완료: {site_plan['topic']}"
-                            }
-                            
-                        elif site in ['unpre', 'untab', 'skewese']:
-                            # WordPress 사이트 처리
-                            from src.generators.content_generator import ContentGenerator
-                            from src.generators.wordpress_content_exporter import WordPressContentExporter
-                            
-                            generator = ContentGenerator()
-                            content = generator.generate_content(
-                                topic=site_plan['topic'],
-                                keywords=site_plan.get('keywords', []),
-                                content_type='blog_post',
-                                target_length=site_plan.get('length', 'medium'),
-                                site_name=site
-                            )
-                            
-                            exporter = WordPressContentExporter()
-                            result = exporter.export(
-                                content=content,
-                                site_name=site,
-                                category=site_plan.get('category', 'general')
-                            )
-                            
-                            results['sites'][site] = {
-                                'status': 'success',
-                                'message': f"{site.upper()} 콘텐츠 생성 및 발행 완료: {site_plan['topic']}"
-                            }
-                            
-                    except Exception as e:
-                        logger.error(f"Site {site} publish error: {e}")
-                        results['sites'][site] = {
-                            'status': 'error',
-                            'message': str(e)
-                        }
-                else:
+                    generator = ContentGenerator()
+                    content = generator.generate_content(
+                        topic=site_plan['topic'],
+                        keywords=site_plan.get('keywords', []),
+                        content_type='blog_post',
+                        target_length=site_plan.get('length', 'medium')
+                    )
+                    
+                    exporter = TistoryContentExporter()
+                    result = exporter.export(content)
+                    
                     results['sites'][site] = {
-                        'status': 'skipped',
-                        'message': '오늘 스케줄 없음'
+                        'status': 'success',
+                        'message': f"Tistory 콘텐츠 생성 완료: {site_plan['topic']}"
                     }
-        else:
-            results['success'] = False
-            results['message'] = '오늘 발행 예정인 콘텐츠가 없습니다'
+                    
+                elif site in ['unpre', 'untab', 'skewese']:
+                    # WordPress 사이트 처리
+                    from src.generators.content_generator import ContentGenerator
+                    from src.generators.wordpress_content_exporter import WordPressContentExporter
+                    
+                    generator = ContentGenerator()
+                    content = generator.generate_content(
+                        topic=site_plan['topic'],
+                        keywords=site_plan.get('keywords', []),
+                        content_type='blog_post',
+                        target_length=site_plan.get('length', 'medium'),
+                        site_name=site
+                    )
+                    
+                    exporter = WordPressContentExporter()
+                    result = exporter.export(
+                        content=content,
+                        site_name=site,
+                        category=site_plan.get('category', 'general')
+                    )
+                    
+                    results['sites'][site] = {
+                        'status': 'success',
+                        'message': f"{site.upper()} 콘텐츠 생성 및 발행 완료: {site_plan['topic']}"
+                    }
+                    
+            except Exception as e:
+                logger.error(f"Site {site} publish error: {e}")
+                results['sites'][site] = {
+                    'status': 'error',
+                    'message': str(e)
+                }
             
         return jsonify(results)
         
