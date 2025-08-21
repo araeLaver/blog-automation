@@ -2718,21 +2718,23 @@
                         
                         // 완료된 사이트 결과 표시
                         resultsUl.innerHTML = '';
-                        status.results.forEach(result => {
-                            const li = document.createElement('li');
-                            li.className = result.success ? 'text-success' : 'text-danger';
-                            
-                            let resultText = `${result.site.toUpperCase()}: ${result.message}`;
-                            if (result.topic) {
-                                resultText += ` (주제: ${result.topic})`;
-                            }
-                            if (result.url) {
-                                resultText += ` - <a href="${result.url}" target="_blank">발행된 글 보기</a>`;
-                            }
-                            
-                            li.innerHTML = resultText;
-                            resultsUl.appendChild(li);
-                        });
+                        if (status.results && Array.isArray(status.results)) {
+                            status.results.forEach(result => {
+                                const li = document.createElement('li');
+                                li.className = result.success ? 'text-success' : 'text-danger';
+                                
+                                let resultText = `${result.site.toUpperCase()}: ${result.message}`;
+                                if (result.topic) {
+                                    resultText += ` (주제: ${result.topic})`;
+                                }
+                                if (result.url) {
+                                    resultText += ` - <a href="${result.url}" target="_blank">발행된 글 보기</a>`;
+                                }
+                                
+                                li.innerHTML = resultText;
+                                resultsUl.appendChild(li);
+                            });
+                        }
                         
                         if (!status.in_progress) {
                             // 완료되면 폴링 중지

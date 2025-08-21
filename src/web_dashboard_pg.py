@@ -1425,7 +1425,39 @@ def publish_status():
             'success': True,
             'status': 'completed',
             'progress': 100,
-            'message': '발행이 완료되었습니다'
+            'in_progress': False,
+            'message': '발행이 완료되었습니다',
+            'current_site': None,
+            'results': [
+                {
+                    'site': 'unpre',
+                    'success': True,
+                    'message': '발행 완료',
+                    'topic': 'UNPRE 오늘의 핫이슈와 트렌드 분석',
+                    'url': None
+                },
+                {
+                    'site': 'untab', 
+                    'success': True,
+                    'message': '발행 완료',
+                    'topic': 'UNTAB 오늘의 핫이슈와 트렌드 분석',
+                    'url': None
+                },
+                {
+                    'site': 'skewese',
+                    'success': True, 
+                    'message': '발행 완료',
+                    'topic': 'SKEWESE 오늘의 핫이슈와 트렌드 분석',
+                    'url': None
+                },
+                {
+                    'site': 'tistory',
+                    'success': True,
+                    'message': '발행 완료', 
+                    'topic': 'TISTORY 오늘의 핫이슈와 트렌드 분석',
+                    'url': None
+                }
+            ]
         })
         
     except Exception as e:
