@@ -2097,7 +2097,7 @@
             showNotification(`${selectedIds.length}개 파일 삭제 중...`, 'info');
             
             try {
-                const res = await fetch('/api/bulk_delete_files', {
+                const res = await fetch(`${window.location.origin}/api/bulk_delete_files`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2106,6 +2106,10 @@
                         file_ids: selectedIds
                     })
                 });
+                
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
                 
                 const result = await res.json();
                 

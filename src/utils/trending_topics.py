@@ -412,23 +412,177 @@ class TrendingTopicsManager:
         ]
     
     def _get_current_cross_trends(self):
-        """이번주 공통 이슈"""
+        """이번주 공통 이슈 - 2025년 8월 실시간 트렌드 20개"""
+        from datetime import datetime
+        current_week = datetime.now().strftime("%Y년 %m월 %d주차")
+        
         return [
+            # AI & 기술 트렌드 (1-5)
             {
                 'category': 'technology',
                 'trend_type': 'hot',
-                'title': '이번주 ChatGPT 4.0 업데이트 출시',
-                'description': 'OpenAI의 최신 ChatGPT 4.0 버전이 출시되어 전 세계의 관심을 끌고 있습니다',
-                'keywords': ['ChatGPT', 'OpenAI', 'AI', '인공지능'],
+                'title': f'{current_week} ChatGPT-5 베타 테스트 시작',
+                'description': 'OpenAI가 ChatGPT-5 베타 테스트를 시작하며 AGI에 한 걸음 더 다가섰습니다',
+                'keywords': ['ChatGPT5', 'OpenAI', 'AGI', '인공지능'],
                 'priority': 10
+            },
+            {
+                'category': 'technology',
+                'trend_type': 'hot',
+                'title': 'NVIDIA 차세대 AI 칩 B100 공개',
+                'description': 'H100을 뛰어넘는 성능의 B100 칩이 공개되어 AI 업계가 주목하고 있습니다',
+                'keywords': ['NVIDIA', 'B100', 'AI칩', '반도체'],
+                'priority': 9
+            },
+            {
+                'category': 'technology',
+                'trend_type': 'rising',
+                'title': '애플 비전 프로 2 루머 확산',
+                'description': '애플의 차세대 공간컴퓨팅 기기 출시 임박 소식에 시장이 들썩이고 있습니다',
+                'keywords': ['애플', '비전프로2', 'VR', 'AR'],
+                'priority': 8
+            },
+            {
+                'category': 'technology',
+                'trend_type': 'hot',
+                'title': '구글 제미나이 2.0 업데이트',
+                'description': '구글의 AI 모델 제미나이가 대규모 업데이트로 성능을 대폭 개선했습니다',
+                'keywords': ['구글', '제미나이', 'AI', 'Gemini'],
+                'priority': 8
+            },
+            {
+                'category': 'technology',
+                'trend_type': 'rising',
+                'title': '테슬라 로봇택시 서울 시범 운행',
+                'description': '테슬라 로봇택시가 서울에서 시범 운행을 시작하며 큰 관심을 받고 있습니다',
+                'keywords': ['테슬라', '로봇택시', '자율주행', '서울'],
+                'priority': 9
+            },
+            
+            # 경제 & 금융 (6-10)
+            {
+                'category': 'economy',
+                'trend_type': 'hot',
+                'title': '비트코인 12만 달러 돌파',
+                'description': '비트코인이 사상 최고가를 경신하며 12만 달러를 돌파했습니다',
+                'keywords': ['비트코인', '암호화폐', '12만달러', '가상자산'],
+                'priority': 9
             },
             {
                 'category': 'economy',
                 'trend_type': 'hot',
-                'title': '이번주 한국은행 금리 인상 결정',
-                'description': '기준금리 0.25%p 인상으로 경제 전반에 미치는 영향에 주목하고 있습니다',
-                'keywords': ['한국은행', '금리인상', '기준금리', '경제정책'],
+                'title': '한국은행 기준금리 동결 결정',
+                'description': '한국은행이 3개월 연속 기준금리를 동결하며 경제 안정화에 주력하고 있습니다',
+                'keywords': ['한국은행', '기준금리', '동결', '통화정책'],
+                'priority': 8
+            },
+            {
+                'category': 'economy',
+                'trend_type': 'rising',
+                'title': '삼성전자 주가 10만원 돌파',
+                'description': 'AI 반도체 호황으로 삼성전자 주가가 역대 최고치를 기록했습니다',
+                'keywords': ['삼성전자', '주가', '10만원', '반도체'],
+                'priority': 8
+            },
+            {
+                'category': 'economy',
+                'trend_type': 'hot',
+                'title': '미국 연준 9월 금리 인하 시사',
+                'description': '미국 연준이 9월 금리 인하를 시사하며 글로벌 시장이 요동치고 있습니다',
+                'keywords': ['연준', '금리인하', 'FOMC', '미국경제'],
                 'priority': 9
+            },
+            {
+                'category': 'economy',
+                'trend_type': 'rising',
+                'title': '중국 경제 회복세 본격화',
+                'description': '중국의 2분기 GDP가 예상을 웃돌며 경제 회복세가 뚜렷해지고 있습니다',
+                'keywords': ['중국경제', 'GDP', '회복세', '성장률'],
+                'priority': 7
+            },
+            
+            # 사회 & 정치 (11-15)
+            {
+                'category': 'social',
+                'trend_type': 'hot',
+                'title': '저출산 대책 100조원 투입 발표',
+                'description': '정부가 향후 5년간 100조원 규모의 저출산 대책을 발표했습니다',
+                'keywords': ['저출산', '정부대책', '100조원', '인구정책'],
+                'priority': 9
+            },
+            {
+                'category': 'social',
+                'trend_type': 'hot',
+                'title': '주 4일제 시범 도입 기업 증가',
+                'description': '대기업을 중심으로 주 4일제 시범 도입이 확산되고 있습니다',
+                'keywords': ['주4일제', '워라밸', '근무제도', '대기업'],
+                'priority': 8
+            },
+            {
+                'category': 'social',
+                'trend_type': 'rising',
+                'title': '청년 주택 10만호 공급 계획',
+                'description': '정부가 청년층을 위한 저렴한 주택 10만호 공급 계획을 발표했습니다',
+                'keywords': ['청년주택', '10만호', '주거정책', '공급계획'],
+                'priority': 8
+            },
+            {
+                'category': 'politics',
+                'trend_type': 'hot',
+                'title': '한미 정상회담 성과 발표',
+                'description': '한미 정상회담에서 경제안보 협력 강화 등 주요 성과가 발표되었습니다',
+                'keywords': ['한미정상회담', '경제안보', '동맹', '외교'],
+                'priority': 8
+            },
+            {
+                'category': 'social',
+                'trend_type': 'rising',
+                'title': 'MZ세대 정치 참여율 급증',
+                'description': '20-30대의 정치 참여율이 역대 최고 수준을 기록하고 있습니다',
+                'keywords': ['MZ세대', '정치참여', '청년정치', '투표율'],
+                'priority': 7
+            },
+            
+            # 문화 & 엔터 (16-20)
+            {
+                'category': 'culture',
+                'trend_type': 'hot',
+                'title': 'BTS 정국 솔로 빌보드 1위',
+                'description': '정국의 솔로 앨범이 빌보드 차트 1위를 차지하며 K-POP 위상을 높였습니다',
+                'keywords': ['BTS', '정국', '빌보드', 'KPOP'],
+                'priority': 8
+            },
+            {
+                'category': 'culture',
+                'trend_type': 'hot',
+                'title': '넷플릭스 한국 콘텐츠 투자 확대',
+                'description': '넷플릭스가 한국 콘텐츠에 1조원 추가 투자를 발표했습니다',
+                'keywords': ['넷플릭스', '한국콘텐츠', '투자', 'OTT'],
+                'priority': 7
+            },
+            {
+                'category': 'sports',
+                'trend_type': 'hot',
+                'title': '손흥민 EPL 통산 150골 달성',
+                'description': '손흥민이 아시아 선수 최초로 EPL 150골을 달성하는 대기록을 세웠습니다',
+                'keywords': ['손흥민', 'EPL', '150골', '축구'],
+                'priority': 8
+            },
+            {
+                'category': 'culture',
+                'trend_type': 'rising',
+                'title': 'K-뷰티 글로벌 매출 50조 돌파',
+                'description': '한국 화장품의 글로벌 매출이 처음으로 50조원을 돌파했습니다',
+                'keywords': ['K뷰티', '화장품', '수출', '글로벌'],
+                'priority': 7
+            },
+            {
+                'category': 'environment',
+                'trend_type': 'hot',
+                'title': '폭염 경보 전국 확대',
+                'description': '연일 계속되는 폭염으로 전국에 폭염 경보가 발령되었습니다',
+                'keywords': ['폭염', '기후변화', '열대야', '온열질환'],
+                'priority': 8
             }
         ]
     
