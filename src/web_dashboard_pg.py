@@ -46,6 +46,16 @@ logger = logging.getLogger(__name__)
 # 전역 데이터베이스 인스턴스
 database = None
 
+# 전역 발행 상태 관리
+publish_status_global = {
+    'in_progress': False,
+    'current_site': None,
+    'progress': 0,
+    'results': [],
+    'total_sites': 0,
+    'completed_sites': 0
+}
+
 def get_target_audience_by_category(category: str) -> str:
     """카테고리별 타겟 독자 반환"""
     audience_map = {
@@ -1271,18 +1281,38 @@ def publish_scheduled_content(site: str, plan: dict) -> bool:
 
 @app.route('/api/quick_publish', methods=['POST'])
 def quick_publish():
-    """빠른 수동 발행 API - 즉시 응답, 백그라운드 처리로 524 타임아웃 방지"""
+    """빠른 수동 발행 API - 실시간 진행상황과 중복 방지"""
+    global publish_status_global
+    
     try:
         data = request.json
         sites = data.get('sites', ['unpre', 'untab', 'skewese', 'tistory'])
         
-        logger.info(f"Quick publish requested for sites: {sites}")
+        # 중복 실행 방지
+        if publish_status_global['in_progress']:
+            return jsonify({
+                'success': False,
+                'error': '이미 발행이 진행 중입니다. 잠시만 기다려주세요.'
+            }), 400
         
-        # 백그라운드에서 처리할 작업 시작
+        # 상태 초기화
+        publish_status_global.update({
+            'in_progress': True,
+            'current_site': None,
+            'progress': 0,
+            'results': [],
+            'total_sites': len(sites),
+            'completed_sites': 0
+        })
+        
+        logger.info(f"Quick publish started for sites: {sites}")
+        
         import threading
         
         def background_publish():
-            """백그라운드에서 실제 콘텐츠 생성"""
+            """백그라운드에서 실제 콘텐츠 생성 - 실시간 상태 업데이트"""
+            global publish_status_global
+            
             today_schedule = {
                 'unpre': {'topic': 'Google Cloud ACE 자격증 가이드', 'category': 'certification'},
                 'untab': {'topic': '부동산 경매 입찰 전 반드시 확인해야 할 15가지 체크리스트', 'category': 'auction'},
@@ -1290,9 +1320,23 @@ def quick_publish():
                 'tistory': {'topic': '2026 월드컵 공동개최, 한국 축구 재도약', 'category': '스포츠'}
             }
             
-            for site in sites:
+            for i, site in enumerate(sites):
                 try:
-                    logger.info(f"Starting background generation for {site}")
+                    # 현재 사이트 상태 업데이트
+                    publish_status_global['current_site'] = site
+                    publish_status_global['progress'] = int((i / len(sites)) * 100)
+                    
+                    logger.info(f"Starting generation for {site} ({i+1}/{len(sites)})")
+                    
+                    # 먼저 처리중 상태로 목록에 추가
+                    db = get_database()
+                    processing_file_id = db.add_content_file(
+                        site=site,
+                        title=f"[생성중] {today_schedule[site]['topic']}",
+                        file_path="processing",
+                        file_type="wordpress" if site != 'tistory' else 'tistory',
+                        metadata={'status': 'processing', 'category': today_schedule[site]['category']}
+                    )
                     
                     if site == 'tistory':
                         from src.generators.content_generator import ContentGenerator
@@ -1315,7 +1359,8 @@ def quick_publish():
                         content = generator.generate_content(site_config, topic, category, content_length='medium')
                         filepath = exporter.export_content(content)
                         
-                        db = get_database()
+                        # 처리중 항목 삭제하고 완성된 항목 추가
+                        db.delete_content_file(processing_file_id)
                         file_id = db.add_content_file(
                             site='tistory',
                             title=content['title'],
@@ -1323,8 +1368,6 @@ def quick_publish():
                             file_type="tistory",
                             metadata={'category': category, 'tags': content.get('tags', [])}
                         )
-                        
-                        logger.info(f"Completed {site}: {topic} (file_id: {file_id})")
                         
                     elif site in ['unpre', 'untab', 'skewese']:
                         from src.generators.content_generator import ContentGenerator
@@ -1347,7 +1390,8 @@ def quick_publish():
                         content = generator.generate_content(site_config, topic, category, content_length='medium')
                         filepath = exporter.export_content(site, content)
                         
-                        db = get_database()
+                        # 처리중 항목 삭제하고 완성된 항목 추가
+                        db.delete_content_file(processing_file_id)
                         from pathlib import Path
                         file_path_obj = Path(filepath)
                         file_size = file_path_obj.stat().st_size if file_path_obj.exists() else 0
@@ -1366,26 +1410,60 @@ def quick_publish():
                                 'file_size': file_size
                             }
                         )
-                        
-                        logger.info(f"Completed {site}: {topic} (file_id: {file_id})")
-                        
+                    
+                    # 완료된 사이트 결과 추가
+                    publish_status_global['results'].append({
+                        'site': site,
+                        'success': True,
+                        'message': '발행 완료',
+                        'topic': topic,
+                        'file_id': file_id,
+                        'url': None
+                    })
+                    
+                    publish_status_global['completed_sites'] += 1
+                    logger.info(f"Completed {site}: {topic} (file_id: {file_id})")
+                    
                 except Exception as e:
                     logger.error(f"Background publish error for {site}: {e}")
+                    # 처리중 항목 삭제
+                    if 'processing_file_id' in locals():
+                        try:
+                            db.delete_content_file(processing_file_id)
+                        except:
+                            pass
+                    
+                    publish_status_global['results'].append({
+                        'site': site,
+                        'success': False,
+                        'message': str(e),
+                        'topic': today_schedule.get(site, {}).get('topic', ''),
+                        'url': None
+                    })
+            
+            # 완료 상태로 변경
+            publish_status_global.update({
+                'in_progress': False,
+                'current_site': None,
+                'progress': 100
+            })
+            
+            logger.info("All sites completed")
         
         # 백그라운드 스레드 시작
         thread = threading.Thread(target=background_publish)
         thread.daemon = True
         thread.start()
         
-        # 즉시 응답 반환 (타임아웃 방지)
         return jsonify({
             'success': True,
-            'message': '수동 발행이 백그라운드에서 시작되었습니다. 잠시 후 목록을 새로고침하세요.',
+            'message': '수동 발행이 시작되었습니다',
             'background': True,
-            'sites': {site: {'status': 'processing', 'message': f'{site} 콘텐츠 생성 중...'} for site in sites}
+            'total_sites': len(sites)
         })
         
     except Exception as e:
+        publish_status_global['in_progress'] = False
         logger.error(f"Quick publish error: {e}")
         return jsonify({
             'success': False,
@@ -1395,45 +1473,37 @@ def quick_publish():
 
 @app.route('/api/publish_status')
 def publish_status():
-    """발행 상태 조회 API - 백그라운드 처리 상태"""
+    """발행 상태 조회 API - 실시간 백그라운드 처리 상태"""
+    global publish_status_global
     try:
+        # 진행률 계산
+        progress = 0
+        if publish_status_global['total_sites'] > 0:
+            progress = int((publish_status_global['completed_sites'] / publish_status_global['total_sites']) * 100)
+        
+        # 상태 결정
+        if publish_status_global['in_progress']:
+            status = 'in_progress'
+            message = f"발행 중... ({publish_status_global['completed_sites']}/{publish_status_global['total_sites']})"
+            if publish_status_global['current_site']:
+                message += f" 현재: {publish_status_global['current_site']}"
+        elif publish_status_global['completed_sites'] > 0:
+            status = 'completed'
+            message = f"발행 완료 ({publish_status_global['completed_sites']}/{publish_status_global['total_sites']})"
+        else:
+            status = 'idle'
+            message = "대기 중"
+            
         return jsonify({
             'success': True,
-            'status': 'completed',
-            'progress': 100,
-            'in_progress': False,
-            'message': '백그라운드 발행이 완료되었습니다',
-            'current_site': None,
-            'results': [
-                {
-                    'site': 'unpre',
-                    'success': True,
-                    'message': '발행 완료',
-                    'topic': 'Google Cloud ACE 자격증 가이드',
-                    'url': None
-                },
-                {
-                    'site': 'untab', 
-                    'success': True,
-                    'message': '발행 완료',
-                    'topic': '부동산 경매 입찰 전 반드시 확인해야 할 15가지 체크리스트',
-                    'url': None
-                },
-                {
-                    'site': 'skewese',
-                    'success': True, 
-                    'message': '발행 완료',
-                    'topic': '4.19혁명과 민주주의 발전',
-                    'url': None
-                },
-                {
-                    'site': 'tistory',
-                    'success': True,
-                    'message': '발행 완료', 
-                    'topic': '2026 월드컵 공동개최, 한국 축구 재도약',
-                    'url': None
-                }
-            ]
+            'status': status,
+            'progress': progress,
+            'in_progress': publish_status_global['in_progress'],
+            'message': message,
+            'current_site': publish_status_global['current_site'],
+            'completed_sites': publish_status_global['completed_sites'],
+            'total_sites': publish_status_global['total_sites'],
+            'results': publish_status_global['results']
         })
         
     except Exception as e:
