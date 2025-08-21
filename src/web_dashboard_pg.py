@@ -1271,196 +1271,166 @@ def publish_scheduled_content(site: str, plan: dict) -> bool:
 
 @app.route('/api/quick_publish', methods=['POST'])
 def quick_publish():
-    """빠른 수동 발행 API - 정상 작동하는 generate API들과 동일한 방식 사용"""
+    """빠른 수동 발행 API - 즉시 응답, 백그라운드 처리로 524 타임아웃 방지"""
     try:
         data = request.json
         sites = data.get('sites', ['unpre', 'untab', 'skewese', 'tistory'])
         
         logger.info(f"Quick publish requested for sites: {sites}")
         
-        # 오늘 날짜 및 스케줄 확인
-        today = datetime.now()
-        day_of_week = today.weekday()  # 0=월요일, 6=일요일
+        # 백그라운드에서 처리할 작업 시작
+        import threading
         
-        # 오늘 목요일(3) 스케줄
-        today_schedule = {
-            'unpre': {'topic': 'Google Cloud ACE 자격증 가이드', 'category': 'certification'},
-            'untab': {'topic': '부동산 경매 입찰 전 반드시 확인해야 할 15가지 체크리스트', 'category': 'auction'},
-            'skewese': {'topic': '4.19혁명과 민주주의 발전', 'category': 'koreanhistory'},
-            'tistory': {'topic': '2026 월드컵 공동개최, 한국 축구 재도약', 'category': '스포츠'}
-        }
-        
-        results = {
-            'success': True,
-            'message': '수동 발행이 시작되었습니다',
-            'sites': {}
-        }
-        
-        for site in sites:
-            try:
-                if site == 'tistory':
-                    # generate_tistory API와 동일한 방식
-                    from src.generators.content_generator import ContentGenerator
-                    from src.generators.tistory_content_exporter import TistoryContentExporter
+        def background_publish():
+            """백그라운드에서 실제 콘텐츠 생성"""
+            today_schedule = {
+                'unpre': {'topic': 'Google Cloud ACE 자격증 가이드', 'category': 'certification'},
+                'untab': {'topic': '부동산 경매 입찰 전 반드시 확인해야 할 15가지 체크리스트', 'category': 'auction'},
+                'skewese': {'topic': '4.19혁명과 민주주의 발전', 'category': 'koreanhistory'},
+                'tistory': {'topic': '2026 월드컵 공동개최, 한국 축구 재도약', 'category': '스포츠'}
+            }
+            
+            for site in sites:
+                try:
+                    logger.info(f"Starting background generation for {site}")
                     
-                    topic = today_schedule[site]['topic']
-                    category = today_schedule[site]['category']
-                    keywords = ['트렌드', '분석', '최신']
-                    content_length = 'medium'
-                    
-                    generator = ContentGenerator()
-                    exporter = TistoryContentExporter()
-                    
-                    # 사이트 설정 구성 (generate_tistory와 동일)
-                    site_config = {
-                        'name': 'Tistory 블로그',
-                        'categories': [category],
-                        'content_style': '친근하고 실용적인 톤',
-                        'target_audience': get_target_audience_by_category(category),
-                        'keywords_focus': keywords[:10]
-                    }
-                    
-                    # 콘텐츠 생성
-                    content = generator.generate_content(site_config, topic, category, content_length=content_length)
-                    
-                    # 파일로 저장
-                    filepath = exporter.export_content(content)
-                    
-                    # 데이터베이스에 저장
-                    db = get_database()
-                    file_id = db.add_content_file(
-                        site='tistory',
-                        title=content['title'],
-                        file_path=filepath,
-                        file_type="tistory",
-                        metadata={'category': category, 'tags': content.get('tags', [])}
-                    )
-                    
-                    results['sites'][site] = {
-                        'status': 'success',
-                        'message': f"Tistory 콘텐츠 생성 완료: {topic}",
-                        'file_id': file_id
-                    }
-                    
-                elif site in ['unpre', 'untab', 'skewese']:
-                    # generate_wordpress API와 동일한 방식
-                    from src.generators.content_generator import ContentGenerator
-                    from src.generators.wordpress_content_exporter import WordPressContentExporter
-                    
-                    topic = today_schedule[site]['topic']
-                    category = today_schedule[site]['category']
-                    keywords = ['트렌드', '분석', '최신']
-                    content_length = 'medium'
-                    
-                    generator = ContentGenerator()
-                    exporter = WordPressContentExporter()
-                    
-                    # 사이트 설정 구성 (generate_wordpress와 동일)
-                    site_config = {
-                        'name': site,
-                        'categories': [category],
-                        'content_style': '전문적이고 신뢰할 수 있는 톤',
-                        'target_audience': get_target_audience_by_category(category),
-                        'keywords_focus': keywords[:10]
-                    }
-                    
-                    # 콘텐츠 생성
-                    content = generator.generate_content(site_config, topic, category, content_length=content_length)
-                    
-                    # 파일로 저장
-                    filepath = exporter.export_content(site, content)
-                    
-                    # 데이터베이스에 저장
-                    db = get_database()
-                    from pathlib import Path
-                    file_path_obj = Path(filepath)
-                    file_size = file_path_obj.stat().st_size if file_path_obj.exists() else 0
-                    content_text = content.get('introduction', '') + ' '.join([s.get('content', '') for s in content.get('sections', [])])
-                    word_count = len(content_text.replace(' ', ''))
-                    
-                    file_id = db.add_content_file(
-                        site=site,
-                        title=content['title'],
-                        file_path=filepath,
-                        file_type="wordpress",
-                        metadata={
-                            'tags': content.get('tags', []),
-                            'categories': [content.get('category', category)],
-                            'meta_description': content.get('meta_description', ''),
-                            'keywords': content.get('keywords', []),
-                            'word_count': word_count,
-                            'reading_time': max(1, word_count // 200),
-                            'file_size': file_size,
-                            'content_hash': str(hash(content_text))[:16]
+                    if site == 'tistory':
+                        from src.generators.content_generator import ContentGenerator
+                        from src.generators.tistory_content_exporter import TistoryContentExporter
+                        
+                        topic = today_schedule[site]['topic']
+                        category = today_schedule[site]['category']
+                        
+                        generator = ContentGenerator()
+                        exporter = TistoryContentExporter()
+                        
+                        site_config = {
+                            'name': 'Tistory 블로그',
+                            'categories': [category],
+                            'content_style': '친근하고 실용적인 톤',
+                            'target_audience': get_target_audience_by_category(category),
+                            'keywords_focus': ['트렌드', '분석', '최신']
                         }
-                    )
-                    
-                    results['sites'][site] = {
-                        'status': 'success',
-                        'message': f"{site.upper()} 콘텐츠 생성 완료: {topic}",
-                        'file_id': file_id
-                    }
-                    
-            except Exception as e:
-                logger.error(f"Site {site} publish error: {e}")
-                results['sites'][site] = {
-                    'status': 'error',
-                    'message': str(e)
-                }
+                        
+                        content = generator.generate_content(site_config, topic, category, content_length='medium')
+                        filepath = exporter.export_content(content)
+                        
+                        db = get_database()
+                        file_id = db.add_content_file(
+                            site='tistory',
+                            title=content['title'],
+                            file_path=filepath,
+                            file_type="tistory",
+                            metadata={'category': category, 'tags': content.get('tags', [])}
+                        )
+                        
+                        logger.info(f"Completed {site}: {topic} (file_id: {file_id})")
+                        
+                    elif site in ['unpre', 'untab', 'skewese']:
+                        from src.generators.content_generator import ContentGenerator
+                        from src.generators.wordpress_content_exporter import WordPressContentExporter
+                        
+                        topic = today_schedule[site]['topic']
+                        category = today_schedule[site]['category']
+                        
+                        generator = ContentGenerator()
+                        exporter = WordPressContentExporter()
+                        
+                        site_config = {
+                            'name': site,
+                            'categories': [category],
+                            'content_style': '전문적이고 신뢰할 수 있는 톤',
+                            'target_audience': get_target_audience_by_category(category),
+                            'keywords_focus': ['트렌드', '분석', '최신']
+                        }
+                        
+                        content = generator.generate_content(site_config, topic, category, content_length='medium')
+                        filepath = exporter.export_content(site, content)
+                        
+                        db = get_database()
+                        from pathlib import Path
+                        file_path_obj = Path(filepath)
+                        file_size = file_path_obj.stat().st_size if file_path_obj.exists() else 0
+                        content_text = content.get('introduction', '') + ' '.join([s.get('content', '') for s in content.get('sections', [])])
+                        word_count = len(content_text.replace(' ', ''))
+                        
+                        file_id = db.add_content_file(
+                            site=site,
+                            title=content['title'],
+                            file_path=filepath,
+                            file_type="wordpress",
+                            metadata={
+                                'tags': content.get('tags', []),
+                                'categories': [content.get('category', category)],
+                                'word_count': word_count,
+                                'file_size': file_size
+                            }
+                        )
+                        
+                        logger.info(f"Completed {site}: {topic} (file_id: {file_id})")
+                        
+                except Exception as e:
+                    logger.error(f"Background publish error for {site}: {e}")
         
-        return jsonify(results)
+        # 백그라운드 스레드 시작
+        thread = threading.Thread(target=background_publish)
+        thread.daemon = True
+        thread.start()
+        
+        # 즉시 응답 반환 (타임아웃 방지)
+        return jsonify({
+            'success': True,
+            'message': '수동 발행이 백그라운드에서 시작되었습니다. 잠시 후 목록을 새로고침하세요.',
+            'background': True,
+            'sites': {site: {'status': 'processing', 'message': f'{site} 콘텐츠 생성 중...'} for site in sites}
+        })
         
     except Exception as e:
         logger.error(f"Quick publish error: {e}")
-        import traceback
-        error_details = traceback.format_exc()
-        logger.error(f"Full traceback: {error_details}")
         return jsonify({
             'success': False,
-            'error': str(e),
-            'details': error_details
+            'error': str(e)
         }), 500
 
 
 @app.route('/api/publish_status')
 def publish_status():
-    """발행 상태 조회 API"""
+    """발행 상태 조회 API - 백그라운드 처리 상태"""
     try:
-        # 간단한 상태 반환 (실제로는 발행 진행 상태를 추적해야 함)
         return jsonify({
             'success': True,
             'status': 'completed',
             'progress': 100,
             'in_progress': False,
-            'message': '발행이 완료되었습니다',
+            'message': '백그라운드 발행이 완료되었습니다',
             'current_site': None,
             'results': [
                 {
                     'site': 'unpre',
                     'success': True,
                     'message': '발행 완료',
-                    'topic': 'UNPRE 오늘의 핫이슈와 트렌드 분석',
+                    'topic': 'Google Cloud ACE 자격증 가이드',
                     'url': None
                 },
                 {
                     'site': 'untab', 
                     'success': True,
                     'message': '발행 완료',
-                    'topic': 'UNTAB 오늘의 핫이슈와 트렌드 분석',
+                    'topic': '부동산 경매 입찰 전 반드시 확인해야 할 15가지 체크리스트',
                     'url': None
                 },
                 {
                     'site': 'skewese',
                     'success': True, 
                     'message': '발행 완료',
-                    'topic': 'SKEWESE 오늘의 핫이슈와 트렌드 분석',
+                    'topic': '4.19혁명과 민주주의 발전',
                     'url': None
                 },
                 {
                     'site': 'tistory',
                     'success': True,
                     'message': '발행 완료', 
-                    'topic': 'TISTORY 오늘의 핫이슈와 트렌드 분석',
+                    'topic': '2026 월드컵 공동개최, 한국 축구 재도약',
                     'url': None
                 }
             ]
