@@ -2480,10 +2480,15 @@
         // 스케줄 표시
         function displayWeeklySchedule(scheduleData) {
             console.log('🎨 displayWeeklySchedule 시작', scheduleData);
+            console.log('🔍 Container search: weekly-schedule-content exists?', !!document.getElementById('weekly-schedule-content'));
+            console.log('🔍 Container search: schedule-overview-content exists?', !!document.getElementById('schedule-overview-content'));
+            
             const container = document.getElementById('weekly-schedule-content') || document.getElementById('schedule-overview-content');
+            console.log('✅ Selected container:', container);
             
             if (!scheduleData || !scheduleData.schedule) {
                 console.log('❌ 스케줄 데이터 없음:', !scheduleData, !scheduleData?.schedule);
+                console.log('📊 scheduleData keys:', scheduleData ? Object.keys(scheduleData) : 'null');
                 container.innerHTML = `
                     <div class="text-center py-4">
                         <div class="text-muted mb-3">
