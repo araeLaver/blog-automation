@@ -1938,14 +1938,30 @@ def quick_publish():
                 import requests
                 
                 today = datetime.now().date()
-                week_start = today - timedelta(days=today.weekday())
-                day_of_week = today.weekday()
+                # 이번 주 월요일 계산 (일요일 처리 주의)
+                day_of_week_raw = today.weekday()  # 0=월요일, 6=일요일
+                if day_of_week_raw == 6:  # 일요일인 경우
+                    # 일요일은 다음날(월요일)을 이번 주의 시작으로 간주
+                    week_start = today + timedelta(days=1)
+                    day_of_week = 6  # 일요일은 주의 마지막 날(6)
+                else:
+                    # 월요일~토요일
+                    week_start = today - timedelta(days=day_of_week_raw)
+                    day_of_week = day_of_week_raw
                 
                 add_system_log('INFO', f'발행 대상 날짜: {today} (주차: {week_start}, 요일: {day_of_week})', 'AUTO_PUBLISH')
                 
                 # 오늘의 스케줄 가져오기
                 schedule_data = schedule_manager.get_weekly_schedule(week_start)
                 add_system_log('INFO', f'스케줄 데이터 로드 완료', 'SCHEDULE')
+                
+                # 디버깅: 스케줄 데이터 구조 확인
+                if schedule_data and 'schedule' in schedule_data:
+                    add_system_log('INFO', f'스케줄 키: {list(schedule_data["schedule"].keys())}', 'DEBUG')
+                    if day_of_week in schedule_data['schedule']:
+                        day_schedule = schedule_data['schedule'][day_of_week]
+                        add_system_log('INFO', f'오늘({day_of_week}) 스케줄 날짜: {day_schedule.get("date")}', 'DEBUG')
+                        add_system_log('INFO', f'오늘 사이트별 계획: {list(day_schedule.get("sites", {}).keys())}', 'DEBUG')
                 
                 for i, site in enumerate(sites):
                     try:
@@ -1978,6 +1994,7 @@ def quick_publish():
                                 keywords = site_plan.get('keywords', keywords)
                                 category = site_plan.get('category', category)
                                 add_system_log('INFO', f'{site} 스케줄 주제 사용: {topic} (카테고리: {category})', 'SCHEDULE')
+                                add_system_log('INFO', f'스케줄 날짜: {day_schedule.get("date")} / 오늘: {today}', 'DEBUG')
                             else:
                                 add_system_log('WARNING', f'{site} 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULE')
                         else:
