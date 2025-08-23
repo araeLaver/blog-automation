@@ -1940,8 +1940,17 @@ def quick_publish():
                 # 현재 날짜를 정확히 가져오기
                 now = datetime.now()
                 today = now.date()
-                week_start = today - timedelta(days=today.weekday())
-                day_of_week = today.weekday()
+                
+                # 이번 주 월요일 계산 (일요일 처리 주의)
+                day_of_week_raw = today.weekday()  # 0=월요일, 6=일요일
+                if day_of_week_raw == 6:  # 일요일인 경우
+                    # 일요일은 다음날(월요일)을 이번 주의 시작으로 간주
+                    week_start = today + timedelta(days=1)
+                    day_of_week = 6  # 일요일은 주의 마지막 날(6)
+                else:
+                    # 월요일~토요일
+                    week_start = today - timedelta(days=day_of_week_raw)
+                    day_of_week = day_of_week_raw
                 
                 # 디버깅: 실제 시스템 시간 출력
                 add_system_log('INFO', f'현재 시스템 시간: {now.strftime("%Y-%m-%d %H:%M:%S")}', 'DEBUG')
@@ -1960,6 +1969,108 @@ def quick_publish():
                         add_system_log('WARNING', f'오늘({day_of_week}) 스케줄이 없음', 'DEBUG')
                 else:
                     add_system_log('WARNING', f'스케줄 데이터가 비어있음', 'DEBUG')
+                
+                # DB 연결 실패시 목업 스케줄 데이터 생성
+                if not schedule_data or not schedule_data.get('schedule'):
+                    add_system_log('WARNING', 'DB 연결 실패로 목업 스케줄 데이터 사용', 'FALLBACK')
+                    from datetime import date
+                    schedule_data = {
+                        'week_start': week_start,
+                        'schedule': {}
+                    }
+                    
+                    # 공통 주제 생성 함수 정의
+                    def get_daily_topics(day_date):
+                        """날짜별 다양한 주제 생성"""
+                        import random
+                        day_seed = day_date.toordinal()
+                        random.seed(day_seed)
+                        
+                        unpre_topics = [
+                            f"Python {day_date.year}년 {day_date.month}월 최신 라이브러리와 프레임워크",
+                            f"JavaScript ES6+ 고급 기능 완벽 가이드 ({day_date.month}/{day_date.day})",
+                            f"React vs Vue.js 성능 비교 분석 - {day_date.year}년 버전", 
+                            f"Docker와 Kubernetes 실전 활용법 {day_date.month}월 업데이트",
+                            f"AI/ML 개발자를 위한 TensorFlow 최신 기능 ({day_date.day}일 특집)",
+                            f"웹 개발 보안 가이드 - {day_date.year}.{day_date.month:02d} 보안 패치",
+                            f"클라우드 네이티브 개발 전략과 도구 ({day_date.month}월 {day_date.day}일)",
+                            f"DevOps 자동화 파이프라인 구축 가이드 - {day_date.year}년 최신판"
+                        ]
+                        
+                        untab_topics = [
+                            f"{day_date.year}년 {day_date.month}월 부동산 시장 전망과 투자 전략",
+                            f"경매 부동산 투자 가이드 - {day_date.month}/{day_date.day} 시장 분석",
+                            f"서울 아파트 가격 동향과 미래 전망 ({day_date.year}.{day_date.month:02d})",
+                            f"부동산 정책 변화가 투자에 미치는 영향 - {day_date.month}월 {day_date.day}일",
+                            f"지방 부동산 투자의 새로운 기회 ({day_date.year}년 {day_date.month}월)",
+                            f"부동산 펀드 vs 직접 투자 비교 분석 - {day_date.day}일 특집",
+                            f"재개발·재건축 투자 전략 가이드 - {day_date.year}년 상반기"
+                        ]
+                        
+                        skewese_topics = [
+                            f"조선왕조 {day_date.month}월의 역사적 사건들과 그 의미",
+                            f"고구려 문화유산 탐방기 - {day_date.year}년 {day_date.month}월 {day_date.day}일",
+                            f"한국 전통 음식의 역사와 유래 ({day_date.month}/{day_date.day} 특집)",
+                            f"조선시대 과거제도와 교육 시스템 - {day_date.year}년 재조명",
+                            f"백제 역사 재발견 - {day_date.month}월 {day_date.day}일 고고학 뉴스",
+                            f"한국사 속 여성 인물들의 삶과 업적 ({day_date.year}.{day_date.month:02d})",
+                            f"조선왕조실록에서 찾은 흥미로운 이야기들 ({day_date.month}월)"
+                        ]
+                        
+                        tistory_topics = [
+                            f"{day_date.year}년 {day_date.month}월 IT 산업 주요 뉴스와 트렌드",
+                            f"AI 기술 발전이 일상에 미치는 영향 - {day_date.month}/{day_date.day}",
+                            f"메타버스 플랫폼 최신 동향과 미래 ({day_date.year}.{day_date.month:02d})",
+                            f"블록체인과 암호화폐 시장 분석 - {day_date.month}월 {day_date.day}일",
+                            f"스마트폰 기술 혁신과 차세대 디바이스 ({day_date.year}년 전망)",
+                            f"클라우드 컴퓨팅 시장 동향과 전망 ({day_date.month}/{day_date.day})",
+                            f"게임 산업 트렌드와 e스포츠 성장 - {day_date.year}년 {day_date.month}월"
+                        ]
+                        
+                        return {
+                            'unpre': {'topic': random.choice(unpre_topics), 'category': 'programming', 'keywords': ['프로그래밍', '개발', 'IT', 'Python', 'JavaScript']},
+                            'untab': {'topic': random.choice(untab_topics), 'category': 'realestate', 'keywords': ['부동산', '투자', '아파트', '경매', '정책']},
+                            'skewese': {'topic': random.choice(skewese_topics), 'category': 'koreanhistory', 'keywords': ['조선시대', '한국사', '전통문화', '역사', '문화재']},
+                            'tistory': {'topic': random.choice(tistory_topics), 'category': 'current', 'keywords': ['IT', '기술', '트렌드', 'AI', '뉴스']}
+                        }
+                    
+                    # 이번 주 7일간 스케줄 생성
+                    for day_idx in range(7):
+                        day_date = week_start + timedelta(days=day_idx)
+                        day_names = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
+                        
+                        # 날짜별 주제 생성
+                        daily_topics = get_daily_topics(day_date)
+                        
+                        schedule_data['schedule'][day_idx] = {
+                            'day_name': day_names[day_idx],
+                            'date': day_date,
+                            'sites': {
+                                site: {
+                                    'category': daily_topics[site]['category'],
+                                    'topic': daily_topics[site]['topic'],
+                                    'keywords': daily_topics[site]['keywords'],
+                                    'status': 'planned'
+                                }
+                                for site in ['unpre', 'untab', 'skewese', 'tistory']
+                            }
+                        }
+                    add_system_log('INFO', f'목업 스케줄 생성 완료: {len(schedule_data["schedule"])}일', 'FALLBACK')
+                
+                # 디버깅: 스케줄 데이터 구조 확인
+                add_system_log('INFO', f'스케줄 데이터 전체: {schedule_data}', 'DEBUG')
+                if schedule_data and 'schedule' in schedule_data:
+                    add_system_log('INFO', f'스케줄 키: {list(schedule_data["schedule"].keys())}', 'DEBUG')
+                    if day_of_week in schedule_data['schedule']:
+                        day_schedule = schedule_data['schedule'][day_of_week]
+                        add_system_log('INFO', f'오늘({day_of_week}) 스케줄 날짜: {day_schedule.get("date")}', 'DEBUG')
+                        add_system_log('INFO', f'오늘 사이트별 계획: {list(day_schedule.get("sites", {}).keys())}', 'DEBUG')
+                    else:
+                        add_system_log('WARNING', f'요일 {day_of_week} 키가 스케줄에 없음. 모든 스케줄 확인:', 'DEBUG')
+                        for key, val in schedule_data['schedule'].items():
+                            add_system_log('INFO', f'  스케줄[{key}]: 날짜={val.get("date")}, 사이트수={len(val.get("sites", {}))}', 'DEBUG')
+                else:
+                    add_system_log('WARNING', f'스케줄 데이터가 없거나 형식이 잘못됨', 'DEBUG')
                 
                 for i, site in enumerate(sites):
                     try:
@@ -1993,9 +2104,14 @@ def quick_publish():
                                 topic = site_plan.get('topic', topic)
                                 keywords = site_plan.get('keywords', keywords)
                                 category = site_plan.get('category', category)
+<<<<<<< HEAD
                                 add_system_log('INFO', f'{site} 스케줄 주제 사용: {topic} (카테고리: {category}, 날짜: {today.strftime("%Y-%m-%d")})', 'SCHEDULE')
                                 if old_topic != topic:
                                     add_system_log('INFO', f'주제 변경: {old_topic} → {topic}', 'DEBUG')
+=======
+                                add_system_log('INFO', f'{site} 스케줄 주제 사용: {topic} (카테고리: {category})', 'SCHEDULE')
+                                add_system_log('INFO', f'스케줄 날짜: {day_schedule.get("date")} / 오늘: {today}', 'DEBUG')
+>>>>>>> b06631e06f3ba37acce7d6df22431527ed35b065
                             else:
                                 add_system_log('WARNING', f'{site} 오늘({today.strftime("%Y-%m-%d")}) 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULE')
                         else:
@@ -3251,105 +3367,235 @@ app._create_beautiful_html_template = _create_beautiful_html_template
 scheduler = None
 
 def auto_publish_task():
-    """매일 새벽 3시 자동 발행 작업"""
+    """매일 새벽 3시 자동 발행 작업 - 날짜별 스케줄 기반"""
     try:
         add_system_log('INFO', '🚀 자동 발행 작업 시작 (새벽 3시)', 'SCHEDULER')
         logger.info("🚀 새벽 3시 자동 발행 작업 시작")
         
         # 시간 기록
-        from datetime import datetime
+        from datetime import datetime, timedelta
         import pytz
         kst = pytz.timezone('Asia/Seoul')
         start_time = datetime.now(kst)
         
-        # 스케줄러 import
-        from src.scheduler import BlogAutomationScheduler
-        from src.generators.content_generator import ContentGenerator
-        from config.sites_config import SITE_CONFIGS
+        # 오늘 날짜 기반 스케줄 계산 (수동 발행과 동일한 로직)
+        today = start_time.date()
+        day_of_week_raw = today.weekday()  # 0=월요일, 6=일요일
+        if day_of_week_raw == 6:  # 일요일인 경우
+            week_start = today + timedelta(days=1)
+            day_of_week = 6
+        else:
+            week_start = today - timedelta(days=day_of_week_raw)
+            day_of_week = day_of_week_raw
         
-        blog_scheduler = BlogAutomationScheduler()
-        content_gen = ContentGenerator()
+        add_system_log('INFO', f'발행 대상 날짜: {today} (주차: {week_start}, 요일: {day_of_week})', 'SCHEDULER')
         
+<<<<<<< HEAD
         # WordPress 사이트들 자동 발행 (스케줄러를 통해 계획된 주제 사용)
         wordpress_sites = ['unpre', 'untab', 'skewese']
+=======
+        # 스케줄 데이터 로드
+        from src.utils.schedule_manager import schedule_manager
+        schedule_data = schedule_manager.get_weekly_schedule(week_start)
+        
+        # DB 연결 실패시 목업 스케줄 데이터 생성
+        if not schedule_data or not schedule_data.get('schedule'):
+            add_system_log('WARNING', 'DB 연결 실패로 목업 스케줄 데이터 사용', 'SCHEDULER')
+            schedule_data = {
+                'week_start': week_start,
+                'schedule': {}
+            }
+            
+            # 이번 주 7일간 스케줄 생성
+            for day_idx in range(7):
+                day_date = week_start + timedelta(days=day_idx)
+                day_names = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
+                
+                # 날짜별 다양한 주제 자동 생성
+                day_seed = day_date.toordinal()  # 날짜를 숫자로 변환 (일관성 있는 랜덤 시드)
+                import random
+                random.seed(day_seed)
+                
+                # 사이트별 주제 풀
+                unpre_topics = [
+                    f"Python {day_date.year}년 {day_date.month}월 최신 라이브러리와 프레임워크",
+                    f"JavaScript ES6+ 고급 기능 완벽 가이드 ({day_date.month}/{day_date.day})",
+                    f"React vs Vue.js 성능 비교 분석 - {day_date.year}년 버전", 
+                    f"Docker와 Kubernetes 실전 활용법 {day_date.month}월 업데이트",
+                    f"AI/ML 개발자를 위한 TensorFlow 최신 기능 ({day_date.day}일 특집)",
+                    f"웹 개발 보안 가이드 - {day_date.year}.{day_date.month:02d} 보안 패치",
+                    f"클라우드 네이티브 개발 전략과 도구 ({day_date.month}월 {day_date.day}일)",
+                    f"DevOps 자동화 파이프라인 구축 가이드 - {day_date.year}년 최신판",
+                    f"마이크로서비스 아키텍처 설계 패턴 ({day_date.month}/{day_date.day} 업데이트)",
+                    f"GraphQL vs REST API 선택 가이드 - {day_date.year}년 {day_date.month}월 기준"
+                ]
+                
+                untab_topics = [
+                    f"{day_date.year}년 {day_date.month}월 부동산 시장 전망과 투자 전략",
+                    f"경매 부동산 투자 가이드 - {day_date.month}/{day_date.day} 시장 분석",
+                    f"서울 아파트 가격 동향과 미래 전망 ({day_date.year}.{day_date.month:02d})",
+                    f"부동산 정책 변화가 투자에 미치는 영향 - {day_date.month}월 {day_date.day}일",
+                    f"지방 부동산 투자의 새로운 기회 ({day_date.year}년 {day_date.month}월)",
+                    f"부동산 펀드 vs 직접 투자 비교 분석 - {day_date.day}일 특집",
+                    f"상업용 부동산 투자 트렌드와 수익률 ({day_date.month}/{day_date.day})",
+                    f"재개발·재건축 투자 전략 가이드 - {day_date.year}년 상반기",
+                    f"부동산 세금 절약 전략과 팁 ({day_date.month}월 {day_date.day}일 버전)",
+                    f"해외 부동산 투자 기회와 리스크 - {day_date.year}.{day_date.month:02d}"
+                ]
+                
+                skewese_topics = [
+                    f"조선왕조 {day_date.month}월의 역사적 사건들과 그 의미",
+                    f"고구려 문화유산 탐방기 - {day_date.year}년 {day_date.month}월 {day_date.day}일",
+                    f"한국 전통 음식의 역사와 유래 ({day_date.month}/{day_date.day} 특집)",
+                    f"조선시대 과거제도와 교육 시스템 - {day_date.year}년 재조명",
+                    f"백제 역사 재발견 - {day_date.month}월 {day_date.day}일 고고학 뉴스",
+                    f"한국사 속 여성 인물들의 삶과 업적 ({day_date.year}.{day_date.month:02d})",
+                    f"조선 후기 문화 르네상스와 실학 사상 - {day_date.month}/{day_date.day}",
+                    f"고려시대 불교 문화와 예술 ({day_date.year}년 {day_date.month}월 연구)",
+                    f"한국 전통 건축의 과학적 원리 - {day_date.day}일 건축사 탐구",
+                    f"조선왕조실록에서 찾은 흥미로운 이야기들 ({day_date.month}월)"
+                ]
+                
+                tistory_topics = [
+                    f"{day_date.year}년 {day_date.month}월 IT 산업 주요 뉴스와 트렌드",
+                    f"AI 기술 발전이 일상에 미치는 영향 - {day_date.month}/{day_date.day}",
+                    f"메타버스 플랫폼 최신 동향과 미래 ({day_date.year}.{day_date.month:02d})",
+                    f"블록체인과 암호화폐 시장 분석 - {day_date.month}월 {day_date.day}일",
+                    f"스마트폰 기술 혁신과 차세대 디바이스 ({day_date.year}년 전망)",
+                    f"5G와 6G 통신 기술 발전 현황 - {day_date.day}일 통신 뉴스",
+                    f"클라우드 컴퓨팅 시장 동향과 전망 ({day_date.month}/{day_date.day})",
+                    f"게임 산업 트렌드와 e스포츠 성장 - {day_date.year}년 {day_date.month}월",
+                    f"자율주행차 기술 발전과 상용화 전망 ({day_date.month}월 업데이트)",
+                    f"스타트업 생태계와 투자 트렌드 - {day_date.year}.{day_date.month:02d}"
+                ]
+                
+                schedule_data['schedule'][day_idx] = {
+                    'day_name': day_names[day_idx],
+                    'date': day_date,
+                    'sites': {
+                        'unpre': {
+                            'category': 'programming',
+                            'topic': random.choice(unpre_topics),
+                            'keywords': ['프로그래밍', '개발', 'IT', 'Python', 'JavaScript'],
+                            'status': 'planned'
+                        },
+                        'untab': {
+                            'category': 'realestate', 
+                            'topic': random.choice(untab_topics),
+                            'keywords': ['부동산', '투자', '아파트', '경매', '정책'],
+                            'status': 'planned'
+                        },
+                        'skewese': {
+                            'category': 'koreanhistory',
+                            'topic': random.choice(skewese_topics),
+                            'keywords': ['조선시대', '한국사', '전통문화', '역사', '문화재'],
+                            'status': 'planned'
+                        },
+                        'tistory': {
+                            'category': 'current',
+                            'topic': random.choice(tistory_topics),
+                            'keywords': ['IT', '기술', '트렌드', 'AI', '뉴스'],
+                            'status': 'planned'
+                        }
+                    }
+                }
+        
+        add_system_log('INFO', f'스케줄 데이터 로드 완료: {len(schedule_data.get("schedule", {}))}일', 'SCHEDULER')
+        
+        # 모든 사이트 발행 (WordPress + Tistory)
+        sites_to_publish = ['unpre', 'untab', 'skewese', 'tistory']
+>>>>>>> b06631e06f3ba37acce7d6df22431527ed35b065
         success_count = 0
         
-        for site in wordpress_sites:
+        for site in sites_to_publish:
             try:
                 add_system_log('INFO', f'{site.upper()} 발행 시작...', 'SCHEDULER')
+<<<<<<< HEAD
                 # 스케줄러의 create_and_publish_post는 스케줄 매니저를 통해 오늘 주제를 가져옴
                 success = blog_scheduler.create_and_publish_post(site)
                 if success:
                     success_count += 1
                     add_system_log('SUCCESS', f'✅ {site.upper()} 자동 발행 성공', 'SCHEDULER')
                     logger.info(f"✅ {site.upper()} 자동 발행 성공")
+=======
+                
+                # 사이트별 기본값
+                site_defaults = {
+                    'unpre': {'topic': 'Python 프로그래밍 가이드', 'category': 'programming'},
+                    'untab': {'topic': '부동산 투자 가이드', 'category': 'realestate'}, 
+                    'skewese': {'topic': '한국사 역사 이야기', 'category': 'koreanhistory'},
+                    'tistory': {'topic': '2025년 IT 트렌드 분석', 'category': 'current'}
+                }
+                
+                default = site_defaults.get(site, {'topic': f'{site} 가이드', 'category': 'programming'})
+                topic = default['topic']
+                keywords = [site, '가이드']
+                category = default['category']
+                
+                # 스케줄에서 주제 가져오기
+                if schedule_data and day_of_week in schedule_data['schedule']:
+                    day_schedule = schedule_data['schedule'][day_of_week]
+                    site_plan = day_schedule.get('sites', {}).get(site, {})
+                    if site_plan:
+                        topic = site_plan.get('topic', topic)
+                        keywords = site_plan.get('keywords', keywords)
+                        category = site_plan.get('category', category)
+                        add_system_log('INFO', f'{site} 스케줄 주제 사용: {topic}', 'SCHEDULER')
+                    else:
+                        add_system_log('WARNING', f'{site} 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULER')
+>>>>>>> b06631e06f3ba37acce7d6df22431527ed35b065
                 else:
-                    add_system_log('WARNING', f'⚠️ {site.upper()} 자동 발행 실패', 'SCHEDULER')
-                    logger.warning(f"⚠️ {site.upper()} 자동 발행 실패")
+                    add_system_log('WARNING', f'오늘({day_of_week}) 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULER')
+                
+                # 콘텐츠 생성 및 발행
+                import requests
+                generate_payload = {
+                    'site': site,
+                    'topic': topic,
+                    'keywords': keywords,
+                    'category': category
+                }
+                
+                if site == 'tistory':
+                    # 티스토리는 콘텐츠 생성만
+                    generate_url = 'http://localhost:8000/api/generate_tistory'
+                    response = requests.post(generate_url, json=generate_payload, timeout=300)
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        if result.get('success'):
+                            success_count += 1
+                            add_system_log('SUCCESS', f'✅ {site.upper()} 콘텐츠 생성 완료', 'SCHEDULER')
+                        else:
+                            add_system_log('WARNING', f'⚠️ {site.upper()} 콘텐츠 생성 실패: {result.get("error")}', 'SCHEDULER')
+                    else:
+                        add_system_log('WARNING', f'⚠️ {site.upper()} API 호출 실패: {response.status_code}', 'SCHEDULER')
+                        
+                else:
+                    # WordPress 사이트들은 생성 + 발행
+                    generate_url = 'http://localhost:8000/api/generate_wordpress'
+                    response = requests.post(generate_url, json=generate_payload, timeout=300)
+                    
+                    if response.status_code == 200:
+                        result = response.json()
+                        if result.get('success'):
+                            success_count += 1
+                            add_system_log('SUCCESS', f'✅ {site.upper()} 자동 발행 성공', 'SCHEDULER')
+                        else:
+                            add_system_log('WARNING', f'⚠️ {site.upper()} 자동 발행 실패: {result.get("error")}', 'SCHEDULER')
+                    else:
+                        add_system_log('WARNING', f'⚠️ {site.upper()} API 호출 실패: {response.status_code}', 'SCHEDULER')
+                        
             except Exception as e:
                 add_system_log('ERROR', f'❌ {site.upper()} 발행 오류: {str(e)}', 'SCHEDULER')
                 logger.error(f"❌ {site.upper()} 자동 발행 오류: {e}")
-        
-        # 티스토리 콘텐츠 생성 (발행하지 않고 저장만)
-        try:
-            add_system_log('INFO', 'TISTORY 콘텐츠 생성 시작...', 'SCHEDULER')
-            
-            # 현재 트렌딩 이슈 주제 선택
-            trending_topics = [
-                "2024년 최신 AI 기술 트렌드와 전망",
-                "MZ세대 투자 패턴 변화 분석",
-                "K-콘텐츠 글로벌 진출 성공 사례",
-                "2024 파리올림픽 이슈와 화제",
-                "글로벌 경제 불확실성과 대응 전략",
-                "메타버스 플랫폼 최신 동향",
-                "ESG 경영 트렌드와 기업 사례",
-                "부동산 정책 변화와 시장 전망"
-            ]
-            
-            import random
-            topic = random.choice(trending_topics)
-            
-            # 콘텐츠 생성
-            tistory_config = {
-                "name": "tistory",
-                "platform": "tistory",
-                "categories": ["트렌드", "이슈", "시사"],
-                "content_style": "시사적이고 분석적인 톤, 최신 트렌드 중심",
-                "target_audience": "20-40대 트렌드에 관심있는 독자"
-            }
-            
-            content = content_gen.generate_content(
-                site_config=tistory_config,
-                topic=topic,
-                category="트렌드"
-            )
-            
-            if content:
-                # DB에 저장 (발행하지 않음)
-                db = get_database()
-                db.add_content(
-                    site='tistory',
-                    title=content['title'],
-                    category='트렌드',
-                    keywords=content.get('keywords', []),
-                    content=str(content),
-                    url=None,  # 발행하지 않으므로 URL 없음
-                    published=False
-                )
-                
-                add_system_log('SUCCESS', f'✅ TISTORY 콘텐츠 생성 완료: {content["title"][:30]}...', 'SCHEDULER')
-                logger.info(f"✅ TISTORY 콘텐츠 생성 완료")
-                
-        except Exception as e:
-            add_system_log('ERROR', f'❌ TISTORY 콘텐츠 생성 실패: {str(e)}', 'SCHEDULER')
-            logger.error(f"❌ TISTORY 콘텐츠 생성 실패: {e}")
         
         # 작업 완료 통계
         end_time = datetime.now(kst)
         duration = (end_time - start_time).total_seconds()
         
-        add_system_log('INFO', f'📊 자동 발행 완료: {success_count}/3 성공, 소요시간: {duration:.1f}초', 'SCHEDULER')
-        logger.info(f"✅ 새벽 3시 자동 발행 작업 완료 ({success_count}/3 성공)")
+        add_system_log('INFO', f'📊 자동 발행 완료: {success_count}/{len(sites_to_publish)} 성공, 소요시간: {duration:.1f}초', 'SCHEDULER')
+        logger.info(f"✅ 새벽 3시 자동 발행 작업 완료 ({success_count}/{len(sites_to_publish)} 성공)")
         
     except Exception as e:
         add_system_log('ERROR', f'❌ 자동 발행 작업 실패: {str(e)}', 'SCHEDULER')
