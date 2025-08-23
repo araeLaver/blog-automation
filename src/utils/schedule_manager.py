@@ -566,6 +566,10 @@ class ScheduleManager:
                 else:
                     print(f"[SCHEDULE] {site}에 대한 오늘({week_start} 주의 {weekday}일)의 계획된 주제가 없습니다")
                     return None
+                    
+        except Exception as e:
+            print(f"[SCHEDULE] 오늘의 주제 조회 오류: {e}")
+            return None
     
     def get_today_topic_for_manual(self, site: str) -> Dict:
         """오늘의 주제 가져오기 (수동발행용 - 모든 상태)"""
