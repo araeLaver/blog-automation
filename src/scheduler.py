@@ -127,7 +127,7 @@ class BlogAutomationScheduler:
             # 1. 사이트 설정 가져오기
             site_config = SITE_CONFIGS[site_key]
             
-            # 2. 오늘의 계획된 주제 가져오기
+            # 2. 오늘의 계획된 주제 가져오기 (정확한 날짜 매칭)
             scheduled_topic = self.schedule_manager.get_today_scheduled_topic(site_key)
             if scheduled_topic:
                 topic = scheduled_topic["topic"]
@@ -135,6 +135,7 @@ class BlogAutomationScheduler:
                 blog_logger.info(f"Using scheduled topic for {site_key}: {topic}")
             else:
                 # 3. 계획된 주제가 없으면 미사용 주제 가져오기 (fallback)
+                blog_logger.warning(f"No scheduled topic for {site_key} today, using fallback")
                 scheduled_topic = None  # fallback이므로 None으로 설정
                 topic_data = self.database.get_unused_topic(site_key)
                 if not topic_data:

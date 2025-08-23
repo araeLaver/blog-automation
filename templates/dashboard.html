@@ -919,6 +919,13 @@
                         </button>`;
                     }
                     
+                    // WordPress 사이트 실제 발행 버튼 (draft이 아닌 경우에도 표시)
+                    if (site !== 'tistory' && status !== 'processing') {
+                        actionButtons += `<button class="btn btn-outline-warning btn-sm me-1" onclick="publishToWordPressSite('${file.id}', '${site}', this)" title="WordPress 사이트 발행">
+                            <i class="bi bi-globe"></i> 사이트 발행
+                        </button>`;
+                    }
+                    
                     if (actions.includes('download')) {
                         actionButtons += `<button class="btn btn-outline-secondary btn-sm me-1" onclick="downloadContent('${file.id}', 'wordpress')" title="다운로드">
                             <i class="bi bi-download"></i> 다운로드
@@ -3059,6 +3066,71 @@
             .catch(error => {
                 console.error('발행 오류:', error);
                 alert(`발행 중 오류가 발생했습니다: ${error.message}`);
+            })
+            .finally(() => {
+                // 버튼 상태 복원
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = originalContent;
+                }
+            });
+        }
+
+        function publishToWordPressSite(fileId, site, buttonElement) {
+            if (!confirm(`${site.toUpperCase()} WordPress 사이트에 콘텐츠를 발행하시겠습니까?`)) {
+                return;
+            }
+            
+            // 로딩 상태 표시
+            let button = buttonElement;
+            if (!button && event && event.target) {
+                button = event.target.closest('button');
+            }
+            
+            let originalContent = '';
+            if (button) {
+                originalContent = button.innerHTML;
+                button.disabled = true;
+                button.innerHTML = '<i class="spinner-border spinner-border-sm"></i> 발행 중...';
+            }
+            
+            fetch('/api/publish_to_wordpress', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    site: site,
+                    file_id: fileId
+                })
+            })
+            .then(async response => {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json();
+                } else {
+                    const text = await response.text();
+                    console.error('Non-JSON response:', text.substring(0, 200));
+                    throw new Error(`서버에서 JSON이 아닌 응답을 받았습니다: ${response.status}`);
+                }
+            })
+            .then(data => {
+                if (data && data.success) {
+                    showNotification(`${site.toUpperCase()} 사이트에 성공적으로 발행되었습니다!`, 'success');
+                    if (data.url) {
+                        console.log('발행된 URL:', data.url);
+                        showNotification(`발행된 URL: ${data.url}`, 'info');
+                    }
+                    // 목록 새로고침
+                    refreshDataQuietly();
+                } else {
+                    const errorMsg = (data && data.error) ? data.error : '알 수 없는 오류';
+                    showNotification(`발행 실패: ${errorMsg}`, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('WordPress 발행 오류:', error);
+                showNotification(`발행 중 오류가 발생했습니다: ${error.message}`, 'error');
             })
             .finally(() => {
                 // 버튼 상태 복원

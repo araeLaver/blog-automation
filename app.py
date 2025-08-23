@@ -1937,15 +1937,29 @@ def quick_publish():
                 from datetime import datetime, timedelta
                 import requests
                 
-                today = datetime.now().date()
+                # 현재 날짜를 정확히 가져오기
+                now = datetime.now()
+                today = now.date()
                 week_start = today - timedelta(days=today.weekday())
                 day_of_week = today.weekday()
                 
-                add_system_log('INFO', f'발행 대상 날짜: {today} (주차: {week_start}, 요일: {day_of_week})', 'AUTO_PUBLISH')
+                # 디버깅: 실제 시스템 시간 출력
+                add_system_log('INFO', f'현재 시스템 시간: {now.strftime("%Y-%m-%d %H:%M:%S")}', 'DEBUG')
+                add_system_log('INFO', f'발행 대상 날짜: {today.strftime("%Y-%m-%d")} (주차 시작: {week_start.strftime("%Y-%m-%d")}, 요일: {day_of_week})', 'AUTO_PUBLISH')
                 
                 # 오늘의 스케줄 가져오기
                 schedule_data = schedule_manager.get_weekly_schedule(week_start)
-                add_system_log('INFO', f'스케줄 데이터 로드 완료', 'SCHEDULE')
+                add_system_log('INFO', f'스케줄 데이터 로드 완료 - 주차 시작일: {week_start.strftime("%Y-%m-%d")}', 'SCHEDULE')
+                
+                # 디버깅: 스케줄 데이터 내용 확인
+                if schedule_data and 'schedule' in schedule_data:
+                    if day_of_week in schedule_data['schedule']:
+                        day_schedule = schedule_data['schedule'][day_of_week]
+                        add_system_log('INFO', f'오늘({day_of_week}) 스케줄 사이트 수: {len(day_schedule.get("sites", {}))}', 'DEBUG')
+                    else:
+                        add_system_log('WARNING', f'오늘({day_of_week}) 스케줄이 없음', 'DEBUG')
+                else:
+                    add_system_log('WARNING', f'스케줄 데이터가 비어있음', 'DEBUG')
                 
                 for i, site in enumerate(sites):
                     try:
@@ -1974,14 +1988,18 @@ def quick_publish():
                             day_schedule = schedule_data['schedule'][day_of_week]
                             site_plan = day_schedule.get('sites', {}).get(site, {})
                             if site_plan:
+                                # 스케줄에서 가져온 주제 정보 사용
+                                old_topic = topic
                                 topic = site_plan.get('topic', topic)
                                 keywords = site_plan.get('keywords', keywords)
                                 category = site_plan.get('category', category)
-                                add_system_log('INFO', f'{site} 스케줄 주제 사용: {topic} (카테고리: {category})', 'SCHEDULE')
+                                add_system_log('INFO', f'{site} 스케줄 주제 사용: {topic} (카테고리: {category}, 날짜: {today.strftime("%Y-%m-%d")})', 'SCHEDULE')
+                                if old_topic != topic:
+                                    add_system_log('INFO', f'주제 변경: {old_topic} → {topic}', 'DEBUG')
                             else:
-                                add_system_log('WARNING', f'{site} 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULE')
+                                add_system_log('WARNING', f'{site} 오늘({today.strftime("%Y-%m-%d")}) 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULE')
                         else:
-                            add_system_log('WARNING', f'오늘({day_of_week}) 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULE')
+                            add_system_log('WARNING', f'오늘({today.strftime("%Y-%m-%d")}, 요일:{day_of_week}) 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULE')
                         
                         # 1. 콘텐츠 생성 (사이트별로 다른 API 사용)
                         generate_payload = {
@@ -2248,37 +2266,28 @@ def manual_auto_publish():
                 })
                 
                 # 자동발행계획에서 오늘 날짜에 해당하는 실제 주제 가져오기
-                from src.utils.schedule_manager import schedule_manager
+                from src.utils.schedule_manager import ScheduleManager
                 from datetime import datetime, timedelta
                 
-                today = datetime.now().date()
-                week_start = today - timedelta(days=today.weekday())
-                day_of_week = today.weekday()
+                schedule_manager = ScheduleManager()
                 
-                # 스케줄에서 실제 주제 조회
-                schedule_data = schedule_manager.get_weekly_schedule(week_start)
-                topic = None
-                keywords = [site, '가이드']
-                category = 'programming'
+                # 오늘의 계획된 주제 가져오기
+                scheduled_topic = schedule_manager.get_today_scheduled_topic(site)
                 
-                if schedule_data and day_of_week in schedule_data['schedule']:
-                    day_schedule = schedule_data['schedule'][day_of_week]
-                    if site in day_schedule.get('sites', {}):
-                        site_plan = day_schedule['sites'][site]
-                        topic = site_plan.get('topic', f'{site} 전문 콘텐츠 가이드')
-                        keywords = site_plan.get('keywords', [site, '가이드'])
-                        category = site_plan.get('category', 'programming')
-                        
-                        logger.info(f"[SCHEDULE] {site} 스케줄 주제: {topic}")
-                
-                # 스케줄에 없으면 기본 주제 사용
-                if not topic:
+                if scheduled_topic:
+                    topic = scheduled_topic['topic']
+                    keywords = scheduled_topic['keywords']
+                    category = scheduled_topic['category']
+                    logger.info(f"[SCHEDULE] {site} 스케줄 주제 사용: {topic}")
+                else:
+                    # 스케줄에 없으면 기본 주제 사용
                     topic_map = {
                         'unpre': 'Python 기초 프로그래밍 완벽 가이드',
                         'untab': '2025년 부동산 투자 전략 분석',
                         'skewese': '조선왕조 역사 속 숨겨진 이야기'
                     }
                     topic = topic_map.get(site, 'IT 기술 트렌드')
+                    keywords = [site, '가이드']
                     category = 'programming' if site == 'unpre' else 'realestate' if site == 'untab' else 'history'
                     logger.info(f"[SCHEDULE] {site} 기본 주제 사용: {topic}")
                 
@@ -2349,8 +2358,11 @@ def manual_auto_publish():
                                     logger.info(f"[AUTO_PUBLISH] {site} 발행 완료: {published_url}")
                                     
                                     # 스케줄 상태를 'published'로 업데이트
-                                    if schedule_data and day_of_week in schedule_data['schedule']:
+                                    if scheduled_topic:
                                         try:
+                                            today = datetime.now().date()
+                                            week_start = today - timedelta(days=today.weekday())
+                                            day_of_week = today.weekday()
                                             schedule_manager.update_schedule_status(
                                                 week_start, day_of_week, site, 'published', url=published_url
                                             )
@@ -3258,13 +3270,14 @@ def auto_publish_task():
         blog_scheduler = BlogAutomationScheduler()
         content_gen = ContentGenerator()
         
-        # WordPress 사이트들 자동 발행
+        # WordPress 사이트들 자동 발행 (스케줄러를 통해 계획된 주제 사용)
         wordpress_sites = ['unpre', 'untab', 'skewese']
         success_count = 0
         
         for site in wordpress_sites:
             try:
                 add_system_log('INFO', f'{site.upper()} 발행 시작...', 'SCHEDULER')
+                # 스케줄러의 create_and_publish_post는 스케줄 매니저를 통해 오늘 주제를 가져옴
                 success = blog_scheduler.create_and_publish_post(site)
                 if success:
                     success_count += 1

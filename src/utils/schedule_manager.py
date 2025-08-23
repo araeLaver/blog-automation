@@ -542,9 +542,8 @@ class ScheduleManager:
             today = datetime.now().date()
             weekday = today.weekday()  # 0=월요일, 6=일요일
             
-            # 이번 주 월요일 계산
-            days_ahead = 0 - weekday
-            week_start = today + timedelta(days=days_ahead)
+            # 이번 주 월요일 계산 (정확한 계산)
+            week_start = today - timedelta(days=weekday)
             
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
@@ -557,6 +556,7 @@ class ScheduleManager:
                 
                 result = cursor.fetchone()
                 if result:
+                    print(f"[SCHEDULE] {site} 오늘의 주제 찾음: {result[0][:50]}...")
                     return {
                         'topic': result[0],
                         'category': result[1],
@@ -564,7 +564,7 @@ class ScheduleManager:
                         'length': result[3] or 'medium'
                     }
                 else:
-                    print(f"[SCHEDULE] {site}에 대한 오늘의 계획된 주제가 없습니다")
+                    print(f"[SCHEDULE] {site}에 대한 오늘({week_start} 주의 {weekday}일)의 계획된 주제가 없습니다")
                     return None
                     
         except Exception as e:
