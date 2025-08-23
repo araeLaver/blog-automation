@@ -2304,7 +2304,7 @@
                 console.log('Calculated target date:', targetDate);
                 console.log('Week type:', weekType);
                 console.log('Fetching schedule for:', targetDate);
-                const response = await fetch(`/api/schedule/weekly?week_start=${targetDate}`);
+                const response = await fetch(`/api/schedule/weekly?start_date=${targetDate}`);
                 
                 // 디버깅: 원시 텍스트 응답 확인
                 const responseText = await response.text();
