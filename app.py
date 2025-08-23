@@ -1929,372 +1929,141 @@ def reset_publish_status():
 
 @app.route('/api/quick_publish', methods=['POST'])
 def quick_publish():
-    """빠른 수동 발행 (타임아웃 방지)"""
+    """수동 발행: 오늘 스케줄 주제로 직접 발행"""
     try:
         data = request.json or {}
-        sites = data.get('sites', ['unpre', 'untab', 'skewese', 'tistory'])
+        sites = data.get('sites', ['unpre', 'untab', 'skewese'])
         
-        # 간단한 응답으로 즉시 반환
+        # 중복 실행 방지
         global publish_status
+        if publish_status.get('in_progress', False):
+            return jsonify({
+                'success': False,
+                'error': '이미 발행이 진행 중입니다. 잠시만 기다려주세요.'
+            }), 400
+        
+        # 발행 시작
         publish_status.update({
             'in_progress': True,
-            'current_site': sites[0] if sites else 'unknown',
-            'progress': 10,
+            'current_site': '',
+            'progress': 0,
             'total_sites': len(sites),
             'results': [],
-            'message': f'{len(sites)}개 사이트 발행 시작: {", ".join(sites)}'
+            'message': '발행 준비 중...'
         })
         
-        # 백그라운드에서 실제 발행 (별도 스레드) - 타임아웃 처리
-        import threading
         def background_publish():
-            import signal
-            import time
-            
-            def timeout_handler(signum, frame):
-                raise TimeoutError("백그라운드 발행 타임아웃")
-            
             try:
-                # 5분 타임아웃 설정 (Windows에서는 signal.alarm 지원 안함)
-                start_time = time.time()
-                add_system_log('INFO', f'{len(sites)}개 사이트 자동발행 시작', 'AUTO_PUBLISH')
-                
-                from src.utils.schedule_manager import schedule_manager
                 from datetime import datetime, timedelta
+                from src.utils.schedule_manager import schedule_manager
                 import requests
                 
-                # 현재 날짜를 정확히 가져오기
-                now = datetime.now()
-                today = now.date()
-                
-                # 이번 주 월요일 계산 (일요일 처리 주의)
-                day_of_week_raw = today.weekday()  # 0=월요일, 6=일요일
-                if day_of_week_raw == 6:  # 일요일인 경우
-                    # 일요일은 다음날(월요일)을 이번 주의 시작으로 간주
-                    week_start = today + timedelta(days=1)
-                    day_of_week = 6  # 일요일은 주의 마지막 날(6)
-                else:
-                    # 월요일~토요일
-                    week_start = today - timedelta(days=day_of_week_raw)
-                    day_of_week = day_of_week_raw
-                
-                # 디버깅: 실제 시스템 시간 출력
-                add_system_log('INFO', f'현재 시스템 시간: {now.strftime("%Y-%m-%d %H:%M:%S")}', 'DEBUG')
-                add_system_log('INFO', f'발행 대상 날짜: {today.strftime("%Y-%m-%d")} (주차 시작: {week_start.strftime("%Y-%m-%d")}, 요일: {day_of_week})', 'AUTO_PUBLISH')
-                
-                # 오늘의 스케줄 가져오기
-                schedule_data = schedule_manager.get_weekly_schedule(week_start)
-                add_system_log('INFO', f'스케줄 데이터 로드 완료 - 주차 시작일: {week_start.strftime("%Y-%m-%d")}', 'SCHEDULE')
-                
-                # 디버깅: 스케줄 데이터 내용 확인
-                if schedule_data and 'schedule' in schedule_data:
-                    if day_of_week in schedule_data['schedule']:
-                        day_schedule = schedule_data['schedule'][day_of_week]
-                        add_system_log('INFO', f'오늘({day_of_week}) 스케줄 사이트 수: {len(day_schedule.get("sites", {}))}', 'DEBUG')
-                    else:
-                        add_system_log('WARNING', f'오늘({day_of_week}) 스케줄이 없음', 'DEBUG')
-                else:
-                    add_system_log('WARNING', f'스케줄 데이터가 비어있음', 'DEBUG')
-                
-                # DB 연결 실패시 간단한 목업 스케줄 데이터 생성
-                if not schedule_data or not schedule_data.get('schedule'):
-                    add_system_log('WARNING', 'DB 연결 실패로 기본값 사용', 'FALLBACK')
-                    # 기본값으로 돌아가서 site_defaults 사용
-                    schedule_data = None
-                
-                # 디버깅: 스케줄 데이터 구조 확인 (대용량 데이터 출력 방지)
-                add_system_log('INFO', f'스케줄 데이터 로드됨 (키 개수: {len(schedule_data.get("schedule", {}))})', 'DEBUG')
-                if schedule_data and 'schedule' in schedule_data:
-                    add_system_log('INFO', f'스케줄 키: {list(schedule_data["schedule"].keys())}', 'DEBUG')
-                    if day_of_week in schedule_data['schedule']:
-                        day_schedule = schedule_data['schedule'][day_of_week]
-                        add_system_log('INFO', f'오늘({day_of_week}) 스케줄 날짜: {day_schedule.get("date")}', 'DEBUG')
-                        add_system_log('INFO', f'오늘 사이트별 계획: {list(day_schedule.get("sites", {}).keys())}', 'DEBUG')
-                    else:
-                        add_system_log('WARNING', f'요일 {day_of_week} 키가 스케줄에 없음. 모든 스케줄 확인:', 'DEBUG')
-                        for key, val in schedule_data['schedule'].items():
-                            add_system_log('INFO', f'  스케줄[{key}]: 날짜={val.get("date")}, 사이트수={len(val.get("sites", {}))}', 'DEBUG')
-                else:
-                    add_system_log('WARNING', f'스케줄 데이터가 없거나 형식이 잘못됨', 'DEBUG')
+                today = datetime.now().date()
+                add_system_log('INFO', f'수동발행 시작: {today} - {len(sites)}개 사이트', 'MANUAL')
                 
                 for i, site in enumerate(sites):
-                    # 타임아웃 체크 (10분 제한)
-                    if time.time() - start_time > 600:
-                        raise TimeoutError(f"발행 타임아웃 (10분 초과)")
+                    publish_status.update({
+                        'current_site': site,
+                        'progress': int((i / len(sites)) * 100),
+                        'message': f'{site} 발행 중...'
+                    })
                     
                     try:
-                        add_system_log('INFO', f'{site} 사이트 발행 시작 ({i+1}/{len(sites)})', 'PUBLISH')
+                        # 오늘 스케줄에서 주제 가져오기
+                        topic_data = schedule_manager.get_today_topic_for_manual(site)
                         
-                        publish_status.update({
-                            'current_site': site,
-                            'progress': int((i / len(sites)) * 90),
-                            'message': f'{site} 콘텐츠 생성 중...'
-                        })
-                        
-                        # 스케줄에서 주제 가져오기 (사이트별 기본값 설정)
-                        site_defaults = {
-                            'unpre': {'topic': 'Python 프로그래밍 가이드', 'category': 'programming'},
-                            'untab': {'topic': '부동산 투자 가이드', 'category': 'realestate'}, 
-                            'skewese': {'topic': '한국사 역사 이야기', 'category': 'koreanhistory'},
-                            'tistory': {'topic': '2024년 IT 트렌드 분석', 'category': 'current'}
-                        }
-                        
-                        default = site_defaults.get(site, {'topic': f'{site} 가이드', 'category': 'programming'})
-                        topic = default['topic']
-                        keywords = [site, '가이드']
-                        category = default['category']
-                        
-                        if schedule_data and day_of_week in schedule_data['schedule']:
-                            day_schedule = schedule_data['schedule'][day_of_week]
-                            site_plan = day_schedule.get('sites', {}).get(site, {})
-                            if site_plan:
-                                # 스케줄에서 가져온 주제 정보 사용
-                                old_topic = topic
-                                topic = site_plan.get('topic', topic)
-                                keywords = site_plan.get('keywords', keywords)
-                                category = site_plan.get('category', category)
-<<<<<<< HEAD
-                                add_system_log('INFO', f'{site} 스케줄 주제 사용: {topic} (카테고리: {category}, 날짜: {today.strftime("%Y-%m-%d")})', 'SCHEDULE')
-                                if old_topic != topic:
-                                    add_system_log('INFO', f'주제 변경: {old_topic} → {topic}', 'DEBUG')
-=======
-                                add_system_log('INFO', f'{site} 스케줄 주제 사용: {topic} (카테고리: {category})', 'SCHEDULE')
-                                add_system_log('INFO', f'스케줄 날짜: {day_schedule.get("date")} / 오늘: {today}', 'DEBUG')
->>>>>>> b06631e06f3ba37acce7d6df22431527ed35b065
-                            else:
-                                add_system_log('WARNING', f'{site} 오늘({today.strftime("%Y-%m-%d")}) 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULE')
+                        if topic_data:
+                            topic = topic_data['topic']
+                            category = topic_data['category'] 
+                            keywords = topic_data.get('keywords', [site])
+                            add_system_log('INFO', f'{site}: {topic}', 'SCHEDULE')
                         else:
-                            add_system_log('WARNING', f'오늘({today.strftime("%Y-%m-%d")}, 요일:{day_of_week}) 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULE')
+                            # 기본값 사용
+                            defaults = {
+                                'unpre': {'topic': 'Python 프로그래밍 완벽 가이드', 'category': 'programming'},
+                                'untab': {'topic': '부동산 투자 전략 분석', 'category': 'realestate'},  
+                                'skewese': {'topic': '한국사 흥미로운 이야기', 'category': 'koreanhistory'}
+                            }
+                            default = defaults.get(site, {'topic': f'{site} 전문 가이드', 'category': 'general'})
+                            topic = default['topic']
+                            category = default['category']
+                            keywords = [site, '가이드']
+                            add_system_log('WARNING', f'{site}: 기본값 사용 - {topic}', 'FALLBACK')
                         
-                        # 1. 콘텐츠 생성 (사이트별로 다른 API 사용)
-                        generate_payload = {
+                        # WordPress 콘텐츠 생성 및 발행
+                        payload = {
                             'site': site,
                             'topic': topic,
                             'keywords': keywords,
                             'category': category
                         }
                         
-                        if site == 'tistory':
-                            # 티스토리는 별도 API 사용
-                            generate_url = 'http://localhost:8000/api/generate_tistory'
-                        else:
-                            # WordPress 사이트들은 기존 API 사용
-                            generate_url = 'http://localhost:8000/api/generate_wordpress'
-                        
-                        generate_response = requests.post(
-                            generate_url,
+                        response = requests.post(
+                            'http://localhost:8000/api/generate_wordpress',
+                            json=payload,
                             headers={'Content-Type': 'application/json'},
-                            json=generate_payload,
                             timeout=300
                         )
                         
-                        if generate_response.status_code != 200:
-                            raise Exception(f'콘텐츠 생성 실패: {generate_response.status_code}')
-                        
-                        generate_result = generate_response.json()
-                        if not generate_result.get('success'):
-                            raise Exception(f'콘텐츠 생성 실패: {generate_result.get("error")}')
-                        
-                        if site == 'tistory':
-                            # 티스토리는 콘텐츠 생성만 하고 발행 안함
-                            publish_status.update({
-                                'current_site': site,
-                                'progress': int(((i + 1) / len(sites)) * 90),
-                                'message': f'{site} 콘텐츠 생성 완료 (목록에 저장됨)'
-                            })
-                            
-                            # 스케줄 상태 업데이트 (generated로 설정)
-                            if schedule_data:
-                                schedule_manager.update_schedule_status(
-                                    week_start, day_of_week, site, 'generated'
-                                )
-                            
-                            logger.info(f"[TISTORY] {site} 콘텐츠 생성 완료, 목록에 저장됨")
-                            continue  # 다음 사이트로
-                        
-                        publish_status.update({
-                            'current_site': site,
-                            'progress': int(((i + 0.5) / len(sites)) * 90),
-                            'message': f'{site} WordPress 발행 중...'
-                        })
-                        
-                        # 2. WordPress 발행 (파일 경로 사용)
-                        file_path = generate_result.get('file_path')
-                        if not file_path:
-                            raise Exception('생성된 파일 경로가 없습니다')
-                        
-                        # WordPress 발행 로직 직접 호출
-                        from src.publishers.wordpress_publisher import WordPressPublisher
-                        from bs4 import BeautifulSoup
-                        import os
-                        
-                        # 파일 읽기
-                        if os.path.exists(file_path):
-                            with open(file_path, 'r', encoding='utf-8') as f:
-                                html_content = f.read()
-                            
-                            # HTML 파싱해서 콘텐츠 추출
-                            soup = BeautifulSoup(html_content, 'html.parser')
-                            title = soup.find('title').text if soup.find('title') else topic
-                            
-                            # 제목에서 도메인명 제거 (예: "제목 - unpre.co.kr" -> "제목")
-                            site_domains = [' - unpre.co.kr', ' - untab.co.kr', ' - skewese.com', ' - tistory.com']
-                            for domain in site_domains:
-                                if title.endswith(domain):
-                                    title = title[:-len(domain)].strip()
-                                    break
-                            meta_desc = soup.find('meta', {'name': 'description'})
-                            meta_description = meta_desc['content'] if meta_desc else ''
-                            
-                            # WordPress HTML 코드 모드용 - 전체 HTML 콘텐츠 사용
-                            # 불필요한 메타 요소들만 제거하고 디자인은 유지
-                            for unwanted in soup.find_all(['script', 'style']):
-                                unwanted.decompose()
-                            for meta_div in soup.find_all('div', class_=['wordpress-actions']):
-                                meta_div.decompose()
-                            
-                            # body 태그 내용 전체를 사용 (HTML 디자인 유지)
-                            body_tag = soup.find('body')
-                            if body_tag:
-                                body_content = str(body_tag).replace('<body>', '').replace('</body>', '')
-                            else:
-                                body_content = html_content  # fallback
-                            
-                            add_system_log('INFO', f'{site} HTML 콘텐츠 길이: {len(body_content)} 문자', 'CONTENT')
-                            
-                            content_data = {
-                                'title': title,
-                                'content': body_content.strip(),
-                                'meta_description': meta_description,
-                                'categories': [category],
-                                'tags': keywords
-                            }
-                            
-                            # WordPress 발행
-                            wp_publisher = WordPressPublisher(site)
-                            success, result = wp_publisher.publish_post(content_data)
-                            
-                            if success:
-                                # 성공 결과 기록
-                                if 'results' not in publish_status:
-                                    publish_status['results'] = []
+                        if response.status_code == 200:
+                            result = response.json()
+                            if result.get('success'):
                                 publish_status['results'].append({
                                     'site': site,
                                     'success': True,
-                                    'message': f'{site} 발행 성공: {result}',
-                                    'url': result
+                                    'message': f'{site} 발행 성공',
+                                    'topic': topic
                                 })
-                                
-                                publish_status.update({
-                                    'current_site': site,
-                                    'progress': int(((i + 1) / len(sites)) * 90),
-                                    'message': f'{site} 발행 성공: {result}'
-                                })
-                                
-                                # 데이터베이스에 발행된 콘텐츠 저장
-                                try:
-                                    database = get_database()
-                                    if database.is_connected:
-                                        file_id = database.add_content_file(
-                                            site=site,
-                                            title=title,
-                                            file_path=file_path,
-                                            file_type='wordpress',
-                                            metadata={
-                                                'categories': [category],
-                                                'tags': keywords,
-                                                'word_count': len(title.split()) * 50,
-                                                'reading_time': 5,
-                                                'file_size': os.path.getsize(file_path) if os.path.exists(file_path) else 1000,
-                                                'published_url': result,
-                                                'status': 'published'
-                                            }
-                                        )
-                                        database.update_content_file_status(file_id, 'published')
-                                        logger.info(f"[DB] {site} 발행 콘텐츠 저장 완료: {file_id}")
-                                except Exception as db_e:
-                                    logger.warning(f"[DB] {site} 저장 실패: {db_e}")
-                                
-                                # 스케줄 상태 업데이트
-                                if schedule_data:
-                                    schedule_manager.update_schedule_status(
-                                        week_start, day_of_week, site, 'published', url=result
-                                    )
+                                add_system_log('INFO', f'{site} 발행 성공: {topic}', 'SUCCESS')
                             else:
-                                # 실패 결과 기록
-                                if 'results' not in publish_status:
-                                    publish_status['results'] = []
+                                error = result.get('error', '알 수 없는 오류')
                                 publish_status['results'].append({
                                     'site': site,
                                     'success': False,
-                                    'message': f'{site} 발행 실패: {result}',
-                                    'error': result
+                                    'message': f'{site} 발행 실패: {error}',
+                                    'topic': topic
                                 })
-                                raise Exception(f'WordPress 발행 실패: {result}')
+                                add_system_log('ERROR', f'{site} 발행 실패: {error}', 'ERROR')
                         else:
-                            raise Exception(f'생성된 파일을 찾을 수 없습니다: {file_path}')
+                            publish_status['results'].append({
+                                'site': site,
+                                'success': False,
+                                'message': f'{site} API 오류: HTTP {response.status_code}',
+                                'topic': topic
+                            })
+                            add_system_log('ERROR', f'{site} API 오류: {response.status_code}', 'ERROR')
                             
-                    except Exception as e:
-                        # 예외 발생 시 실패 결과 기록
-                        if 'results' not in publish_status:
-                            publish_status['results'] = []
+                    except Exception as site_error:
                         publish_status['results'].append({
                             'site': site,
                             'success': False,
-                            'message': f'{site} 발행 실패: {str(e)}',
-                            'error': str(e)
+                            'message': f'{site} 오류: {str(site_error)}',
+                            'topic': topic if 'topic' in locals() else '알 수 없음'
                         })
-                        
-                        logger.error(f'{site} 발행 오류: {e}')
-                        publish_status.update({
-                            'current_site': site,
-                            'progress': int(((i + 1) / len(sites)) * 90),
-                            'message': f'{site} 발행 실패: {str(e)}'
-                        })
+                        add_system_log('ERROR', f'{site} 오류: {site_error}', 'ERROR')
                 
-                # 발행 결과 요약
-                successful_sites = []
-                failed_sites = []
-                
-                for result in publish_status.get('results', []):
-                    if 'success' in result.get('message', ''):
-                        successful_sites.append(result.get('site', ''))
-                    else:
-                        failed_sites.append(result.get('site', ''))
-                
-                if successful_sites:
-                    success_msg = f"✅ 성공: {', '.join(successful_sites)}"
-                else:
-                    success_msg = ""
-                
-                if failed_sites:
-                    fail_msg = f"❌ 실패: {', '.join(failed_sites)}"
-                else:
-                    fail_msg = ""
-                
-                final_message = f"발행 완료! {success_msg} {fail_msg}".strip()
-                
+                # 완료 처리
+                success_count = sum(1 for r in publish_status['results'] if r['success'])
                 publish_status.update({
                     'in_progress': False,
                     'progress': 100,
-                    'message': final_message
+                    'message': f'발행 완료: {success_count}/{len(sites)} 성공'
                 })
+                add_system_log('INFO', f'수동발행 완료: {success_count}/{len(sites)} 성공', 'COMPLETE')
                 
-            except (Exception, TimeoutError) as e:
-                error_msg = f'전체 발행 오류: {str(e)}'
-                logger.error(error_msg)
-                add_system_log('ERROR', error_msg, 'PUBLISH_ERROR')
+            except Exception as e:
                 publish_status.update({
                     'in_progress': False,
-                    'message': error_msg
+                    'message': f'발행 오류: {str(e)}'
                 })
+                add_system_log('ERROR', f'전체 발행 오류: {e}', 'ERROR')
         
+        import threading
         threading.Thread(target=background_publish, daemon=True).start()
         
         return jsonify({
             'success': True,
-            'message': f'{len(sites)}개 사이트 발행이 시작되었습니다.',
-            'sites': sites
+            'message': f'{len(sites)}개 사이트 발행이 시작되었습니다.'
         })
         
     except Exception as e:
