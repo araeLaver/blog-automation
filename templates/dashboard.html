@@ -2244,8 +2244,8 @@
             const dayOfWeek = today.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
             
             // 이번 주 월요일까지의 일수 계산
-            // 일요일(0) -> -6일 (이번주 월요일), 월요일(1) -> 0일, 화요일(2) -> -1일, ..., 토요일(6) -> -5일
-            const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+            // 일요일(0) -> 1일 (다음날이 월요일), 월요일(1) -> 0일, 화요일(2) -> -1일, ..., 토요일(6) -> -5일
+            const daysToMonday = dayOfWeek === 0 ? 1 : 1 - dayOfWeek;
             
             const monday = new Date(today);
             monday.setDate(today.getDate() + daysToMonday);
