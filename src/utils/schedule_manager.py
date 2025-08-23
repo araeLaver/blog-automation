@@ -537,7 +537,7 @@ class ScheduleManager:
         return all_topics
     
     def get_today_scheduled_topic(self, site: str) -> Dict:
-        """오늘의 계획된 주제 가져오기"""
+        """오늘의 계획된 주제 가져오기 (자동발행용 - planned 상태만)"""
         try:
             today = datetime.now().date()
             weekday = today.weekday()  # 0=월요일, 6=일요일
@@ -565,6 +565,39 @@ class ScheduleManager:
                     }
                 else:
                     print(f"[SCHEDULE] {site}에 대한 오늘({week_start} 주의 {weekday}일)의 계획된 주제가 없습니다")
+                    return None
+    
+    def get_today_topic_for_manual(self, site: str) -> Dict:
+        """오늘의 주제 가져오기 (수동발행용 - 모든 상태)"""
+        try:
+            today = datetime.now().date()
+            weekday = today.weekday()  # 0=월요일, 6=일요일
+            
+            # 이번 주 월요일 계산 (정확한 계산)
+            week_start = today - timedelta(days=weekday)
+            
+            conn = self.db.get_connection()
+            with conn.cursor() as cursor:
+                # 수동발행에서는 status와 관계없이 오늘 스케줄 사용
+                cursor.execute("""
+                    SELECT specific_topic, topic_category, keywords, target_length, status
+                    FROM publishing_schedule 
+                    WHERE week_start_date = %s AND day_of_week = %s AND site = %s
+                """, (week_start, weekday, site))
+                
+                result = cursor.fetchone()
+                if result:
+                    status = result[4]
+                    print(f"[MANUAL_SCHEDULE] {site} 오늘의 주제 찾음: {result[0][:50]}... (상태: {status})")
+                    return {
+                        'topic': result[0],
+                        'category': result[1],
+                        'keywords': result[2] or [],
+                        'length': result[3] or 'medium',
+                        'status': status
+                    }
+                else:
+                    print(f"[MANUAL_SCHEDULE] {site}에 대한 오늘({week_start} 주의 {weekday}일)의 주제가 없습니다")
                     return None
                     
         except Exception as e:
