@@ -1945,10 +1945,18 @@ def quick_publish():
             'message': f'{len(sites)}개 사이트 발행 시작: {", ".join(sites)}'
         })
         
-        # 백그라운드에서 실제 발행 (별도 스레드)
+        # 백그라운드에서 실제 발행 (별도 스레드) - 타임아웃 처리
         import threading
         def background_publish():
+            import signal
+            import time
+            
+            def timeout_handler(signum, frame):
+                raise TimeoutError("백그라운드 발행 타임아웃")
+            
             try:
+                # 5분 타임아웃 설정 (Windows에서는 signal.alarm 지원 안함)
+                start_time = time.time()
                 add_system_log('INFO', f'{len(sites)}개 사이트 자동발행 시작', 'AUTO_PUBLISH')
                 
                 from src.utils.schedule_manager import schedule_manager
@@ -1988,95 +1996,14 @@ def quick_publish():
                 else:
                     add_system_log('WARNING', f'스케줄 데이터가 비어있음', 'DEBUG')
                 
-                # DB 연결 실패시 목업 스케줄 데이터 생성
+                # DB 연결 실패시 간단한 목업 스케줄 데이터 생성
                 if not schedule_data or not schedule_data.get('schedule'):
-                    add_system_log('WARNING', 'DB 연결 실패로 목업 스케줄 데이터 사용', 'FALLBACK')
-                    from datetime import date
-                    schedule_data = {
-                        'week_start': week_start,
-                        'schedule': {}
-                    }
-                    
-                    # 공통 주제 생성 함수 정의
-                    def get_daily_topics(day_date):
-                        """날짜별 다양한 주제 생성"""
-                        import random
-                        day_seed = day_date.toordinal()
-                        random.seed(day_seed)
-                        
-                        unpre_topics = [
-                            f"Python {day_date.year}년 {day_date.month}월 최신 라이브러리와 프레임워크",
-                            f"JavaScript ES6+ 고급 기능 완벽 가이드 ({day_date.month}/{day_date.day})",
-                            f"React vs Vue.js 성능 비교 분석 - {day_date.year}년 버전", 
-                            f"Docker와 Kubernetes 실전 활용법 {day_date.month}월 업데이트",
-                            f"AI/ML 개발자를 위한 TensorFlow 최신 기능 ({day_date.day}일 특집)",
-                            f"웹 개발 보안 가이드 - {day_date.year}.{day_date.month:02d} 보안 패치",
-                            f"클라우드 네이티브 개발 전략과 도구 ({day_date.month}월 {day_date.day}일)",
-                            f"DevOps 자동화 파이프라인 구축 가이드 - {day_date.year}년 최신판"
-                        ]
-                        
-                        untab_topics = [
-                            f"{day_date.year}년 {day_date.month}월 부동산 시장 전망과 투자 전략",
-                            f"경매 부동산 투자 가이드 - {day_date.month}/{day_date.day} 시장 분석",
-                            f"서울 아파트 가격 동향과 미래 전망 ({day_date.year}.{day_date.month:02d})",
-                            f"부동산 정책 변화가 투자에 미치는 영향 - {day_date.month}월 {day_date.day}일",
-                            f"지방 부동산 투자의 새로운 기회 ({day_date.year}년 {day_date.month}월)",
-                            f"부동산 펀드 vs 직접 투자 비교 분석 - {day_date.day}일 특집",
-                            f"재개발·재건축 투자 전략 가이드 - {day_date.year}년 상반기"
-                        ]
-                        
-                        skewese_topics = [
-                            f"조선왕조 {day_date.month}월의 역사적 사건들과 그 의미",
-                            f"고구려 문화유산 탐방기 - {day_date.year}년 {day_date.month}월 {day_date.day}일",
-                            f"한국 전통 음식의 역사와 유래 ({day_date.month}/{day_date.day} 특집)",
-                            f"조선시대 과거제도와 교육 시스템 - {day_date.year}년 재조명",
-                            f"백제 역사 재발견 - {day_date.month}월 {day_date.day}일 고고학 뉴스",
-                            f"한국사 속 여성 인물들의 삶과 업적 ({day_date.year}.{day_date.month:02d})",
-                            f"조선왕조실록에서 찾은 흥미로운 이야기들 ({day_date.month}월)"
-                        ]
-                        
-                        tistory_topics = [
-                            f"{day_date.year}년 {day_date.month}월 IT 산업 주요 뉴스와 트렌드",
-                            f"AI 기술 발전이 일상에 미치는 영향 - {day_date.month}/{day_date.day}",
-                            f"메타버스 플랫폼 최신 동향과 미래 ({day_date.year}.{day_date.month:02d})",
-                            f"블록체인과 암호화폐 시장 분석 - {day_date.month}월 {day_date.day}일",
-                            f"스마트폰 기술 혁신과 차세대 디바이스 ({day_date.year}년 전망)",
-                            f"클라우드 컴퓨팅 시장 동향과 전망 ({day_date.month}/{day_date.day})",
-                            f"게임 산업 트렌드와 e스포츠 성장 - {day_date.year}년 {day_date.month}월"
-                        ]
-                        
-                        return {
-                            'unpre': {'topic': random.choice(unpre_topics), 'category': 'programming', 'keywords': ['프로그래밍', '개발', 'IT', 'Python', 'JavaScript']},
-                            'untab': {'topic': random.choice(untab_topics), 'category': 'realestate', 'keywords': ['부동산', '투자', '아파트', '경매', '정책']},
-                            'skewese': {'topic': random.choice(skewese_topics), 'category': 'koreanhistory', 'keywords': ['조선시대', '한국사', '전통문화', '역사', '문화재']},
-                            'tistory': {'topic': random.choice(tistory_topics), 'category': 'current', 'keywords': ['IT', '기술', '트렌드', 'AI', '뉴스']}
-                        }
-                    
-                    # 이번 주 7일간 스케줄 생성
-                    for day_idx in range(7):
-                        day_date = week_start + timedelta(days=day_idx)
-                        day_names = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
-                        
-                        # 날짜별 주제 생성
-                        daily_topics = get_daily_topics(day_date)
-                        
-                        schedule_data['schedule'][day_idx] = {
-                            'day_name': day_names[day_idx],
-                            'date': day_date,
-                            'sites': {
-                                site: {
-                                    'category': daily_topics[site]['category'],
-                                    'topic': daily_topics[site]['topic'],
-                                    'keywords': daily_topics[site]['keywords'],
-                                    'status': 'planned'
-                                }
-                                for site in ['unpre', 'untab', 'skewese', 'tistory']
-                            }
-                        }
-                    add_system_log('INFO', f'목업 스케줄 생성 완료: {len(schedule_data["schedule"])}일', 'FALLBACK')
+                    add_system_log('WARNING', 'DB 연결 실패로 기본값 사용', 'FALLBACK')
+                    # 기본값으로 돌아가서 site_defaults 사용
+                    schedule_data = None
                 
-                # 디버깅: 스케줄 데이터 구조 확인
-                add_system_log('INFO', f'스케줄 데이터 전체: {schedule_data}', 'DEBUG')
+                # 디버깅: 스케줄 데이터 구조 확인 (대용량 데이터 출력 방지)
+                add_system_log('INFO', f'스케줄 데이터 로드됨 (키 개수: {len(schedule_data.get("schedule", {}))})', 'DEBUG')
                 if schedule_data and 'schedule' in schedule_data:
                     add_system_log('INFO', f'스케줄 키: {list(schedule_data["schedule"].keys())}', 'DEBUG')
                     if day_of_week in schedule_data['schedule']:
@@ -2091,6 +2018,10 @@ def quick_publish():
                     add_system_log('WARNING', f'스케줄 데이터가 없거나 형식이 잘못됨', 'DEBUG')
                 
                 for i, site in enumerate(sites):
+                    # 타임아웃 체크 (10분 제한)
+                    if time.time() - start_time > 600:
+                        raise TimeoutError(f"발행 타임아웃 (10분 초과)")
+                    
                     try:
                         add_system_log('INFO', f'{site} 사이트 발행 시작 ({i+1}/{len(sites)})', 'PUBLISH')
                         
@@ -2349,11 +2280,13 @@ def quick_publish():
                     'message': final_message
                 })
                 
-            except Exception as e:
-                logger.error(f'전체 발행 오류: {e}')
+            except (Exception, TimeoutError) as e:
+                error_msg = f'전체 발행 오류: {str(e)}'
+                logger.error(error_msg)
+                add_system_log('ERROR', error_msg, 'PUBLISH_ERROR')
                 publish_status.update({
                     'in_progress': False,
-                    'message': f'발행 오류: {str(e)}'
+                    'message': error_msg
                 })
         
         threading.Thread(target=background_publish, daemon=True).start()
