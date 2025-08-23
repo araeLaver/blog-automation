@@ -2472,7 +2472,7 @@
             
             try {
                 console.log('📅 스케줄 로딩 시작:', startDate);
-                const response = await fetch(`/api/schedule/weekly?week_start=${startDate}`);
+                const response = await fetch(`/api/schedule/weekly?start_date=${startDate}`);
                 const scheduleData = await response.json();
                 
                 console.log('📊 API 응답 데이터:', scheduleData);
