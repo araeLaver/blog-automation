@@ -1909,6 +1909,24 @@ def get_publish_status():
             'message': f'상태 조회 오류: {str(e)}'
         })
 
+@app.route('/api/publish_status/reset', methods=['POST'])
+def reset_publish_status():
+    """수동 발행 상태 초기화"""
+    global publish_status
+    publish_status = {
+        'in_progress': False,
+        'current_site': '',
+        'progress': 0,
+        'total_sites': 0,
+        'results': [],
+        'message': '상태 초기화됨'
+    }
+    add_system_log('INFO', '발행 상태 강제 초기화됨', 'RESET')
+    return jsonify({
+        'success': True,
+        'message': '발행 상태가 초기화되었습니다.'
+    })
+
 @app.route('/api/quick_publish', methods=['POST'])
 def quick_publish():
     """빠른 수동 발행 (타임아웃 방지)"""
