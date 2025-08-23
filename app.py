@@ -1955,13 +1955,66 @@ def quick_publish():
                 schedule_data = schedule_manager.get_weekly_schedule(week_start)
                 add_system_log('INFO', f'스케줄 데이터 로드 완료', 'SCHEDULE')
                 
+                # DB 연결 실패시 목업 스케줄 데이터 생성
+                if not schedule_data or not schedule_data.get('schedule'):
+                    add_system_log('WARNING', 'DB 연결 실패로 목업 스케줄 데이터 사용', 'FALLBACK')
+                    from datetime import date
+                    schedule_data = {
+                        'week_start': week_start,
+                        'schedule': {}
+                    }
+                    
+                    # 이번 주 7일간 스케줄 생성
+                    for day_idx in range(7):
+                        day_date = week_start + timedelta(days=day_idx)
+                        day_names = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
+                        
+                        schedule_data['schedule'][day_idx] = {
+                            'day_name': day_names[day_idx],
+                            'date': day_date,
+                            'sites': {
+                                'unpre': {
+                                    'category': 'programming',
+                                    'topic': f'2025년 8월 {day_date.day}일 프로그래밍 최신 트렌드',
+                                    'keywords': ['프로그래밍', '개발', '2025'],
+                                    'status': 'planned'
+                                },
+                                'untab': {
+                                    'category': 'realestate', 
+                                    'topic': f'2025년 8월 {day_date.day}일 부동산 시장 분석',
+                                    'keywords': ['부동산', '투자', '2025'],
+                                    'status': 'planned'
+                                },
+                                'skewese': {
+                                    'category': 'koreanhistory',
+                                    'topic': f'2025년 8월 {day_date.day}일 조선시대 역사 이야기',
+                                    'keywords': ['조선시대', '역사', '문화'],
+                                    'status': 'planned'
+                                },
+                                'tistory': {
+                                    'category': 'current',
+                                    'topic': f'2025년 8월 {day_date.day}일 IT 산업 동향',
+                                    'keywords': ['IT', '기술', '트렌드'],
+                                    'status': 'planned'
+                                }
+                            }
+                        }
+                    add_system_log('INFO', f'목업 스케줄 생성 완료: {len(schedule_data["schedule"])}일', 'FALLBACK')
+                
                 # 디버깅: 스케줄 데이터 구조 확인
+                add_system_log('INFO', f'스케줄 데이터 전체: {schedule_data}', 'DEBUG')
                 if schedule_data and 'schedule' in schedule_data:
                     add_system_log('INFO', f'스케줄 키: {list(schedule_data["schedule"].keys())}', 'DEBUG')
                     if day_of_week in schedule_data['schedule']:
                         day_schedule = schedule_data['schedule'][day_of_week]
                         add_system_log('INFO', f'오늘({day_of_week}) 스케줄 날짜: {day_schedule.get("date")}', 'DEBUG')
                         add_system_log('INFO', f'오늘 사이트별 계획: {list(day_schedule.get("sites", {}).keys())}', 'DEBUG')
+                    else:
+                        add_system_log('WARNING', f'요일 {day_of_week} 키가 스케줄에 없음. 모든 스케줄 확인:', 'DEBUG')
+                        for key, val in schedule_data['schedule'].items():
+                            add_system_log('INFO', f'  스케줄[{key}]: 날짜={val.get("date")}, 사이트수={len(val.get("sites", {}))}', 'DEBUG')
+                else:
+                    add_system_log('WARNING', f'스케줄 데이터가 없거나 형식이 잘못됨', 'DEBUG')
                 
                 for i, site in enumerate(sites):
                     try:
