@@ -2245,21 +2245,20 @@
 
         // ====== 자동 발행 스케줄 관리 함수들 ======
 
-        // 이번 주 월요일 날짜 계산
-        function getThisMonday() {
+        // 이번 주 일요일 날짜 계산 (주의 시작)
+        function getThisSunday() {
             const today = new Date();
             const dayOfWeek = today.getDay(); // 0=일요일, 1=월요일, ..., 6=토요일
             
-            // 이번 주 월요일까지의 일수 계산
-            // 일요일(0) -> 1일 (다음날이 월요일), 월요일(1) -> 0일, 화요일(2) -> -1일, ..., 토요일(6) -> -5일
-            const daysToMonday = dayOfWeek === 0 ? 1 : 1 - dayOfWeek;
+            // 이번 주 일요일까지의 일수 계산
+            const daysToSunday = dayOfWeek === 0 ? 0 : -dayOfWeek;
             
-            const monday = new Date(today);
-            monday.setDate(today.getDate() + daysToMonday);
+            const sunday = new Date(today);
+            sunday.setDate(today.getDate() + daysToSunday);
             
-            console.log('Today:', today.toISOString().split('T')[0], 'Day of week:', dayOfWeek, 'Days to Monday:', daysToMonday, 'Monday:', monday.toISOString().split('T')[0]);
+            console.log('Today:', today.toISOString().split('T')[0], 'Day of week:', dayOfWeek, 'Days to Sunday:', daysToSunday, 'Sunday:', sunday.toISOString().split('T')[0]);
             
-            return monday.toISOString().split('T')[0];
+            return sunday.toISOString().split('T')[0];
         }
 
         // 전체 스케줄 보기 모달 표시
@@ -2287,16 +2286,16 @@
                 let targetDate;
                 
                 if (weekType === 'current') {
-                    targetDate = getThisMonday();
+                    targetDate = getThisSunday();
                 } else {
-                    // 다음 주 월요일 = 이번 주 월요일 + 7일
-                    const thisMonday = new Date(getThisMonday());
-                    thisMonday.setDate(thisMonday.getDate() + 7);
-                    targetDate = thisMonday.toISOString().split('T')[0];
+                    // 다음 주 일요일 = 이번 주 일요일 + 7일
+                    const thisSunday = new Date(getThisSunday());
+                    thisSunday.setDate(thisSunday.getDate() + 7);
+                    targetDate = thisSunday.toISOString().split('T')[0];
                     console.log('다음주 계산 결과:', {
-                        이번주월요일: getThisMonday(),
-                        다음주월요일: targetDate,
-                        thisMonday: thisMonday
+                        이번주일요일: getThisSunday(),
+                        다음주일요일: targetDate,
+                        thisSunday: thisSunday
                     });
                 }
                 
@@ -2468,7 +2467,7 @@
         // 일주일치 스케줄 로드
         async function loadWeeklySchedule() {
             const weekPicker = document.getElementById('schedule-week-picker');
-            const startDate = weekPicker.value || getThisMonday();
+            const startDate = weekPicker.value || getThisSunday();
             
             try {
                 console.log('📅 스케줄 로딩 시작:', startDate);
@@ -2831,8 +2830,8 @@
 
         // 페이지 로드시 초기화
         document.addEventListener('DOMContentLoaded', function() {
-            // 날짜 선택기를 이번 주 월요일로 설정
-            document.getElementById('schedule-week-picker').value = getThisMonday();
+            // 날짜 선택기를 이번 주 일요일로 설정
+            document.getElementById('schedule-week-picker').value = getThisSunday();
             
             // 스케줄 로드
             loadWeeklySchedule();
