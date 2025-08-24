@@ -1969,12 +1969,35 @@ def quick_publish():
                     })
                     
                     try:
-                        # 오늘 스케줄에서 주제 가져오기
+                        # API에서 주간 스케줄 가져오기
                         weekday = today.weekday()
                         week_start = today - timedelta(days=weekday)
-                        add_system_log('DEBUG', f'{site} 스케줄 조회: date={today}, week={week_start}, day={weekday}', 'SCHEDULE')
                         
-                        topic_data = schedule_manager.get_today_topic_for_manual(site)
+                        # API 호출로 스케줄 데이터 가져오기
+                        schedule_response = requests.get(
+                            f'http://localhost:8000/api/schedule/weekly?start_date={week_start}',
+                            timeout=10
+                        )
+                        
+                        topic_data = None
+                        if schedule_response.status_code == 200:
+                            schedule_json = schedule_response.json()
+                            if 'schedule' in schedule_json and str(weekday) in schedule_json['schedule']:
+                                day_data = schedule_json['schedule'][str(weekday)]
+                                if 'sites' in day_data and site in day_data['sites']:
+                                    site_data = day_data['sites'][site]
+                                    topic_data = {
+                                        'topic': site_data.get('topic'),
+                                        'category': site_data.get('category'),
+                                        'keywords': site_data.get('keywords', [])
+                                    }
+                                    add_system_log('INFO', f'{site} API 스케줄 사용: {topic_data["topic"]}', 'SCHEDULE')
+                        
+                        if not topic_data:
+                            # DB fallback 시도
+                            topic_data = schedule_manager.get_today_topic_for_manual(site)
+                            if topic_data:
+                                add_system_log('INFO', f'{site} DB 스케줄 사용: {topic_data["topic"]}', 'SCHEDULE')
                         
                         if topic_data:
                             topic = topic_data['topic']
