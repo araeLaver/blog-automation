@@ -2158,6 +2158,14 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('💡 체크박스 강제 추가 시작');
             
+            // 페이지 로드 시 자동으로 이번 주 스케줄 표시
+            console.log('📅 페이지 로드: 이번 주 스케줄 자동 표시');
+            const scheduleModal = document.getElementById('scheduleOverviewModal');
+            if (scheduleModal) {
+                // 모달 표시 없이 스케줄 데이터만 로드
+                showScheduleWeek('current');
+            }
+            
             // WordPress 헤더에 체크박스 추가
             setTimeout(function() {
                 const wpHeader = document.querySelector('.card-header h5');
@@ -2829,7 +2837,15 @@
         async function triggerManualPublish() {
             const today = new Date().toISOString().split('T')[0];
             
-            if (!confirm('⚠️ 오늘 예정된 모든 콘텐츠를 지금 수동으로 생성하고 발행하시겠습니까?\n\n이 작업은 자동 스케줄과 별개로 즉시 실행됩니다.')) {
+            // 오늘 날짜의 주제 가져오기
+            const todayTopics = generateWeeklyTopicsClient(today);
+            
+            let topicList = '📝 오늘 발행될 주제:\n\n';
+            Object.entries(todayTopics).forEach(([site, topic]) => {
+                topicList += `• ${site.toUpperCase()}: ${topic}\n`;
+            });
+            
+            if (!confirm(`⚠️ 오늘(${today}) 예정된 모든 콘텐츠를 지금 수동으로 생성하고 발행하시겠습니까?\n\n${topicList}\n이 작업은 자동 스케줄과 별개로 즉시 실행됩니다.`)) {
                 return;
             }
             
