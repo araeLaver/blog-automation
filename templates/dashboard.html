@@ -2269,20 +2269,12 @@
             return sunday.toISOString().split('T')[0];
         }
 
-        // 사용된 주제 추적용 전역 변수
-        let usedTopics = {
-            unpre: new Set(),
-            untab: new Set(), 
-            skewese: new Set(),
-            tistory: new Set()
-        };
-
-        // 클라이언트 사이드 중복 없는 주제 생성
+        // 클라이언트 사이드 날짜별 고정 주제 생성
         function generateWeeklyTopicsClient(startDate) {
             const date = new Date(startDate);
-            const weekSeed = Math.floor(date.getTime() / (1000 * 60 * 60 * 24)); // 날짜를 숫자로 변환
+            const dateSeed = Math.floor(date.getTime() / (1000 * 60 * 60 * 24)); // 날짜를 숫자로 변환
             
-            // 시드 기반 랜덤 함수
+            // 시드 기반 랜덤 함수 - 항상 같은 날짜는 같은 결과 반환
             function seededRandom(seed) {
                 const x = Math.sin(seed) * 10000;
                 return x - Math.floor(x);
@@ -2364,31 +2356,18 @@
                 "메타버스 교육의 가능성과 한계"
             ];
             
-            const topics = { unpre: unpre_topics, untab: untab_topics, skewese: skewese_topics, tistory: tistory_topics };
-            const result = {};
+            // 날짜별로 고정된 인덱스 계산 (항상 같은 날짜는 같은 주제)
+            const unpre_index = Math.floor(seededRandom(dateSeed * 2 + 1) * unpre_topics.length);
+            const untab_index = Math.floor(seededRandom(dateSeed * 3 + 2) * untab_topics.length);
+            const skewese_index = Math.floor(seededRandom(dateSeed * 5 + 3) * skewese_topics.length);
+            const tistory_index = Math.floor(seededRandom(dateSeed * 7 + 4) * tistory_topics.length);
             
-            // 각 사이트별로 중복되지 않는 주제 선택
-            Object.keys(topics).forEach((siteKey, index) => {
-                const siteTopics = topics[siteKey];
-                const usedSet = usedTopics[siteKey];
-                const availableTopics = siteTopics.filter(topic => !usedSet.has(topic));
-                
-                // 모든 주제가 사용되었다면 초기화
-                if (availableTopics.length === 0) {
-                    usedSet.clear();
-                    availableTopics.push(...siteTopics);
-                }
-                
-                // 시드 기반으로 사용 가능한 주제 중 선택
-                const randomIndex = Math.floor(seededRandom(weekSeed + index + 1) * availableTopics.length);
-                const selectedTopic = availableTopics[randomIndex];
-                
-                // 사용된 주제로 추가
-                usedSet.add(selectedTopic);
-                result[siteKey] = selectedTopic;
-            });
-            
-            return result;
+            return {
+                unpre: unpre_topics[unpre_index],
+                untab: untab_topics[untab_index],
+                skewese: skewese_topics[skewese_index],
+                tistory: tistory_topics[tistory_index]
+            };
         }
 
         // 전체 스케줄 보기 모달 표시
