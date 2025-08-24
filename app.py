@@ -927,7 +927,11 @@ def get_weekly_schedule():
         # schedule_manager에서 실제 스케줄 데이터 가져오기
         schedule_data = schedule_manager.get_weekly_schedule(start_date)
         
-        if not schedule_data or 'schedule' not in schedule_data:
+        # 8월 18일 이후 주차는 항상 동적 생성 (주차별 다른 주제를 위해)
+        if start_date > datetime(2025, 8, 18).date():
+            add_system_log('INFO', f'동적 스케줄 생성 (강제): {start_date}', 'SCHEDULE_API')
+            schedule_data = generate_dynamic_schedule(start_date)
+        elif not schedule_data or 'schedule' not in schedule_data:
             # DB에 없으면 동적으로 스케줄 생성
             add_system_log('INFO', f'동적 스케줄 생성: {start_date}', 'SCHEDULE_API')
             schedule_data = generate_dynamic_schedule(start_date)
