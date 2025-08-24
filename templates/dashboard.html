@@ -2530,10 +2530,10 @@
                 }
                 .calendar-day {
                     background: white;
-                    min-height: 200px;
+                    min-height: 250px;
                     padding: 8px;
                     position: relative;
-                    overflow: hidden;
+                    overflow: visible;
                 }
                 .calendar-day.today {
                     background: #fff3cd;
@@ -2549,13 +2549,14 @@
                     padding-bottom: 4px;
                 }
                 .site-item {
-                    margin-bottom: 4px;
-                    padding: 3px 6px;
-                    border-radius: 4px;
-                    font-size: 0.75rem;
-                    line-height: 1.2;
+                    margin-bottom: 6px;
+                    padding: 6px 8px;
+                    border-radius: 6px;
+                    font-size: 0.8rem;
+                    line-height: 1.3;
                     cursor: pointer;
                     transition: all 0.2s;
+                    min-height: auto;
                 }
                 .site-item:hover {
                     transform: translateY(-1px);
@@ -2627,7 +2628,7 @@
                             <div style="font-weight: bold; margin-bottom: 2px;">
                                 ${statusIcon} ${site.toUpperCase()}
                             </div>
-                            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            <div style="word-break: break-word; line-height: 1.2; max-height: none;">
                                 ${siteData.topic}
                             </div>
                             <div style="font-size: 0.6rem; color: #666; margin-top: 2px;">
