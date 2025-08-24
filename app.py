@@ -913,7 +913,7 @@ def get_weekly_schedule():
     try:
         from src.utils.schedule_manager import schedule_manager
         
-        week_start = request.args.get('week_start')
+        week_start = request.args.get('week_start') or request.args.get('start_date')
         if week_start:
             start_date = datetime.strptime(week_start, '%Y-%m-%d').date()
         else:
@@ -925,7 +925,8 @@ def get_weekly_schedule():
         schedule_data = schedule_manager.get_weekly_schedule(start_date)
         
         if not schedule_data or 'schedule' not in schedule_data:
-            return jsonify({})
+            # DB에 없으면 동적으로 스케줄 생성
+            schedule_data = generate_dynamic_schedule(start_date)
         
         # 대시보드용 포맷으로 변환
         formatted_schedule = {}
@@ -3513,6 +3514,80 @@ def test_scheduler_health():
         
     except Exception as e:
         add_system_log('ERROR', f'❌ 스케줄러 헬스 체크 실패: {str(e)}', 'SCHEDULER')
+
+
+def generate_dynamic_schedule(start_date):
+    """주차별로 동적 스케줄 생성 (주차별 다른 시드 사용)"""
+    import random
+    from datetime import timedelta
+    
+    # 주차별 고유 시드 생성 (start_date 기준)
+    week_seed = start_date.toordinal()
+    random.seed(week_seed)
+    
+    # 사이트별 주제 풀
+    unpre_topics = [
+        "JWT 토큰 기반 시큐리티 구현", "DDD(도메인 주도 설계) 실전 적용", "C++ 최신 프로그래밍 기법",
+        "Kotlin으로 Android 앱 개발", "Python 데이터 분석 마스터", "React Hook 고급 활용법",
+        "Docker 컨테이너 최적화", "Spring Boot 마이크로서비스", "GraphQL API 설계 원칙"
+    ]
+    
+    untab_topics = [
+        "친환경 부동산 그린 리모델링 트렌드", "고령화 사회와 실버타운 투자", "인플레이션 시대의 투자 가이드",
+        "공모주 투자 전략 분석", "메타버스 부동산 투자", "ESG 투자의 미래 전망",
+        "부동산 경매 투자의 새로운 기회", "암호화폐와 전통 자산 포트폴리오"
+    ]
+    
+    skewese_topics = [
+        "조선시대 과학기술의 발전과 역사", "수면의 과학과 질 좋은 잠자리", "신라 통일의 과정과 역사적 의미",
+        "고려 몽골 침입과 강화도 항쟁", "4.19혁명과 민주주의 발전", "임진왜란과 이순신의 활약",
+        "한국 전통 건축의 아름다움과 과학", "정조의 개혁 정치와 화성 건설"
+    ]
+    
+    tistory_topics = [
+        "2025년 ChatGPT-5와 차세대 AI 혁신", "재건축 규제 완화, 시장 변화 예상", "MZ세대 투자 패턴 분석, 부작용은?",
+        "인플레이션 재부상? 2025년 전망", "2026 월드컵 공동개최, 한국 축구 재도약", "K-문화 글로벌 확산 현황",
+        "비트코인 10만달러 돌파 후 전망", "저출산 대책 실효성 논란"
+    ]
+    
+    site_topics = {
+        'unpre': unpre_topics,
+        'untab': untab_topics, 
+        'skewese': skewese_topics,
+        'tistory': tistory_topics
+    }
+    
+    schedule = {}
+    day_names = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
+    
+    for day in range(7):
+        schedule[day] = {
+            'day_name': day_names[day],
+            'date': start_date + timedelta(days=day),
+            'sites': {}
+        }
+        
+        for site, topics in site_topics.items():
+            # 주차+요일+사이트별 고유 인덱스 계산
+            topic_index = (week_seed + day * 10 + hash(site)) % len(topics)
+            topic = topics[topic_index]
+            
+            schedule[day]['sites'][site] = {
+                'category': 'programming' if site == 'unpre' else 
+                           'realestate' if site == 'untab' else
+                           'koreanhistory' if site == 'skewese' else 'current',
+                'topic': topic,
+                'keywords': [site, topic.split()[0]],
+                'length': 'long' if len(topic) > 20 else 'medium',
+                'status': 'planned',
+                'url': None
+            }
+    
+    return {
+        'week_start': start_date,
+        'schedule': schedule
+    }
+
 
 # 스케줄러 초기화 (앱 시작 시)
 scheduler_initialized = init_scheduler()
