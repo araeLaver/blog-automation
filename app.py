@@ -915,14 +915,18 @@ def get_weekly_schedule():
         week_start = request.args.get('week_start') or request.args.get('start_date')
         if week_start:
             start_date = datetime.strptime(week_start, '%Y-%m-%d').date()
+            add_system_log('DEBUG', f'API 요청 날짜: {start_date}', 'SCHEDULE')
         else:
             # 현재 주 일요일 계산
             today = datetime.now(KST).date()
             days_since_sunday = (today.weekday() + 1) % 7  
             start_date = today - timedelta(days=days_since_sunday)
+            add_system_log('DEBUG', f'계산된 날짜: {start_date} (오늘: {today})', 'SCHEDULE')
         
         # 항상 동적 생성 (주차별 고유 주제 보장)
+        add_system_log('INFO', f'동적 스케줄 생성 시작: {start_date}', 'SCHEDULE')
         schedule_data = generate_dynamic_schedule(start_date)
+        add_system_log('INFO', f'동적 스케줄 생성 완료: week_start={schedule_data.get("week_start")}', 'SCHEDULE')
         
         # 대시보드용 포맷으로 변환
         formatted_schedule = {}
