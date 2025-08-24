@@ -2702,8 +2702,14 @@
                 `;
                 
                 // 사이트별 스케줄 표시
-                for (const [site, siteData] of Object.entries(dayData.sites)) {
-                    const statusClass = `status-${siteData.status}`;
+                for (const [site, siteArray] of Object.entries(dayData.sites)) {
+                    // siteArray는 배열이므로 첫 번째 요소 가져오기
+                    const siteData = Array.isArray(siteArray) ? siteArray[0] : siteArray;
+                    console.log(`🔍 Site ${site} data:`, siteData);
+                    
+                    if (!siteData) continue;
+                    
+                    const statusClass = `status-${siteData.status || 'scheduled'}`;
                     const siteClass = `site-${site}`;
                     
                     const statusIcon = siteData.status === 'published' ? '✅' : 
@@ -2711,16 +2717,16 @@
                     
                     html += `
                         <div class="site-item ${siteClass} ${statusClass}" 
-                             title="${siteData.topic} (${siteData.category})"
+                             title="${siteData.topic || '주제 없음'} (${siteData.category || '카테고리 없음'})"
                              onclick="${siteData.url ? `window.open('${siteData.url}', '_blank')` : 'void(0)'}">
                             <div style="font-weight: bold; margin-bottom: 2px;">
                                 ${statusIcon} ${site.toUpperCase()}
                             </div>
                             <div style="word-break: break-word; line-height: 1.2; max-height: none;">
-                                ${siteData.topic}
+                                ${siteData.topic || '주제 로딩 중...'}
                             </div>
                             <div style="font-size: 0.6rem; color: #666; margin-top: 2px;">
-                                ${siteData.category}
+                                ${siteData.category || '카테고리 없음'}
                             </div>
                         </div>
                     `;
