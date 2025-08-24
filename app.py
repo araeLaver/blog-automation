@@ -909,34 +909,20 @@ def get_schedule_status():
 
 @app.route('/api/schedule/weekly')
 def get_weekly_schedule():
-    """주간 스케줄 조회 - schedule_manager 사용"""
+    """주간 스케줄 조회 - 간단하고 확실한 동적 생성"""
     try:
-        from src.utils.schedule_manager import schedule_manager
-        
+        # 요청된 시작 날짜 파싱
         week_start = request.args.get('week_start') or request.args.get('start_date')
         if week_start:
             start_date = datetime.strptime(week_start, '%Y-%m-%d').date()
-            add_system_log('DEBUG', f'API 요청 start_date: {start_date}', 'SCHEDULE_API')
         else:
-            # 이번 주 일요일 (주의 시작)
+            # 현재 주 일요일 계산
             today = datetime.now(KST).date()
-            days_since_sunday = (today.weekday() + 1) % 7  # 일요일=0, 월요일=1, ..., 토요일=6
+            days_since_sunday = (today.weekday() + 1) % 7  
             start_date = today - timedelta(days=days_since_sunday)
-            add_system_log('DEBUG', f'계산된 start_date: {start_date} (today: {today})', 'SCHEDULE_API')
         
-        # schedule_manager에서 실제 스케줄 데이터 가져오기
-        schedule_data = schedule_manager.get_weekly_schedule(start_date)
-        
-        # 8월 18일 이후 주차는 항상 동적 생성 (주차별 다른 주제를 위해)
-        if start_date > datetime(2025, 8, 18).date():
-            add_system_log('INFO', f'동적 스케줄 생성 (강제): {start_date}', 'SCHEDULE_API')
-            schedule_data = generate_dynamic_schedule(start_date)
-        elif not schedule_data or 'schedule' not in schedule_data:
-            # DB에 없으면 동적으로 스케줄 생성
-            add_system_log('INFO', f'동적 스케줄 생성: {start_date}', 'SCHEDULE_API')
-            schedule_data = generate_dynamic_schedule(start_date)
-        else:
-            add_system_log('DEBUG', f'DB 스케줄 사용: {start_date}', 'SCHEDULE_API')
+        # 항상 동적 생성 (주차별 고유 주제 보장)
+        schedule_data = generate_dynamic_schedule(start_date)
         
         # 대시보드용 포맷으로 변환
         formatted_schedule = {}
