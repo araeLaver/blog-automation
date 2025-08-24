@@ -916,18 +916,23 @@ def get_weekly_schedule():
         week_start = request.args.get('week_start') or request.args.get('start_date')
         if week_start:
             start_date = datetime.strptime(week_start, '%Y-%m-%d').date()
+            add_system_log('DEBUG', f'API 요청 start_date: {start_date}', 'SCHEDULE_API')
         else:
             # 이번 주 일요일 (주의 시작)
             today = datetime.now(KST).date()
             days_since_sunday = (today.weekday() + 1) % 7  # 일요일=0, 월요일=1, ..., 토요일=6
             start_date = today - timedelta(days=days_since_sunday)
+            add_system_log('DEBUG', f'계산된 start_date: {start_date} (today: {today})', 'SCHEDULE_API')
         
         # schedule_manager에서 실제 스케줄 데이터 가져오기
         schedule_data = schedule_manager.get_weekly_schedule(start_date)
         
         if not schedule_data or 'schedule' not in schedule_data:
             # DB에 없으면 동적으로 스케줄 생성
+            add_system_log('INFO', f'동적 스케줄 생성: {start_date}', 'SCHEDULE_API')
             schedule_data = generate_dynamic_schedule(start_date)
+        else:
+            add_system_log('DEBUG', f'DB 스케줄 사용: {start_date}', 'SCHEDULE_API')
         
         # 대시보드용 포맷으로 변환
         formatted_schedule = {}
