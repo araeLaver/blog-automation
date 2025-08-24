@@ -1003,6 +1003,32 @@ def get_weekly_schedule():
         logger.error(f"Weekly schedule error: {e}")
         return jsonify({}), 500
 
+@app.route('/api/schedule/test')
+def test_dynamic_schedule():
+    """동적 스케줄 테스트 API"""
+    start_date = request.args.get('start_date', '2025-08-24')
+    start_date_obj = datetime.strptime(start_date, '%Y-%m-%d').date()
+    
+    # 직접 테스트
+    import random
+    from datetime import timedelta
+    
+    week_seed = start_date_obj.toordinal()
+    random.seed(week_seed)
+    
+    unpre_topics = ["JWT 토큰 기반 시큐리티 구현", "DDD(도메인 주도 설계) 실전 적용", "C++ 최신 프로그래밍 기법"]
+    
+    topic_index = (week_seed + 0 * 10 + hash('unpre')) % len(unpre_topics)
+    selected_topic = unpre_topics[topic_index]
+    
+    return jsonify({
+        'request_date': start_date,
+        'week_seed': week_seed,
+        'topic_index': topic_index,
+        'selected_topic': selected_topic,
+        'all_topics': unpre_topics
+    })
+
 @app.route('/api/generate_wordpress', methods=['POST'])
 def generate_wordpress():
     """WordPress 콘텐츠 생성"""
