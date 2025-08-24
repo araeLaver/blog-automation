@@ -2376,20 +2376,28 @@
                 };
                 
                 // 주간 7일 스케줄 생성
+                const dayNames = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+                
                 for (let i = 0; i < 7; i++) {
                     const currentDate = new Date(startDateObj);
                     currentDate.setDate(currentDate.getDate() + i);
                     const dateStr = currentDate.toISOString().split('T')[0];
+                    const dayName = dayNames[currentDate.getDay()];
                     
                     scheduleData.schedule[dateStr] = {
+                        date: dateStr,
+                        day_name: dayName,
                         sites: {}
                     };
                     
-                    // 각 사이트별로 주제 할당 (매일 3시 스케줄)
+                    // 각 날짜별로 다른 주제 생성 (일별 + 사이트별 고유 주제)
                     Object.keys(weekTopics).forEach(siteKey => {
+                        // 날짜별 + 사이트별 고유 주제 생성
+                        const dailyTopics = generateWeeklyTopicsClient(dateStr);
+                        
                         scheduleData.schedule[dateStr].sites[siteKey] = [{
                             time: '03:00',
-                            topic: weekTopics[siteKey],
+                            topic: dailyTopics[siteKey],
                             category: getSiteDefaultCategory(siteKey),
                             status: 'scheduled'
                         }];
