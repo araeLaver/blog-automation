@@ -917,9 +917,10 @@ def get_weekly_schedule():
         if week_start:
             start_date = datetime.strptime(week_start, '%Y-%m-%d').date()
         else:
-            # 이번 주 월요일
+            # 이번 주 일요일 (주의 시작)
             today = datetime.now(KST).date()
-            start_date = today - timedelta(days=today.weekday())
+            days_since_sunday = (today.weekday() + 1) % 7  # 일요일=0, 월요일=1, ..., 토요일=6
+            start_date = today - timedelta(days=days_since_sunday)
         
         # schedule_manager에서 실제 스케줄 데이터 가져오기
         schedule_data = schedule_manager.get_weekly_schedule(start_date)
@@ -3558,7 +3559,7 @@ def generate_dynamic_schedule(start_date):
     }
     
     schedule = {}
-    day_names = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
+    day_names = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일']
     
     for day in range(7):
         schedule[day] = {
