@@ -2261,6 +2261,67 @@
             return sunday.toISOString().split('T')[0];
         }
 
+        // 클라이언트 사이드 주차별 주제 생성 (임시 해결책)
+        function generateWeeklyTopicsClient(startDate) {
+            const date = new Date(startDate);
+            const weekSeed = Math.floor(date.getTime() / (1000 * 60 * 60 * 24)); // 날짜를 숫자로 변환
+            
+            // 시드 기반 랜덤 함수
+            function seededRandom(seed) {
+                const x = Math.sin(seed) * 10000;
+                return x - Math.floor(x);
+            }
+            
+            const unpre_topics = [
+                "JWT 토큰 기반 시큐리티 구현",
+                "DDD(도메인 주도 설계) 실전 적용", 
+                "C++ 최신 프로그래밍 기법",
+                "Kotlin으로 Android 앱 개발",
+                "Python 데이터 분석 마스터",
+                "React Hook 고급 활용법"
+            ];
+            
+            const untab_topics = [
+                "친환경 부동산 그린 리모델링 트렌드",
+                "고령화 사회와 실버타운 투자",
+                "인플레이션 시대의 투자 가이드", 
+                "공모주 투자 전략 분석",
+                "메타버스 부동산 투자",
+                "ESG 투자의 미래 전망"
+            ];
+            
+            const skewese_topics = [
+                "수면의 과학과 질 좋은 잠자리",
+                "신라 통일의 과정과 역사적 의미",
+                "4.19혁명과 민주주의 발전", 
+                "임진왜란과 이순신의 활약",
+                "한국 전통 건축의 아름다움과 과학",
+                "정조의 개혁 정치와 화성 건설"
+            ];
+            
+            const tistory_topics = [
+                "재건축 규제 완화, 시장 변화 예상",
+                "2025년 ChatGPT-5와 차세대 AI 혁신",
+                "MZ세대 투자 패턴 분석, 부작용은?",
+                "인플레이션 재부상? 2025년 전망",
+                "2026 월드컵 공동개최, 한국 축구 재도약",
+                "K-문화 글로벌 확산 현황"
+            ];
+            
+            // 주차별 고유 인덱스 계산
+            const unpre_index = Math.floor(seededRandom(weekSeed + 1) * unpre_topics.length);
+            const untab_index = Math.floor(seededRandom(weekSeed + 2) * untab_topics.length);  
+            const skewese_index = Math.floor(seededRandom(weekSeed + 3) * skewese_topics.length);
+            const tistory_index = Math.floor(seededRandom(weekSeed + 4) * tistory_topics.length);
+            
+            return {
+                unpre: unpre_topics[unpre_index],
+                untab: untab_topics[untab_index], 
+                skewese: skewese_topics[skewese_index],
+                tistory: tistory_topics[tistory_index]
+            };
+        }
+
         // 전체 스케줄 보기 모달 표시
         function showScheduleOverview() {
             const modal = new bootstrap.Modal(document.getElementById('scheduleOverviewModal'));
@@ -2271,7 +2332,7 @@
             calculateNextRunTime();
         }
 
-        // 특정 주차 스케줄 표시
+        // 특정 주차 스케줄 표시 - 클라이언트사이드 생성 사용
         async function showScheduleWeek(weekType) {
             try {
                 // 버튼 활성화 상태 변경
@@ -2284,14 +2345,17 @@
                 
                 const today = new Date();
                 let targetDate;
+                let startDateObj;
                 
                 if (weekType === 'current') {
                     targetDate = getThisSunday();
+                    startDateObj = new Date(targetDate);
                 } else {
                     // 다음 주 일요일 = 이번 주 일요일 + 7일
                     const thisSunday = new Date(getThisSunday());
                     thisSunday.setDate(thisSunday.getDate() + 7);
                     targetDate = thisSunday.toISOString().split('T')[0];
+                    startDateObj = thisSunday;
                     console.log('다음주 계산 결과:', {
                         이번주일요일: getThisSunday(),
                         다음주일요일: targetDate,
@@ -2299,33 +2363,58 @@
                     });
                 }
                 
-                console.log('Today:', today.toISOString().split('T')[0]);
-                console.log('Calculated target date:', targetDate);
-                console.log('Week type:', weekType);
-                console.log('Fetching schedule for:', targetDate);
-                const response = await fetch(`/api/schedule/weekly?start_date=${targetDate}`);
+                console.log('클라이언트사이드 주제 생성 시작:', targetDate);
                 
-                // 디버깅: 원시 텍스트 응답 확인
-                const responseText = await response.text();
-                console.log('Raw response text:', responseText.substring(0, 500));
+                // 클라이언트사이드에서 주제 생성
+                const weekTopics = generateWeeklyTopicsClient(targetDate);
+                console.log('생성된 주차별 주제:', weekTopics);
                 
-                const scheduleData = JSON.parse(responseText);
+                // API 응답 형식으로 데이터 변환 (displayWeeklySchedule 함수가 기대하는 구조)
+                const scheduleData = {
+                    week_start: targetDate,
+                    schedule: {}
+                };
                 
-                console.log('Schedule API response:', scheduleData);
-                console.log('Schedule data keys:', Object.keys(scheduleData));
-                console.log('Schedule data length:', Object.keys(scheduleData).length);
+                // 주간 7일 스케줄 생성
+                for (let i = 0; i < 7; i++) {
+                    const currentDate = new Date(startDateObj);
+                    currentDate.setDate(currentDate.getDate() + i);
+                    const dateStr = currentDate.toISOString().split('T')[0];
+                    
+                    scheduleData.schedule[dateStr] = {
+                        sites: {}
+                    };
+                    
+                    // 각 사이트별로 주제 할당 (매일 3시 스케줄)
+                    Object.keys(weekTopics).forEach(siteKey => {
+                        scheduleData.schedule[dateStr].sites[siteKey] = [{
+                            time: '03:00',
+                            topic: weekTopics[siteKey],
+                            category: getSiteDefaultCategory(siteKey),
+                            status: 'scheduled'
+                        }];
+                    });
+                }
                 
-                // 데이터 클론해서 전달
-                const clonedData = JSON.parse(JSON.stringify(scheduleData));
-                console.log('Cloned data for display:', clonedData);
-                
-                displayWeeklySchedule(clonedData);
+                console.log('최종 스케줄 데이터:', scheduleData);
+                displayWeeklySchedule(scheduleData);
                 
             } catch (error) {
                 console.error('스케줄 로드 오류:', error);
                 const container = document.getElementById('schedule-overview-content') || document.getElementById('weekly-schedule-content');
                 container.innerHTML = '<div class="text-center text-muted">스케줄을 불러올 수 없습니다.</div>';
             }
+        }
+        
+        // 사이트별 기본 카테고리 반환
+        function getSiteDefaultCategory(siteKey) {
+            const categories = {
+                'unpre': '프로그래밍',
+                'untab': '취미',
+                'skewese': '뷰티/패션',
+                'tistory': '일반'
+            };
+            return categories[siteKey] || '일반';
         }
 
         // 스케줄 전체 표시
