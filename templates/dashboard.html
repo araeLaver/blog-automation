@@ -2261,7 +2261,15 @@
             return sunday.toISOString().split('T')[0];
         }
 
-        // 클라이언트 사이드 주차별 주제 생성 (임시 해결책)
+        // 사용된 주제 추적용 전역 변수
+        let usedTopics = {
+            unpre: new Set(),
+            untab: new Set(), 
+            skewese: new Set(),
+            tistory: new Set()
+        };
+
+        // 클라이언트 사이드 중복 없는 주제 생성
         function generateWeeklyTopicsClient(startDate) {
             const date = new Date(startDate);
             const weekSeed = Math.floor(date.getTime() / (1000 * 60 * 60 * 24)); // 날짜를 숫자로 변환
@@ -2278,7 +2286,17 @@
                 "C++ 최신 프로그래밍 기법",
                 "Kotlin으로 Android 앱 개발",
                 "Python 데이터 분석 마스터",
-                "React Hook 고급 활용법"
+                "React Hook 고급 활용법",
+                "Spring Boot 마이크로서비스 아키텍처",
+                "Docker 컨테이너 운영 실무",
+                "GraphQL API 설계와 최적화",
+                "Redis 캐싱 전략과 성능 튜닝",
+                "Kubernetes 클러스터 관리",
+                "MongoDB 스키마 디자인 패턴",
+                "Vue.js 3 Composition API 활용",
+                "TypeScript 고급 타입 시스템",
+                "AWS 서버리스 아키텍처",
+                "CI/CD 파이프라인 구축 가이드"
             ];
             
             const untab_topics = [
@@ -2287,7 +2305,17 @@
                 "인플레이션 시대의 투자 가이드", 
                 "공모주 투자 전략 분석",
                 "메타버스 부동산 투자",
-                "ESG 투자의 미래 전망"
+                "ESG 투자의 미래 전망",
+                "리츠(REITs) 투자의 장단점",
+                "해외 부동산 투자 가이드",
+                "암호화폐 ETF 투자 전략",
+                "배당주 포트폴리오 구성법",
+                "금융 위기 시 자산 보호 방법",
+                "부동산 경매 투자 노하우",
+                "스마트 홈 기술과 부동산 가치",
+                "펜션 투자의 수익성 분석",
+                "상가 임대업 운영 전략",
+                "신도시 개발과 투자 기회"
             ];
             
             const skewese_topics = [
@@ -2296,7 +2324,17 @@
                 "4.19혁명과 민주주의 발전", 
                 "임진왜란과 이순신의 활약",
                 "한국 전통 건축의 아름다움과 과학",
-                "정조의 개혁 정치와 화성 건설"
+                "정조의 개혁 정치와 화성 건설",
+                "고구려의 영토 확장과 광개토대왕",
+                "조선 후기 실학사상의 발전",
+                "일제강점기 독립운동가들",
+                "한국 전쟁과 분단의 역사",
+                "경제개발 5개년 계획의 성과",
+                "88올림픽과 한국의 국제적 위상",
+                "한글의 과학적 원리와 우수성",
+                "불교 전래와 한국 문화 형성",
+                "조선시대 과거제도의 특징",
+                "근대화 과정에서 전통과 현대의 만남"
             ];
             
             const tistory_topics = [
@@ -2305,21 +2343,44 @@
                 "MZ세대 투자 패턴 분석, 부작용은?",
                 "인플레이션 재부상? 2025년 전망",
                 "2026 월드컵 공동개최, 한국 축구 재도약",
-                "K-문화 글로벌 확산 현황"
+                "K-문화 글로벌 확산 현황",
+                "전기차 배터리 기술 혁신과 미래",
+                "원격근무 시대의 사무공간 변화",
+                "플랫폼 경제와 긱 워커들",
+                "Z세대 소비 트렌드 변화",
+                "스마트시티 구축 현황과 전망",
+                "바이오 헬스케어 산업 동향",
+                "로봇 자동화와 일자리 변화",
+                "디지털 노마드 라이프스타일",
+                "탄소중립 정책과 기업 대응",
+                "메타버스 교육의 가능성과 한계"
             ];
             
-            // 주차별 고유 인덱스 계산
-            const unpre_index = Math.floor(seededRandom(weekSeed + 1) * unpre_topics.length);
-            const untab_index = Math.floor(seededRandom(weekSeed + 2) * untab_topics.length);  
-            const skewese_index = Math.floor(seededRandom(weekSeed + 3) * skewese_topics.length);
-            const tistory_index = Math.floor(seededRandom(weekSeed + 4) * tistory_topics.length);
+            const topics = { unpre: unpre_topics, untab: untab_topics, skewese: skewese_topics, tistory: tistory_topics };
+            const result = {};
             
-            return {
-                unpre: unpre_topics[unpre_index],
-                untab: untab_topics[untab_index], 
-                skewese: skewese_topics[skewese_index],
-                tistory: tistory_topics[tistory_index]
-            };
+            // 각 사이트별로 중복되지 않는 주제 선택
+            Object.keys(topics).forEach((siteKey, index) => {
+                const siteTopics = topics[siteKey];
+                const usedSet = usedTopics[siteKey];
+                const availableTopics = siteTopics.filter(topic => !usedSet.has(topic));
+                
+                // 모든 주제가 사용되었다면 초기화
+                if (availableTopics.length === 0) {
+                    usedSet.clear();
+                    availableTopics.push(...siteTopics);
+                }
+                
+                // 시드 기반으로 사용 가능한 주제 중 선택
+                const randomIndex = Math.floor(seededRandom(weekSeed + index + 1) * availableTopics.length);
+                const selectedTopic = availableTopics[randomIndex];
+                
+                // 사용된 주제로 추가
+                usedSet.add(selectedTopic);
+                result[siteKey] = selectedTopic;
+            });
+            
+            return result;
         }
 
         // 전체 스케줄 보기 모달 표시
