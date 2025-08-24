@@ -2453,6 +2453,19 @@
                 }
                 
                 console.log('최종 스케줄 데이터:', scheduleData);
+                
+                // 스케줄을 데이터베이스에 저장
+                try {
+                    await fetch('/api/schedule/save', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({schedule_data: scheduleData})
+                    });
+                    console.log('스케줄 DB 저장 완료');
+                } catch (saveError) {
+                    console.warn('스케줄 DB 저장 실패:', saveError);
+                }
+                
                 displayWeeklySchedule(scheduleData);
                 
             } catch (error) {

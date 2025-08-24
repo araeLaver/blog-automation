@@ -127,15 +127,23 @@ class BlogAutomationScheduler:
             # 1. 사이트 설정 가져오기
             site_config = SITE_CONFIGS[site_key]
             
-            # 2. 오늘의 계획된 주제 가져오기 - 클라이언트와 동일한 로직 사용
-            today = datetime.now().date()
-            topic, category = self._get_topic_for_date(site_key, today)
-            
-            if not topic:
-                blog_logger.warning(f"No topic generated for {site_key}")
-                return False
-            
-            blog_logger.info(f"Using topic for {site_key}: {topic}")
+            # 2. 오늘의 계획된 주제 가져오기 (데이터베이스 우선, 없으면 날짜 기반 생성)
+            scheduled_topic = self.schedule_manager.get_today_scheduled_topic(site_key)
+            if scheduled_topic:
+                topic = scheduled_topic["topic"]
+                category = scheduled_topic["category"]
+                blog_logger.info(f"Using scheduled topic from DB for {site_key}: {topic}")
+            else:
+                # 데이터베이스에 없으면 날짜 기반으로 생성 (클라이언트와 동일한 로직)
+                blog_logger.warning(f"No scheduled topic in DB for {site_key}, generating from date")
+                today = datetime.now().date()
+                topic, category = self._get_topic_for_date(site_key, today)
+                
+                if not topic:
+                    blog_logger.warning(f"No topic generated for {site_key}")
+                    return False
+                
+                blog_logger.info(f"Using generated topic for {site_key}: {topic}")
             
             # 3. 중복 체크
             if self.database.check_duplicate_title(site_key, topic):

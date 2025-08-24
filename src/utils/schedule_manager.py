@@ -630,6 +630,60 @@ class ScheduleManager:
         except Exception as e:
             print(f"[SCHEDULE] 주제 상태 업데이트 오류: {e}")
     
+    def save_client_schedule(self, schedule_data: Dict) -> bool:
+        """클라이언트에서 생성한 스케줄을 데이터베이스에 저장"""
+        try:
+            week_start = schedule_data.get('week_start')
+            schedule = schedule_data.get('schedule', {})
+            
+            if not week_start or not schedule:
+                print(f"[SCHEDULE] 잘못된 스케줄 데이터: week_start={week_start}, schedule={bool(schedule)}")
+                return False
+            
+            week_start_date = datetime.strptime(week_start, '%Y-%m-%d').date()
+            
+            conn = self.db.get_connection()
+            with conn.cursor() as cursor:
+                # 기존 스케줄 삭제
+                cursor.execute("""
+                    DELETE FROM publishing_schedule 
+                    WHERE week_start_date = %s
+                """, (week_start_date,))
+                
+                # 새 스케줄 저장
+                for date_str, day_data in schedule.items():
+                    date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+                    day_of_week = date_obj.weekday()  # 0=월요일, 6=일요일
+                    
+                    sites = day_data.get('sites', {})
+                    for site, site_data_list in sites.items():
+                        if isinstance(site_data_list, list) and site_data_list:
+                            site_data = site_data_list[0]  # 첫 번째 데이터 사용
+                            
+                            cursor.execute("""
+                                INSERT INTO publishing_schedule 
+                                (week_start_date, day_of_week, site, topic_category, specific_topic, 
+                                 keywords, target_length, status, created_at)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                            """, (
+                                week_start_date,
+                                day_of_week,
+                                site,
+                                site_data.get('category', '일반'),
+                                site_data.get('topic', '주제 없음'),
+                                [],  # keywords
+                                'medium',  # target_length
+                                'scheduled'  # status
+                            ))
+                
+                conn.commit()
+                print(f"[SCHEDULE] 클라이언트 스케줄 DB 저장 완료: {week_start}")
+                return True
+                
+        except Exception as e:
+            print(f"[SCHEDULE] 클라이언트 스케줄 저장 오류: {e}")
+            return False
+    
     def get_weekly_schedule(self, start_date: datetime = None) -> Dict:
         """일주일치 스케줄 조회"""
         try:

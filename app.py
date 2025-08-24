@@ -28,6 +28,7 @@ load_dotenv()
 
 # PostgreSQL 데이터베이스 import
 from src.utils.postgresql_database import PostgreSQLDatabase
+from src.utils.schedule_manager import ScheduleManager
 
 # AI 콘텐츠 생성 import (나중에 초기화)
 
@@ -103,6 +104,7 @@ KST = pytz.timezone('Asia/Seoul')
 
 # PostgreSQL 데이터베이스 인스턴스 (전역)
 db = None
+schedule_manager = None
 
 def get_database():
     """데이터베이스 인스턴스 반환"""
@@ -110,6 +112,13 @@ def get_database():
     if db is None:
         db = PostgreSQLDatabase()
     return db
+
+def get_schedule_manager():
+    """스케줄 매니저 인스턴스 반환"""
+    global schedule_manager
+    if schedule_manager is None:
+        schedule_manager = ScheduleManager()
+    return schedule_manager
 
 # PostgreSQL 연결 함수
 def get_db_connection():
@@ -787,6 +796,30 @@ def create_weekly_schedule():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/schedule/save', methods=['POST'])
+def save_schedule():
+    """클라이언트에서 생성한 스케줄을 데이터베이스에 저장"""
+    try:
+        data = request.get_json()
+        schedule_data = data.get('schedule_data')
+        
+        if not schedule_data:
+            return jsonify({'success': False, 'error': '스케줄 데이터가 없습니다.'}), 400
+        
+        # 스케줄 매니저를 사용해 DB에 저장
+        sm = get_schedule_manager()
+        success = sm.save_client_schedule(schedule_data)
+        
+        if success:
+            add_system_log('SUCCESS', f'클라이언트 스케줄 DB 저장 완료: {schedule_data.get("week_start")}', 'SCHEDULE')
+            return jsonify({'success': True, 'message': '스케줄이 저장되었습니다.'})
+        else:
+            return jsonify({'success': False, 'error': '스케줄 저장에 실패했습니다.'}), 500
+            
+    except Exception as e:
+        add_system_log('ERROR', f'스케줄 저장 API 오류: {e}', 'SCHEDULE')
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/logs')
 def get_logs():
