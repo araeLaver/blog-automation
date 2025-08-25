@@ -24,15 +24,12 @@ class AutoPublisher:
     
     def setup_schedule(self):
         """발행 스케줄 설정"""
-        # 매일 새벽 3시에 자동 발행
+        # 매일 새벽 3시에 자동 발행 (월간 계획표 기반)
         schedule.every().day.at("03:00").do(self.daily_auto_publish)
         
-        # 매주 일요일 밤 11시에 다음 주 스케줄 생성
-        schedule.every().sunday.at("23:00").do(self.weekly_schedule_prepare)
-        
         print("[AUTO_PUBLISHER] 자동 발행 스케줄 설정 완료")
-        print("- 매일 새벽 3시: 자동 콘텐츠 생성 및 발행")
-        print("- 매주 일요일 23시: 다음 주 스케줄 생성")
+        print("- 매일 새벽 3시: 월간 계획표 기반 자동 콘텐츠 생성 및 발행")
+        print("- 월간 계획표: 매월 마지막 날 자동 생성")
     
     def daily_auto_publish(self):
         """일일 2개 카테고리 자동 발행 실행"""
