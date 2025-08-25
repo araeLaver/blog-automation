@@ -1794,3 +1794,72 @@ def preview_content(file_id):
         </html>
         """
         return error_html, 500, {'Content-Type': 'text/html; charset=utf-8'}
+
+@app.route('/api/debug_schedule', methods=['GET'])
+def debug_schedule():
+    """DB 스케줄 상태 디버깅"""
+    try:
+        from datetime import datetime, timedelta
+        
+        today = datetime.now().date()
+        weekday = today.weekday()
+        week_start = today - timedelta(days=weekday)
+        
+        # DB 연결
+        db = get_database()
+        conn = db.get_connection()
+        
+        results = {}
+        
+        with conn.cursor() as cursor:
+            # 현재 주 스케줄 확인
+            cursor.execute("""
+                SELECT week_start_date, day_of_week, site, specific_topic, status
+                FROM publishing_schedule 
+                WHERE week_start_date = %s AND day_of_week = %s
+                ORDER BY site
+            """, (week_start, weekday))
+            
+            current_schedules = cursor.fetchall()
+            results['current_day'] = {
+                'date': str(today),
+                'weekday': weekday,
+                'week_start': str(week_start),
+                'schedules': [
+                    {
+                        'week_start': str(row[0]),
+                        'day': row[1], 
+                        'site': row[2],
+                        'topic': row[3],
+                        'status': row[4]
+                    } for row in current_schedules
+                ]
+            }
+            
+            # 모든 스케줄 확인 (최근 20개)
+            cursor.execute("""
+                SELECT week_start_date, day_of_week, site, specific_topic, status
+                FROM publishing_schedule 
+                ORDER BY week_start_date DESC, day_of_week, site
+                LIMIT 20
+            """)
+            
+            all_schedules = cursor.fetchall()
+            results['all_schedules'] = [
+                {
+                    'week_start': str(row[0]),
+                    'day': row[1],
+                    'site': row[2], 
+                    'topic': row[3],
+                    'status': row[4]
+                } for row in all_schedules
+            ]
+            
+        return jsonify(results)
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
