@@ -170,11 +170,11 @@ class ScheduleManager:
                                     print(f"[SCHEDULE] {site} 대체 주제 선택: {topic_plan['topic']}")
                                     break
                         
-                        # 새 계획 추가
+                        # 새 계획 추가 (status를 'planned'로 설정)
                         cursor.execute("""
                             INSERT INTO publishing_schedule 
-                            (week_start_date, day_of_week, site, topic_category, specific_topic, keywords, target_length)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                            (week_start_date, day_of_week, site, topic_category, specific_topic, keywords, target_length, status)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         """, (
                             start_date,
                             day,
@@ -182,7 +182,8 @@ class ScheduleManager:
                             topic_plan['category'],
                             topic_plan['topic'],
                             topic_plan['keywords'],
-                            topic_plan['length']
+                            topic_plan['length'],
+                            'planned'  # scheduler.py와 일치하도록 'planned'로 설정
                         ))
                 
                 conn.commit()
@@ -673,7 +674,7 @@ class ScheduleManager:
                                 site_data.get('topic', '주제 없음'),
                                 [],  # keywords
                                 'medium',  # target_length
-                                'scheduled'  # status
+                                'planned'  # scheduler.py와 일치하도록 planned로 설정
                             ))
                 
                 conn.commit()

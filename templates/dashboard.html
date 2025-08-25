@@ -2045,12 +2045,14 @@
         
         // 개별 아이템 선택/해제 토글
         function toggleItemSelection(type, fileId) {
+            // fileId를 정수로 변환
+            const numericFileId = parseInt(fileId);
             const checkbox = document.querySelector(`.content-checkbox[data-file-id="${fileId}"]`);
             
             if (checkbox.checked) {
-                selectedFiles[type].add(fileId);
+                selectedFiles[type].add(numericFileId);
             } else {
-                selectedFiles[type].delete(fileId);
+                selectedFiles[type].delete(numericFileId);
             }
             
             // 전체 선택 체크박스 상태 업데이트
