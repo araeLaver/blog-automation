@@ -2200,3 +2200,50 @@ def fix_schedule_topics():
             'error': str(e),
             'traceback': traceback.format_exc()
         }), 500
+
+@app.route('/api/sync_schedule', methods=['POST'])
+def sync_schedule():
+    """발행 계획표 동기화 API"""
+    try:
+        from src.utils.schedule_sync import sync_schedule_api
+        
+        # POST 데이터에서 스케줄 텍스트 가져오기
+        data = request.get_json() or {}
+        schedule_text = data.get('schedule_text')
+        
+        result = sync_schedule_api(schedule_text)
+        
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/emergency_sync', methods=['POST'])
+def emergency_sync():
+    """긴급 현재 주 동기화 API"""
+    try:
+        from src.utils.schedule_sync import emergency_sync_current_week
+        
+        result = emergency_sync_current_week()
+        
+        if result['success']:
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+            
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
