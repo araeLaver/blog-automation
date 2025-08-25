@@ -2275,3 +2275,66 @@ def import_dashboard_schedules():
             'traceback': traceback.format_exc()
         }), 500
 
+
+@app.route('/api/create_dual_category_schedule', methods=['POST'])
+def create_dual_category_schedule():
+    try:
+        from src.utils.schedule_manager import ScheduleManager
+        from datetime import datetime, timedelta
+        
+        data = request.get_json() or {}
+        week_start_str = data.get('week_start')
+        
+        if week_start_str:
+            week_start = datetime.strptime(week_start_str, '%Y-%m-%d').date()
+        else:
+            today = datetime.now().date()
+            week_start = today - timedelta(days=today.weekday())
+        
+        schedule_manager = ScheduleManager()
+        success = schedule_manager.create_dual_category_weekly_schedule(week_start)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': f'{week_start} 주 2개 카테고리 스케줄 생성 완료',
+                'week_start': week_start.isoformat(),
+                'total_posts': 56
+            })
+        else:
+            return jsonify({'success': False, 'message': '스케줄 생성 실패'}), 500
+    except Exception as e:
+        import traceback
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/get_all_dual_topics', methods=['GET'])
+def get_all_dual_topics():
+    try:
+        from src.utils.schedule_manager import ScheduleManager
+        
+        schedule_manager = ScheduleManager()
+        sites = ['unpre', 'untab', 'skewese', 'tistory']
+        all_topics = {}
+        
+        for site in sites:
+            try:
+                primary_topic, secondary_topic = schedule_manager.get_today_dual_topics_for_manual(site)
+                all_topics[site] = {
+                    'primary': {'category': primary_topic['category'], 'topic': primary_topic['topic']},
+                    'secondary': {'category': secondary_topic['category'], 'topic': secondary_topic['topic']}
+                }
+            except Exception:
+                all_topics[site] = {'error': 'Failed to get topics'}
+        
+        return jsonify({
+            'success': True,
+            'sites': all_topics,
+            'total_daily_posts': len([t for t in all_topics.values() if 'error' not in t]) * 2,
+            'timestamp': datetime.now().isoformat()
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+if __name__ == '__main__':
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+
