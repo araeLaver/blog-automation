@@ -583,7 +583,27 @@ class ScheduleManager:
             
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
+                # 디버깅을 위한 상세 로그
+                print(f"[DEBUG] {site} 스케줄 조회: week_start={week_start}, weekday={weekday}, today={today}")
+                
                 # 수동발행에서는 status와 관계없이 오늘 스케줄 사용
+                cursor.execute("""
+                    SELECT specific_topic, topic_category, keywords, target_length, status
+                    FROM publishing_schedule 
+                    WHERE week_start_date = %s AND day_of_week = %s AND site = %s
+                """, (week_start, weekday, site))
+                
+                # 모든 스케줄 데이터를 확인해보기
+                cursor.execute("""
+                    SELECT week_start_date, day_of_week, site, specific_topic, status
+                    FROM publishing_schedule 
+                    ORDER BY week_start_date DESC, day_of_week, site
+                    LIMIT 20
+                """)
+                all_schedules = cursor.fetchall()
+                print(f"[DEBUG] 최근 스케줄 20개: {all_schedules}")
+                
+                # 원래 쿼리 다시 실행
                 cursor.execute("""
                     SELECT specific_topic, topic_category, keywords, target_length, status
                     FROM publishing_schedule 
