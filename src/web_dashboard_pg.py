@@ -1863,3 +1863,58 @@ def debug_schedule():
             'error': str(e),
             'traceback': traceback.format_exc()
         }), 500
+
+@app.route('/api/fix_schedule_topics', methods=['POST'])
+def fix_schedule_topics():
+    """계획표에 맞게 DB 스케줄 주제 수정"""
+    try:
+        from datetime import datetime, timedelta
+        
+        today = datetime.now().date()
+        week_start = today - timedelta(days=today.weekday())
+        
+        # 올바른 계획표 주제
+        correct_topics = {
+            'unpre': "Redis 캐싱 전략과 성능 튜닝",
+            'untab': "리츠(REITs) 투자의 장단점", 
+            'skewese': "한글의 과학적 원리와 우수성",
+            'tistory': "재건축 규제 완화, 시장 변화 예상"
+        }
+        
+        categories = {
+            'unpre': '프로그래밍',
+            'untab': '취미',
+            'skewese': '뷰티/패션', 
+            'tistory': '일반'
+        }
+        
+        db = get_database()
+        conn = db.get_connection()
+        
+        with conn.cursor() as cursor:
+            updated_count = 0
+            for site, topic in correct_topics.items():
+                cursor.execute("""
+                    UPDATE publishing_schedule 
+                    SET specific_topic = %s, topic_category = %s
+                    WHERE week_start_date = %s AND day_of_week = 0 AND site = %s
+                """, (topic, categories[site], week_start, site))
+                
+                if cursor.rowcount > 0:
+                    updated_count += 1
+                    
+            conn.commit()
+            
+        return jsonify({
+            'success': True,
+            'message': f'{updated_count}개 사이트 주제 업데이트 완료',
+            'week_start': str(week_start),
+            'updated_topics': correct_topics
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
