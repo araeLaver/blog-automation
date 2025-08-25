@@ -1160,7 +1160,7 @@ def bulk_delete_files():
 
 @app.route('/api/schedule/weekly')
 def get_weekly_schedule():
-    """일주일치 발행 스케줄 조회"""
+    """일주일치 발행 스케줄 조회 (레거시)"""
     try:
         from src.utils.schedule_manager import schedule_manager
         
@@ -1184,6 +1184,45 @@ def get_weekly_schedule():
         
     except Exception as e:
         logger.error(f"Weekly schedule error: {e}")
+        return jsonify({'error': str(e)})
+
+@app.route('/api/schedule/monthly')
+def get_monthly_schedule():
+    """월별 발행 스케줄 조회"""
+    try:
+        from src.utils.monthly_schedule_manager import monthly_schedule_manager
+        from datetime import datetime
+        
+        # 선택된 년월 (기본: 이번 달)
+        year = request.args.get('year', type=int)
+        month = request.args.get('month', type=int)
+        
+        if not year or not month:
+            today = datetime.now()
+            year = year or today.year
+            month = month or today.month
+        
+        # 월별 스케줄 조회
+        schedule = monthly_schedule_manager.get_month_schedule(year, month)
+        
+        # 응답 형식 구성
+        response = {
+            'year': year,
+            'month': month,
+            'schedule': {}
+        }
+        
+        # 날짜별로 정리
+        for day, sites in schedule.items():
+            response['schedule'][day] = {
+                'date': f"{year}-{month:02d}-{day:02d}",
+                'sites': sites
+            }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        logger.error(f"Monthly schedule error: {e}")
         return jsonify({'error': str(e)})
 
 @app.route('/api/schedule/create', methods=['POST'])
