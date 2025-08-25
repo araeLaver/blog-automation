@@ -2513,7 +2513,189 @@
         function displayMonthlySchedule(scheduleData, year, month) {
             const container = document.getElementById('schedule-overview-content');
             
-            if (!scheduleData || scheduleData.length === 0) {
+            console.log('📊 월별 스케줄 데이터:', scheduleData);
+            
+            // scheduleData가 response 객체인 경우
+            if (scheduleData && scheduleData.schedule) {
+                const monthSchedule = scheduleData.schedule;
+                
+                // 달력 표시
+                let html = `
+                    <div class="schedule-header mb-4">
+                        <h6 class="text-primary">
+                            📅 ${year}년 ${month}월 2개 카테고리 발행 계획표 (하루 8개 포스팅)
+                        </h6>
+                        <div class="text-muted small">각 사이트별 Primary/Secondary 카테고리 주제</div>
+                    </div>
+                    <div class="monthly-calendar">
+                `;
+                
+                // 해당 월의 일수 계산
+                const daysInMonth = new Date(year, month, 0).getDate();
+                const firstDayOfMonth = new Date(year, month - 1, 1).getDay(); // 0 = 일요일
+                
+                // 달력 그리드로 표시 (7일씩 한 줄)
+                let currentWeek = [];
+                
+                // 첫 주의 빈 칸 채우기
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                    currentWeek.push('<div class="calendar-day col empty-day"></div>');
+                }
+                
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayData = monthSchedule[day];
+                    const hasSchedule = dayData && Object.keys(dayData).length > 0;
+                    
+                    let dayContent = '';
+                    if (hasSchedule) {
+                        // 사이트별로 2개 카테고리 표시
+                        Object.entries(dayData).forEach(([site, categories]) => {
+                            if (categories.primary || categories.secondary) {
+                                dayContent += `
+                                    <div class="schedule-item site-${site}">
+                                        <small class="site-name">${site.toUpperCase()}</small>
+                                        ${categories.primary ? `
+                                            <div class="category-item primary">
+                                                <span class="badge bg-primary">P</span>
+                                                <span class="category-name">${categories.primary.category}</span>
+                                            </div>
+                                        ` : ''}
+                                        ${categories.secondary ? `
+                                            <div class="category-item secondary">
+                                                <span class="badge bg-secondary">S</span>
+                                                <span class="category-name">${categories.secondary.category}</span>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `;
+                            }
+                        });
+                    }
+                    
+                    currentWeek.push(`
+                        <div class="calendar-day col ${hasSchedule ? 'has-schedule' : ''}">
+                            <div class="day-header">
+                                <strong>${day}</strong>
+                                ${hasSchedule ? '<span class="badge bg-success ms-1">8</span>' : ''}
+                            </div>
+                            <div class="day-content">
+                                ${dayContent}
+                            </div>
+                        </div>
+                    `);
+                    
+                    // 7일마다 또는 마지막 날에 한 줄 완성
+                    if ((firstDayOfMonth + day) % 7 === 0 || day === daysInMonth) {
+                        // 마지막 주의 빈 칸 채우기
+                        while (currentWeek.length < 7) {
+                            currentWeek.push('<div class="calendar-day col empty-day"></div>');
+                        }
+                        
+                        html += `<div class="calendar-week row mb-2">${currentWeek.join('')}</div>`;
+                        currentWeek = [];
+                    }
+                }
+                
+                html += `
+                    </div>
+                    <style>
+                        .monthly-calendar .calendar-day {
+                            border: 1px solid #dee2e6;
+                            min-height: 140px;
+                            padding: 4px;
+                            background: #fff;
+                            position: relative;
+                        }
+                        .monthly-calendar .calendar-day.empty-day {
+                            background: #f8f9fa;
+                        }
+                        .monthly-calendar .calendar-day.has-schedule {
+                            background: #f0f9ff;
+                        }
+                        .monthly-calendar .day-header {
+                            text-align: center;
+                            margin-bottom: 3px;
+                            color: #495057;
+                            font-size: 0.9rem;
+                        }
+                        .monthly-calendar .day-header .badge {
+                            font-size: 0.65rem;
+                            padding: 2px 4px;
+                        }
+                        .monthly-calendar .schedule-item {
+                            margin-bottom: 2px;
+                            font-size: 0.65rem;
+                            border-radius: 3px;
+                            padding: 2px 4px;
+                        }
+                        .monthly-calendar .site-name {
+                            font-weight: bold;
+                            display: block;
+                            margin-bottom: 1px;
+                        }
+                        .monthly-calendar .category-item {
+                            display: flex;
+                            align-items: center;
+                            gap: 2px;
+                            margin: 1px 0;
+                        }
+                        .monthly-calendar .category-item .badge {
+                            font-size: 0.55rem;
+                            padding: 1px 3px;
+                            width: 16px;
+                            text-align: center;
+                        }
+                        .monthly-calendar .category-name {
+                            font-size: 0.6rem;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                        }
+                        .monthly-calendar .schedule-item.site-unpre {
+                            background: #e3f2fd;
+                            border-left: 2px solid #2196f3;
+                        }
+                        .monthly-calendar .schedule-item.site-untab {
+                            background: #f3e5f5;
+                            border-left: 2px solid #9c27b0;
+                        }
+                        .monthly-calendar .schedule-item.site-skewese {
+                            background: #e8f5e8;
+                            border-left: 2px solid #4caf50;
+                        }
+                        .monthly-calendar .schedule-item.site-tistory {
+                            background: #fff3e0;
+                            border-left: 2px solid #ff9800;
+                        }
+                    </style>
+                    
+                    <div class="mt-3 text-center">
+                        <small class="text-muted">
+                            총 발행 예정: <strong>${Object.keys(monthSchedule).length * 8}</strong>개 포스팅
+                            | P = Primary 카테고리, S = Secondary 카테고리
+                        </small>
+                    </div>
+                `;
+                
+                container.innerHTML = html;
+            } else if (scheduleData && scheduleData.length > 0) {
+                // 구형 API 응답 형식 처리 (호환성)
+                const scheduleByDate = {};
+                scheduleData.forEach(item => {
+                    const date = item.day;
+                    if (!scheduleByDate[date]) {
+                        scheduleByDate[date] = [];
+                    }
+                    scheduleByDate[date].push(item);
+                });
+                
+                // 구형 형식 표시 로직...
+                container.innerHTML = `
+                    <div class="text-center py-4">
+                        <p class="text-muted">구형 스케줄 형식입니다. 2개 카테고리 시스템으로 업그레이드가 필요합니다.</p>
+                    </div>
+                `;
+            } else {
                 container.innerHTML = `
                     <div class="text-center py-4">
                         <div class="text-muted mb-3">
@@ -2522,111 +2704,7 @@
                         <p class="text-muted">${year}년 ${month}월 발행 계획이 없습니다.</p>
                     </div>
                 `;
-                return;
             }
-            
-            // 월별 데이터를 날짜별로 그룹화
-            const scheduleByDate = {};
-            scheduleData.forEach(item => {
-                const date = item.day;
-                if (!scheduleByDate[date]) {
-                    scheduleByDate[date] = [];
-                }
-                scheduleByDate[date].push(item);
-            });
-            
-            // 달력 표시
-            let html = `
-                <div class="schedule-header mb-4">
-                    <h6 class="text-primary">
-                        📅 ${year}년 ${month}월 발행 계획표
-                    </h6>
-                </div>
-                <div class="monthly-calendar">
-            `;
-            
-            // 해당 월의 일수 계산
-            const daysInMonth = new Date(year, month, 0).getDate();
-            
-            // 달력 그리드로 표시 (7일씩 한 줄)
-            let currentWeek = [];
-            for (let day = 1; day <= daysInMonth; day++) {
-                const daySchedule = scheduleByDate[day] || [];
-                
-                currentWeek.push(`
-                    <div class="calendar-day col">
-                        <div class="day-header">
-                            <strong>${day}일</strong>
-                        </div>
-                        <div class="day-content">
-                            ${daySchedule.map(item => `
-                                <div class="schedule-item site-${item.site}">
-                                    <small><strong>${item.site.toUpperCase()}</strong></small>
-                                    <div class="topic-category">${item.topic_category}</div>
-                                    ${item.specific_topic ? `<div class="specific-topic">${item.specific_topic}</div>` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `);
-                
-                // 7일마다 또는 마지막 날에 한 줄 완성
-                if (currentWeek.length === 7 || day === daysInMonth) {
-                    // 부족한 칸 채우기
-                    while (currentWeek.length < 7) {
-                        currentWeek.push('<div class="calendar-day col"></div>');
-                    }
-                    
-                    html += `<div class="calendar-week row mb-2">${currentWeek.join('')}</div>`;
-                    currentWeek = [];
-                }
-            }
-            
-            html += `
-                </div>
-                <style>
-                    .monthly-calendar .calendar-day {
-                        border: 1px solid #dee2e6;
-                        min-height: 120px;
-                        padding: 8px;
-                        background: #fff;
-                    }
-                    .monthly-calendar .day-header {
-                        text-align: center;
-                        margin-bottom: 5px;
-                        color: #495057;
-                    }
-                    .monthly-calendar .schedule-item {
-                        background: #f8f9fa;
-                        border-radius: 3px;
-                        padding: 4px;
-                        margin-bottom: 3px;
-                        font-size: 0.75rem;
-                    }
-                    .monthly-calendar .schedule-item.site-unpre {
-                        background: #e3f2fd;
-                        border-left: 3px solid #2196f3;
-                    }
-                    .monthly-calendar .schedule-item.site-untab {
-                        background: #f3e5f5;
-                        border-left: 3px solid #9c27b0;
-                    }
-                    .monthly-calendar .schedule-item.site-skewese {
-                        background: #e8f5e8;
-                        border-left: 3px solid #4caf50;
-                    }
-                    .monthly-calendar .topic-category {
-                        font-weight: bold;
-                        color: #333;
-                    }
-                    .monthly-calendar .specific-topic {
-                        color: #666;
-                        font-size: 0.7rem;
-                    }
-                </style>
-            `;
-            
-            container.innerHTML = html;
         }
         
         // 사이트별 기본 카테고리 반환
