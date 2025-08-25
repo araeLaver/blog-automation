@@ -1770,3 +1770,41 @@ def preview_content(file_id):
         </html>
         """
         return error_html, 500, {'Content-Type': 'text/html; charset=utf-8'}
+
+@app.route('/api/fix_current_week_schedule', methods=['POST'])
+def fix_current_week_schedule():
+    """현재 주 스케줄 생성 API"""
+    try:
+        from datetime import datetime, timedelta
+        
+        today = datetime.now().date()
+        current_week_start = today - timedelta(days=today.weekday())
+        
+        # 현재 주 스케줄이 이미 있는지 확인
+        schedule_data = schedule_manager.get_weekly_schedule(current_week_start)
+        
+        if schedule_data and schedule_data.get('schedule'):
+            return jsonify({
+                'success': False, 
+                'message': f'현재 주({current_week_start}) 스케줄이 이미 존재합니다',
+                'week_start': str(current_week_start)
+            })
+        
+        # 현재 주 스케줄 생성
+        success = schedule_manager.create_weekly_schedule(current_week_start)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': f'현재 주({current_week_start}) 스케줄이 성공적으로 생성되었습니다',
+                'week_start': str(current_week_start)
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': '스케줄 생성에 실패했습니다'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"현재 주 스케줄 생성 오류: {e}")
+        return jsonify({'success': False, 'message': f'오류 발생: {str(e)}'}), 500
