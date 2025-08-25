@@ -2247,3 +2247,31 @@ def emergency_sync():
             'traceback': traceback.format_exc()
         }), 500
 
+
+@app.route('/api/import_dashboard_schedules', methods=['POST'])
+def import_dashboard_schedules():
+    """대시보드 기존 스케줄을 DB에 강제 입력"""
+    try:
+        from src.utils.dashboard_schedule_importer import import_dashboard_schedules as import_func
+        
+        success = import_func()
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': '대시보드 스케줄 데이터를 DB에 성공적으로 가져왔습니다'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': '스케줄 가져오기 실패'
+            }), 500
+            
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
