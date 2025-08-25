@@ -1321,13 +1321,17 @@ def quick_publish():
             for site in sites:
                 try:
                     scheduled_topic = schedule_manager.get_today_topic_for_manual(site)
+                    print(f"[CRITICAL_DEBUG] {site} 스케줄 조회 결과: {scheduled_topic}")
+                    
                     if scheduled_topic and scheduled_topic.get('topic'):
                         today_schedule[site] = {
                             'topic': scheduled_topic['topic'],
                             'category': scheduled_topic.get('category', 'general')
                         }
+                        print(f"[CRITICAL_DEBUG] {site} 스케줄 사용: {today_schedule[site]}")
                     else:
                         # 스케줄이 없는 경우 기본 주제 사용
+                        print(f"[CRITICAL_DEBUG] {site} 스케줄 없음, fallback 사용")
                         fallback_topics = {
                             'unpre': {'topic': 'Google Cloud ACE 자격증 가이드', 'category': 'certification'},
                             'untab': {'topic': '부동산 경매 입찰 전 반드시 확인해야 할 15가지 체크리스트', 'category': 'auction'},
