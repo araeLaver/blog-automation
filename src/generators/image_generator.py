@@ -119,19 +119,131 @@ class ImageGenerator:
         return images
     
     def _generate_thumbnail(self, site: str, title: str, category: str) -> str:
-        """썸네일 이미지 생성"""
+        """주제별 관련 썸네일 이미지 생성"""
+        # 주제에서 키워드 추출하여 관련 이미지 검색
+        keywords = self._extract_keywords_from_title(title, site)
+        
+        # 먼저 외부 이미지 API로 관련 이미지 검색 시도
+        related_image = self._search_related_image(keywords, site)
+        if related_image:
+            return related_image
+        
+        # 외부 이미지가 없으면 커스텀 썸네일 생성
+        return self._create_custom_thumbnail(site, title, category, keywords)
+    
+    def _extract_keywords_from_title(self, title: str, site: str) -> List[str]:
+        """제목에서 이미지 검색용 키워드 추출"""
+        keywords = []
+        
+        # 사이트별 주요 키워드 매핑
+        if site == "unpre":  # IT/개발
+            tech_keywords = {
+                "Redis": ["redis", "cache", "database"],
+                "Docker": ["docker", "container", "devops"],
+                "React": ["react", "javascript", "frontend"],
+                "Python": ["python", "programming", "code"],
+                "TypeScript": ["typescript", "javascript", "web"],
+                "GraphQL": ["graphql", "api", "backend"],
+                "Kubernetes": ["kubernetes", "container", "orchestration"]
+            }
+            
+            for tech, related in tech_keywords.items():
+                if tech in title:
+                    keywords.extend(related)
+                    break
+            
+            # 기본 IT 키워드
+            if not keywords:
+                keywords = ["technology", "computer", "software", "programming"]
+        
+        elif site == "untab":  # 투자/부동산
+            investment_keywords = {
+                "리츠": ["REIT", "real estate", "investment"],
+                "부동산": ["real estate", "property", "building"],
+                "투자": ["investment", "money", "finance"],
+                "경매": ["auction", "property", "real estate"],
+                "ESG": ["ESG", "sustainable", "investment"]
+            }
+            
+            for term, related in investment_keywords.items():
+                if term in title:
+                    keywords.extend(related)
+                    break
+            
+            if not keywords:
+                keywords = ["investment", "money", "finance", "property"]
+        
+        elif site == "skewese":  # 역사/문화
+            history_keywords = {
+                "한글": ["korean", "hangul", "writing"],
+                "역사": ["history", "korea", "traditional"],
+                "조선": ["joseon", "korea", "traditional"],
+                "고구려": ["goguryeo", "korea", "ancient"],
+                "실학": ["practical learning", "korea", "philosophy"]
+            }
+            
+            for term, related in history_keywords.items():
+                if term in title:
+                    keywords.extend(related)
+                    break
+            
+            if not keywords:
+                keywords = ["korea", "traditional", "culture", "history"]
+        
+        elif site == "tistory":  # 일반/트렌드
+            trend_keywords = {
+                "재건축": ["construction", "building", "urban"],
+                "AI": ["artificial intelligence", "technology", "future"],
+                "월드컵": ["world cup", "soccer", "sports"],
+                "전기차": ["electric car", "tesla", "technology"]
+            }
+            
+            for term, related in trend_keywords.items():
+                if term in title:
+                    keywords.extend(related)
+                    break
+            
+            if not keywords:
+                keywords = ["trend", "news", "technology", "business"]
+        
+        return keywords[:3]  # 최대 3개
+    
+    def _search_related_image(self, keywords: List[str], site: str) -> Optional[str]:
+        """관련 이미지 검색 (Unsplash API 활용)"""
+        if not self.unsplash_key or not keywords:
+            return None
+        
+        try:
+            query = " ".join(keywords)
+            url = f"https://api.unsplash.com/search/photos"
+            
+            params = {
+                "query": query,
+                "per_page": 5,
+                "orientation": "landscape",
+                "client_id": self.unsplash_key
+            }
+            
+            response = requests.get(url, params=params, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("results"):
+                    # 첫 번째 결과 사용
+                    photo = data["results"][0]
+                    return photo["urls"]["regular"]
+        
+        except Exception as e:
+            print(f"이미지 검색 실패: {e}")
+        
+        return None
+    
+    def _create_custom_thumbnail(self, site: str, title: str, category: str, keywords: List[str]) -> str:
+        """커스텀 썸네일 생성 (관련 이미지가 없을 때)"""
         # 이미지 크기
         width, height = 1200, 630  # OG 이미지 표준 크기
         
-        # 사이트별 색상 테마
-        themes = {
-            "unpre": {"bg": "#1e3a8a", "text": "#ffffff", "accent": "#3b82f6"},
-            "untab": {"bg": "#065f46", "text": "#ffffff", "accent": "#10b981"},
-            "skewese": {"bg": "#7c2d12", "text": "#ffffff", "accent": "#f59e0b"},
-            "tistory": {"bg": "#4c1d95", "text": "#ffffff", "accent": "#8b5cf6"}
-        }
-        
-        theme = themes.get(site, {"bg": "#1f2937", "text": "#ffffff", "accent": "#6b7280"})
+        # 사이트별 색상 테마 (주제별로 더 세분화)
+        theme = self._get_theme_by_keywords(site, keywords)
         
         # 이미지 생성
         img = Image.new('RGB', (width, height), theme['bg'])
@@ -474,3 +586,49 @@ class ImageGenerator:
         img.save(img_path)
         
         return str(img_path)
+    
+    def _get_theme_by_keywords(self, site: str, keywords: List[str]) -> Dict[str, str]:
+        """키워드별 색상 테마 반환"""
+        # 기본 사이트별 색상
+        base_themes = {
+            'unpre': {'bg': '#1e293b', 'text': '#f8fafc', 'accent': '#0ea5e9'},  # IT - 블루
+            'untab': {'bg': '#064e3b', 'text': '#f0fdf4', 'accent': '#10b981'},  # 투자 - 그린
+            'skewese': {'bg': '#7c2d12', 'text': '#fef7ff', 'accent': '#f59e0b'},  # 역사 - 오렌지
+            'tistory': {'bg': '#4c1d95', 'text': '#faf5ff', 'accent': '#a855f7'}  # 일반 - 퍼플
+        }
+        
+        # 키워드별 테마 오버라이드
+        keyword_themes = {
+            # IT/개발 키워드
+            'redis': {'bg': '#dc2626', 'text': '#fef2f2', 'accent': '#fecaca'},
+            'docker': {'bg': '#2563eb', 'text': '#eff6ff', 'accent': '#93c5fd'},
+            'react': {'bg': '#0891b2', 'text': '#f0f9ff', 'accent': '#67e8f9'},
+            'python': {'bg': '#ca8a04', 'text': '#fefce8', 'accent': '#fde047'},
+            'typescript': {'bg': '#3730a3', 'text': '#eef2ff', 'accent': '#a5b4fc'},
+            'graphql': {'bg': '#e11d48', 'text': '#fff1f2', 'accent': '#fda4af'},
+            'kubernetes': {'bg': '#326ce5', 'text': '#f0f9ff', 'accent': '#7dd3fc'},
+            
+            # 투자 키워드
+            'investment': {'bg': '#065f46', 'text': '#f0fdf4', 'accent': '#34d399'},
+            'reit': {'bg': '#134e4a', 'text': '#f0fdfa', 'accent': '#5eead4'},
+            'property': {'bg': '#166534', 'text': '#f7fee7', 'accent': '#84cc16'},
+            'finance': {'bg': '#0f766e', 'text': '#f0fdfa', 'accent': '#2dd4bf'},
+            
+            # 역사 키워드
+            'korean': {'bg': '#a16207', 'text': '#fffbeb', 'accent': '#fbbf24'},
+            'history': {'bg': '#92400e', 'text': '#fff7ed', 'accent': '#fb923c'},
+            'traditional': {'bg': '#b45309', 'text': '#fff7ed', 'accent': '#fdba74'},
+            
+            # 일반 키워드
+            'technology': {'bg': '#6366f1', 'text': '#eef2ff', 'accent': '#c7d2fe'},
+            'trend': {'bg': '#7c3aed', 'text': '#faf5ff', 'accent': '#c4b5fd'},
+            'business': {'bg': '#059669', 'text': '#f0fdf4', 'accent': '#6ee7b7'}
+        }
+        
+        # 키워드 매칭으로 테마 선택
+        for keyword in keywords:
+            if keyword.lower() in keyword_themes:
+                return keyword_themes[keyword.lower()]
+        
+        # 기본 사이트 테마 반환
+        return base_themes.get(site, base_themes['tistory'])

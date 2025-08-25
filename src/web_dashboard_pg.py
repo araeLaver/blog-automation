@@ -1640,6 +1640,117 @@ def preview_content(file_id):
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>처리중 - {title}</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+                <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+                <style>
+                    body {{ 
+                        font-family: 'Malgun Gothic', 'Apple Gothic', sans-serif;
+                        line-height: 1.8;
+                        color: #333;
+                        background-color: #f8f9fa;
+                    }}
+                    .container {{
+                        max-width: 800px;
+                        margin: 2rem auto;
+                        padding: 2rem;
+                        background: white;
+                        border-radius: 10px;
+                        box-shadow: 0 0 20px rgba(0,0,0,0.1);
+                    }}
+                    .content-divider {{
+                        border: none;
+                        height: 2px;
+                        background: linear-gradient(90deg, #667eea, #764ba2);
+                        margin: 2rem 0;
+                        border-radius: 1px;
+                    }}
+                    .code-block {{
+                        background: #2d3748;
+                        border-radius: 8px;
+                        padding: 1.5rem;
+                        margin: 1.5rem 0;
+                        position: relative;
+                        overflow-x: auto;
+                    }}
+                    .code-header {{
+                        background: #1a202c;
+                        color: #a0aec0;
+                        padding: 0.5rem 1rem;
+                        border-radius: 8px 8px 0 0;
+                        font-size: 0.9rem;
+                        margin: -1.5rem -1.5rem 1rem -1.5rem;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }}
+                    .copy-btn {{
+                        background: #4a5568;
+                        border: none;
+                        color: white;
+                        padding: 0.25rem 0.75rem;
+                        border-radius: 4px;
+                        font-size: 0.8rem;
+                        cursor: pointer;
+                        transition: background-color 0.2s;
+                    }}
+                    .copy-btn:hover {{
+                        background: #2d3748;
+                    }}
+                    .copy-btn:active {{
+                        background: #1a202c;
+                    }}
+                    .table {{
+                        border-collapse: collapse;
+                        margin: 1.5rem 0;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                        border-radius: 8px;
+                        overflow: hidden;
+                    }}
+                    .table th {{
+                        background: linear-gradient(135deg, #667eea, #764ba2);
+                        color: white;
+                        font-weight: 600;
+                        padding: 1rem;
+                        border: none;
+                    }}
+                    .table td {{
+                        padding: 1rem;
+                        border-bottom: 1px solid #e2e8f0;
+                    }}
+                    .table tbody tr:hover {{
+                        background-color: #f7fafc;
+                    }}
+                    h1, h2, h3, h4, h5, h6 {{
+                        color: #2d3748;
+                        margin-top: 2rem;
+                        margin-bottom: 1rem;
+                    }}
+                    h1 {{ font-size: 2.25rem; font-weight: 700; }}
+                    h2 {{ font-size: 1.875rem; font-weight: 600; }}
+                    h3 {{ font-size: 1.5rem; font-weight: 600; }}
+                    .highlight {{
+                        background: linear-gradient(120deg, #a8edea 0%, #fed6e3 100%);
+                        padding: 0.1rem 0.3rem;
+                        border-radius: 3px;
+                    }}
+                    ul, ol {{
+                        padding-left: 2rem;
+                        margin: 1rem 0;
+                    }}
+                    li {{
+                        margin: 0.5rem 0;
+                    }}
+                    blockquote {{
+                        border-left: 4px solid #667eea;
+                        padding-left: 1.5rem;
+                        margin: 1.5rem 0;
+                        font-style: italic;
+                        color: #4a5568;
+                        background: #f7fafc;
+                        padding: 1rem 1.5rem;
+                        border-radius: 0 8px 8px 0;
+                    }}
+                </style>
                 <style>
                     body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
                            line-height: 1.6; max-width: 800px; margin: 0 auto; padding: 20px; }}
@@ -1671,7 +1782,10 @@ def preview_content(file_id):
             with open(html_file, 'r', encoding='cp949') as f:
                 html_content = f.read()
         
-        # 스타일링 개선된 미리보기 HTML 생성
+        # HTML 콘텐츠 개선 처리
+        processed_content = self._process_content_for_preview(html_content)
+        
+        # 스타일링 개선된 미리보기 HTML 생성  
         preview_html = f"""
         <!DOCTYPE html>
         <html lang="ko">
@@ -1679,13 +1793,216 @@ def preview_content(file_id):
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>미리보기 - {title}</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
             <style>
                 body {{ 
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-                    line-height: 1.8; 
-                    max-width: 800px; 
-                    margin: 0 auto; 
-                    padding: 20px;
+                    font-family: 'Malgun Gothic', 'Apple Gothic', sans-serif;
+                    line-height: 1.8;
+                    color: #333;
+                    background-color: #f8f9fa;
+                }}
+                .container {{
+                    max-width: 800px;
+                    margin: 2rem auto;
+                    padding: 2rem;
+                    background: white;
+                    border-radius: 10px;
+                    box-shadow: 0 0 20px rgba(0,0,0,0.1);
+                }}
+                .content-divider {{
+                    border: none;
+                    height: 3px;
+                    background: linear-gradient(90deg, #667eea, #764ba2);
+                    margin: 2.5rem 0;
+                    border-radius: 2px;
+                    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+                }}
+                .code-block {{
+                    background: #2d3748;
+                    border-radius: 8px;
+                    padding: 0;
+                    margin: 1.5rem 0;
+                    position: relative;
+                    overflow: hidden;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                }}
+                .code-header {{
+                    background: linear-gradient(90deg, #1a202c, #2d3748);
+                    color: #a0aec0;
+                    padding: 0.75rem 1.5rem;
+                    font-size: 0.9rem;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    border-bottom: 1px solid #4a5568;
+                }}
+                .code-content {{
+                    padding: 1.5rem;
+                    overflow-x: auto;
+                    color: #e2e8f0;
+                    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                    font-size: 0.9rem;
+                }}
+                .copy-btn {{
+                    background: #4a5568;
+                    border: none;
+                    color: white;
+                    padding: 0.4rem 0.8rem;
+                    border-radius: 4px;
+                    font-size: 0.8rem;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }}
+                .copy-btn:hover {{
+                    background: #667eea;
+                    transform: translateY(-1px);
+                }}
+                .copy-btn:active {{
+                    background: #1a202c;
+                    transform: translateY(0);
+                }}
+                .copy-success {{
+                    background: #48bb78 !important;
+                }}
+                .table {{
+                    border-collapse: collapse;
+                    margin: 1.5rem 0;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                    border-radius: 10px;
+                    overflow: hidden;
+                    width: 100%;
+                }}
+                .table th {{
+                    background: linear-gradient(135deg, #667eea, #764ba2);
+                    color: white;
+                    font-weight: 600;
+                    padding: 1.2rem;
+                    border: none;
+                    text-align: left;
+                }}
+                .table td {{
+                    padding: 1.2rem;
+                    border-bottom: 1px solid #e2e8f0;
+                    background: white;
+                }}
+                .table tbody tr:hover td {{
+                    background-color: #f7fafc;
+                }}
+                .table tbody tr:last-child td {{
+                    border-bottom: none;
+                }}
+                h1, h2, h3, h4, h5, h6 {{
+                    color: #2d3748;
+                    margin-top: 2.5rem;
+                    margin-bottom: 1rem;
+                    font-weight: 600;
+                }}
+                h1 {{ font-size: 2.25rem; font-weight: 700; color: #1a202c; }}
+                h2 {{ 
+                    font-size: 1.875rem; 
+                    padding-bottom: 0.5rem;
+                    border-bottom: 2px solid #e2e8f0;
+                }}
+                h3 {{ font-size: 1.5rem; }}
+                h4 {{ font-size: 1.25rem; }}
+                .highlight, strong, b {{
+                    background: linear-gradient(120deg, #a8edea 0%, #fed6e3 100%);
+                    padding: 0.1rem 0.3rem;
+                    border-radius: 3px;
+                    font-weight: 600;
+                }}
+                ul, ol {{
+                    padding-left: 2rem;
+                    margin: 1rem 0;
+                }}
+                li {{
+                    margin: 0.7rem 0;
+                    padding-left: 0.5rem;
+                }}
+                ul li::marker {{
+                    color: #667eea;
+                    font-weight: bold;
+                }}
+                blockquote {{
+                    border-left: 4px solid #667eea;
+                    padding-left: 1.5rem;
+                    margin: 2rem 0;
+                    font-style: italic;
+                    color: #4a5568;
+                    background: #f7fafc;
+                    padding: 1.5rem;
+                    border-radius: 0 8px 8px 0;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+                }}
+                p {{
+                    margin: 1.2rem 0;
+                    text-align: justify;
+                }}
+                .preview-header {{
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 1.5rem;
+                    margin: -2rem -2rem 2rem -2rem;
+                    border-radius: 10px 10px 0 0;
+                }}
+                .site-badge {{
+                    background: rgba(255,255,255,0.2);
+                    padding: 0.3rem 0.8rem;
+                    border-radius: 20px;
+                    font-size: 0.8rem;
+                    display: inline-block;
+                    margin-bottom: 0.5rem;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="preview-header">
+                    <div class="site-badge">{site.upper()}</div>
+                    <h1 style="color: white; margin: 0; font-size: 1.8rem;">{title}</h1>
+                    <p style="margin: 0.5rem 0 0 0; opacity: 0.9;">카테고리: {', '.join(categories) if categories else '일반'} | 태그: {', '.join(tags) if tags else '없음'}</p>
+                </div>
+                
+                <div class="content">
+                    {processed_content}
+                </div>
+            </div>
+            
+            <script>
+                // 복사 기능 구현
+                function copyCode(button) {{
+                    const codeBlock = button.parentNode.parentNode.querySelector('.code-content');
+                    const text = codeBlock.innerText;
+                    
+                    navigator.clipboard.writeText(text).then(function() {{
+                        button.innerHTML = '✓ 복사됨';
+                        button.classList.add('copy-success');
+                        
+                        setTimeout(function() {{
+                            button.innerHTML = '복사';
+                            button.classList.remove('copy-success');
+                        }}, 2000);
+                    }}).catch(function() {{
+                        button.innerHTML = '복사 실패';
+                        setTimeout(function() {{
+                            button.innerHTML = '복사';
+                        }}, 2000);
+                    }});
+                }}
+                
+                // 페이지 로드 후 코드 블록 처리
+                document.addEventListener('DOMContentLoaded', function() {{
+                    // Prism.js로 코드 하이라이팅
+                    if (typeof Prism !== 'undefined') {{
+                        Prism.highlightAll();
+                    }}
+                }});
+            </script>
+        </body>
+        </html>"""
                     color: #333;
                     background-color: #f8f9fa;
                 }}
@@ -1794,6 +2111,52 @@ def preview_content(file_id):
         </html>
         """
         return error_html, 500, {'Content-Type': 'text/html; charset=utf-8'}
+    
+    def _process_content_for_preview(self, html_content: str) -> str:
+        """HTML 콘텐츠를 미리보기용으로 처리"""
+        import re
+        
+        # --- 구분선을 예쁜 구분선으로 변경
+        html_content = re.sub(r'-{3,}', '<hr class="content-divider">', html_content)
+        
+        # 코드 블록을 예쁘게 처리
+        def replace_code_block(match):
+            language = match.group(1) or 'text'
+            code = match.group(2)
+            return f'''
+            <div class="code-block">
+                <div class="code-header">
+                    <span>{language.upper()}</span>
+                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
+                </div>
+                <div class="code-content"><pre><code class="language-{language}">{code}</code></pre></div>
+            </div>
+            '''
+        
+        # ```language 형태의 코드 블록 처리
+        html_content = re.sub(r'```(\w+)?\s*\n(.*?)\n```', replace_code_block, html_content, flags=re.DOTALL)
+        
+        # 단일 ` 코드를 인라인 코드로 처리
+        html_content = re.sub(r'`([^`]+)`', r'<code style="background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: monospace;">\1</code>', html_content)
+        
+        # HTML 테이블 스타일링
+        html_content = re.sub(r'<table>', '<table class="table">', html_content)
+        
+        # 강조 표시 개선
+        html_content = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', html_content)
+        
+        # 줄바꿈을 <br>로 변경 (단, HTML 태그 안에서는 제외)
+        lines = html_content.split('\n')
+        processed_lines = []
+        
+        for line in lines:
+            line = line.strip()
+            if line and not line.startswith('<') and not line.endswith('>'):
+                if not re.search(r'<[^>]+>', line):  # HTML 태그가 없는 라인만
+                    line = line + '<br>'
+            processed_lines.append(line)
+        
+        return '\n'.join(processed_lines)
 
 @app.route('/api/debug_schedule', methods=['GET'])
 def debug_schedule():
