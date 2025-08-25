@@ -573,107 +573,72 @@ class ScheduleManager:
             return None
     
     def get_today_topic_for_manual(self, site: str) -> Dict:
-        """오늘의 주제 가져오기 (수동발행용 - DB 우선, 없으면 생성)"""
+        """계획표 주제만 사용 (수동발행용)"""
         try:
             today = datetime.now().date()
             weekday = today.weekday()  # 0=월요일, 6=일요일
-            week_start = today - timedelta(days=weekday)
             
-            print(f"[DEBUG] {site} 스케줄 조회 시작: today={today}, weekday={weekday}, week_start={week_start}")
+            # 계획표 주제 정의
+            schedule_plan = {
+                0: {  # 월요일
+                    'unpre': {"topic": "Redis 캐싱 전략과 성능 튜닝", "category": "프로그래밍"},
+                    'untab': {"topic": "리츠(REITs) 투자의 장단점", "category": "취미"}, 
+                    'skewese': {"topic": "한글의 과학적 원리와 우수성", "category": "뷰티/패션"},
+                    'tistory': {"topic": "재건축 규제 완화, 시장 변화 예상", "category": "일반"}
+                },
+                1: {  # 화요일
+                    'unpre': {"topic": "Docker 컨테이너 운영 실무", "category": "프로그래밍"},
+                    'untab': {"topic": "친환경 부동산 그린 리모델링 트렌드", "category": "투자"}, 
+                    'skewese': {"topic": "4.19혁명과 민주주의 발전", "category": "역사"},
+                    'tistory': {"topic": "2025년 ChatGPT-5와 차세대 AI 혁신", "category": "기술"}
+                },
+                2: {  # 수요일  
+                    'unpre': {"topic": "React Hook 고급 활용법", "category": "프로그래밍"},
+                    'untab': {"topic": "고령화 사회와 실버타운 투자", "category": "투자"},
+                    'skewese': {"topic": "임진왜란과 이순신의 활약", "category": "역사"}, 
+                    'tistory': {"topic": "MZ세대 투자 패턴 분석, 부작용은?", "category": "투자"}
+                },
+                3: {  # 목요일
+                    'unpre': {"topic": "Python 데이터 분석 마스터", "category": "프로그래밍"},
+                    'untab': {"topic": "인플레이션 시대의 투자 가이드", "category": "투자"},
+                    'skewese': {"topic": "한국 전통 건축의 아름다움과 과학", "category": "역사"},
+                    'tistory': {"topic": "인플레이션 재부상? 2025년 전망", "category": "경제"}
+                },
+                4: {  # 금요일
+                    'unpre': {"topic": "TypeScript 고급 타입 시스템", "category": "프로그래밍"},
+                    'untab': {"topic": "공모주 투자 전략 분석", "category": "투자"},
+                    'skewese': {"topic": "정조의 개혁 정치와 화성 건설", "category": "역사"},
+                    'tistory': {"topic": "2026 월드컵 공동개최, 한국 축구 재도약", "category": "스포츠"}
+                },
+                5: {  # 토요일
+                    'unpre': {"topic": "GraphQL API 설계와 최적화", "category": "프로그래밍"},
+                    'untab': {"topic": "메타버스 부동산 투자", "category": "투자"},
+                    'skewese': {"topic": "고구려의 영토 확장과 광개토대왕", "category": "역사"},
+                    'tistory': {"topic": "K-문화 글로벌 확산 현황", "category": "문화"}
+                },
+                6: {  # 일요일
+                    'unpre': {"topic": "Kubernetes 클러스터 관리", "category": "프로그래밍"},
+                    'untab': {"topic": "ESG 투자의 미래 전망", "category": "투자"},
+                    'skewese': {"topic": "조선 후기 실학사상의 발전", "category": "역사"},
+                    'tistory': {"topic": "전기차 배터리 기술 혁신과 미래", "category": "기술"}
+                }
+            }
             
-            conn = self.db.get_connection()
-            with conn.cursor() as cursor:
-                # 현재 주 스케줄 조회
-                cursor.execute("""
-                    SELECT specific_topic, topic_category, keywords, target_length, status
-                    FROM publishing_schedule 
-                    WHERE week_start_date = %s AND day_of_week = %s AND site = %s
-                """, (week_start, weekday, site))
-                
-                result = cursor.fetchone()
-                print(f"[DEBUG] {site} DB 쿼리 결과: {result}")
-                
-                # 올바른 계획표 주제 강제 사용 (2025-08-25 월요일)
-                if weekday == 0 and week_start.strftime('%Y-%m-%d') == '2025-08-25':
-                    correct_topics = {
-                        'unpre': {"topic": "Redis 캐싱 전략과 성능 튜닝", "category": "프로그래밍"},
-                        'untab': {"topic": "리츠(REITs) 투자의 장단점", "category": "취미"}, 
-                        'skewese': {"topic": "한글의 과학적 원리와 우수성", "category": "뷰티/패션"},
-                        'tistory': {"topic": "재건축 규제 완화, 시장 변화 예상", "category": "일반"}
-                    }
-                    
-                    if site in correct_topics:
-                        topic_data = correct_topics[site]
-                        print(f"[SCHEDULE] {site} 올바른 계획표 주제 강제 사용: {topic_data['topic']}")
-                        return {
-                            'topic': topic_data['topic'],
-                            'category': topic_data['category'],
-                            'keywords': [],
-                            'length': 'medium'
-                        }
-                
-                if result:
-                    print(f"[SCHEDULE] {site} DB에서 주제 찾음: {result[0]}")
-                    return {
-                        'topic': result[0],
-                        'category': result[1] or 'general',
-                        'keywords': result[2] or [],
-                        'length': result[3] or 'medium'
-                    }
-                else:
-                    print(f"[SCHEDULE] {site} DB에 스케줄 없음")
-                    # 현재 주 스케줄 생성 시도
-                    success = self.create_weekly_schedule(week_start)
-                    if success:
-                        # 다시 조회
-                        cursor.execute("""
-                            SELECT specific_topic, topic_category, keywords, target_length, status
-                            FROM publishing_schedule 
-                            WHERE week_start_date = %s AND day_of_week = %s AND site = %s
-                        """, (week_start, weekday, site))
-                        result = cursor.fetchone()
-                        if result:
-                            return {
-                                'topic': result[0],
-                                'category': result[1] or 'general',
-                                'keywords': result[2] or [],
-                                'length': result[3] or 'medium'
-                            }
-                
-                # 디버깅: 모든 스케줄 데이터를 확인해보기
-                cursor.execute("""
-                    SELECT week_start_date, day_of_week, site, specific_topic, status
-                    FROM publishing_schedule 
-                    ORDER BY week_start_date DESC, day_of_week, site
-                    LIMIT 20
-                """)
-                all_schedules = cursor.fetchall()
-                print(f"[DEBUG] 최근 스케줄 20개: {all_schedules}")
-                
-                # 원래 쿼리 다시 실행
-                cursor.execute("""
-                    SELECT specific_topic, topic_category, keywords, target_length, status
-                    FROM publishing_schedule 
-                    WHERE week_start_date = %s AND day_of_week = %s AND site = %s
-                """, (week_start, weekday, site))
-                
-                result = cursor.fetchone()
-                if result:
-                    status = result[4]
-                    print(f"[MANUAL_SCHEDULE] {site} 오늘의 주제 찾음: {result[0][:50]}... (상태: {status})")
-                    return {
-                        'topic': result[0],
-                        'category': result[1],
-                        'keywords': result[2] or [],
-                        'length': result[3] or 'medium',
-                        'status': status
-                    }
-                else:
-                    print(f"[MANUAL_SCHEDULE] {site}에 대한 오늘({week_start} 주의 {weekday}일)의 주제가 없습니다")
-                    return None
+            if weekday in schedule_plan and site in schedule_plan[weekday]:
+                topic_data = schedule_plan[weekday][site]
+                print(f"[SCHEDULE] {site} 계획표 주제: {topic_data['topic']}")
+                return {
+                    'topic': topic_data['topic'],
+                    'category': topic_data['category'],
+                    'keywords': [],
+                    'length': 'medium'
+                }
+            
+            print(f"[SCHEDULE] {site} 계획표에 해당 요일 주제 없음")
+            return None
                     
         except Exception as e:
-            print(f"[SCHEDULE] 오늘의 주제 조회 오류: {e}")
+            print(f"[SCHEDULE] 계획표 주제 조회 오류: {e}")
             return None
     
     def mark_topic_as_used(self, site: str, topic: str):
