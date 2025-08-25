@@ -4,18 +4,20 @@
 
 import json
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import psycopg2
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from src.web_dashboard_pg import get_database
+from src.utils.trending_topic_manager import TrendingTopicManager
 
 class ScheduleManager:
     """발행 스케줄 관리 클래스"""
     
     def __init__(self):
         self.db = get_database()
+        self.trending_manager = TrendingTopicManager()
         self._ensure_schedule_table()
         self._auto_initialize_schedules()
     
@@ -39,7 +41,7 @@ class ScheduleManager:
                         published_url TEXT,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        UNIQUE(week_start_date, day_of_week, site)
+                        UNIQUE(week_start_date, day_of_week, site, topic_category)
                     )
                 """)
                 conn.commit()
@@ -92,6 +94,70 @@ class ScheduleManager:
                 return count > 0
         except Exception as e:
             print(f"[SCHEDULE] 스케줄 존재 확인 오류: {e}")
+            return False
+    
+    def create_dual_category_weekly_schedule(self, start_date: datetime.date = None) -> bool:
+        """2개 카테고리 지원 주간 스케줄 생성"""
+        try:
+            if start_date is None:
+                today = datetime.now().date()
+                days_ahead = 0 - today.weekday()
+                if days_ahead <= 0:
+                    days_ahead += 7
+                start_date = today + timedelta(days=days_ahead)
+            
+            sites = ['unpre', 'untab', 'skewese', 'tistory']
+            
+            conn = self.db.get_connection()
+            with conn.cursor() as cursor:
+                for day in range(7):  # 월요일(0) ~ 일요일(6)
+                    current_date = start_date + timedelta(days=day)
+                    
+                    for site in sites:
+                        # 트렌딩 매니저에서 2개 카테고리 주제 가져오기
+                        primary_topic, secondary_topic = self.trending_manager.get_daily_topics(site, current_date)
+                        
+                        # Primary 주제 삽입
+                        cursor.execute("""
+                            INSERT INTO publishing_schedule 
+                            (week_start_date, day_of_week, site, topic_category, specific_topic, 
+                             keywords, target_length, status)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (week_start_date, day_of_week, site, topic_category) 
+                            DO UPDATE SET 
+                                specific_topic = EXCLUDED.specific_topic,
+                                keywords = EXCLUDED.keywords,
+                                updated_at = CURRENT_TIMESTAMP
+                        """, (
+                            start_date, day, site, primary_topic['category'],
+                            primary_topic['topic'], primary_topic['keywords'],
+                            primary_topic['length'], 'planned'
+                        ))
+                        
+                        # Secondary 주제 삽입
+                        cursor.execute("""
+                            INSERT INTO publishing_schedule 
+                            (week_start_date, day_of_week, site, topic_category, specific_topic, 
+                             keywords, target_length, status)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (week_start_date, day_of_week, site, topic_category) 
+                            DO UPDATE SET 
+                                specific_topic = EXCLUDED.specific_topic,
+                                keywords = EXCLUDED.keywords,
+                                updated_at = CURRENT_TIMESTAMP
+                        """, (
+                            start_date, day, site, secondary_topic['category'],
+                            secondary_topic['topic'], secondary_topic['keywords'],
+                            secondary_topic['length'], 'planned'
+                        ))
+                
+                conn.commit()
+                print(f"[SCHEDULE] 2개 카테고리 주간 스케줄 생성 완료: {start_date} 주")
+                print(f"[SCHEDULE] 총 {len(sites) * 7 * 2}개 스케줄 (사이트별 2개 카테고리)")
+                return True
+                
+        except Exception as e:
+            print(f"[SCHEDULE] 2개 카테고리 스케줄 생성 오류: {e}")
             return False
     
     def create_weekly_schedule(self, start_date: datetime = None) -> bool:
@@ -571,6 +637,57 @@ class ScheduleManager:
         except Exception as e:
             print(f"[SCHEDULE] 오늘의 주제 조회 오류: {e}")
             return None
+    
+    def get_today_dual_topics_for_manual(self, site: str) -> Tuple[Dict, Dict]:
+        """오늘의 2개 카테고리 주제 가져오기 (수동 발행용)"""
+        try:
+            today = datetime.now().date()
+            weekday = today.weekday()
+            week_start = today - timedelta(days=weekday)
+            
+            print(f"[SCHEDULE] {site} - 오늘: {today} ({weekday}요일), 주시작: {week_start}")
+            
+            # DB에서 2개 카테고리 모두 조회
+            conn = self.db.get_connection()
+            with conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT topic_category, specific_topic, keywords, target_length
+                    FROM publishing_schedule 
+                    WHERE week_start_date = %s 
+                    AND day_of_week = %s 
+                    AND site = %s
+                    AND status = 'planned'
+                    ORDER BY topic_category
+                """, (week_start, weekday, site))
+                
+                results = cursor.fetchall()
+            
+            if len(results) >= 2:
+                # DB에서 2개 주제 모두 찾음
+                primary = {
+                    'category': results[0][0],
+                    'topic': results[0][1], 
+                    'keywords': results[0][2] or [],
+                    'length': results[0][3] or 'medium'
+                }
+                secondary = {
+                    'category': results[1][0],
+                    'topic': results[1][1],
+                    'keywords': results[1][2] or [],
+                    'length': results[1][3] or 'medium'
+                }
+                
+                print(f"[SCHEDULE] {site} DB에서 2개 주제 가져옴")
+                return primary, secondary
+            
+            else:
+                print(f"[SCHEDULE] {site} DB에 충분한 주제 없음, 트렌딩 매니저 사용")
+                return self.trending_manager.get_daily_topics(site, today)
+                
+        except Exception as e:
+            print(f"[SCHEDULE] {site} 주제 조회 오류: {e}")
+            # 오류 시 트렌딩 매니저 폴백
+            return self.trending_manager.get_daily_topics(site, today)
     
     def get_today_topic_for_manual(self, site: str) -> Dict:
         """데이터베이스에서 오늘의 발행 계획표 주제 가져오기"""

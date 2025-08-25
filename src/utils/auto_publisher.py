@@ -9,6 +9,7 @@ import time
 import threading
 from datetime import datetime, timedelta
 from .schedule_manager import schedule_manager
+from typing import Tuple
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
