@@ -590,7 +590,38 @@ class ScheduleManager:
                     WHERE week_start_date = %s AND day_of_week = %s AND site = %s
                 """, (week_start, weekday, site))
                 
-                # 모든 스케줄 데이터를 확인해보기
+                result = cursor.fetchone()
+                print(f"[DEBUG] {site} DB 쿼리 결과: {result}")
+                
+                if result:
+                    print(f"[SCHEDULE] {site} DB에서 주제 찾음: {result[0]}")
+                    return {
+                        'topic': result[0],
+                        'category': result[1] or 'general',
+                        'keywords': result[2] or [],
+                        'length': result[3] or 'medium'
+                    }
+                else:
+                    print(f"[SCHEDULE] {site} DB에 스케줄 없음")
+                    # 현재 주 스케줄 생성 시도
+                    success = self.create_weekly_schedule(week_start)
+                    if success:
+                        # 다시 조회
+                        cursor.execute("""
+                            SELECT specific_topic, topic_category, keywords, target_length, status
+                            FROM publishing_schedule 
+                            WHERE week_start_date = %s AND day_of_week = %s AND site = %s
+                        """, (week_start, weekday, site))
+                        result = cursor.fetchone()
+                        if result:
+                            return {
+                                'topic': result[0],
+                                'category': result[1] or 'general',
+                                'keywords': result[2] or [],
+                                'length': result[3] or 'medium'
+                            }
+                
+                # 디버깅: 모든 스케줄 데이터를 확인해보기
                 cursor.execute("""
                     SELECT week_start_date, day_of_week, site, specific_topic, status
                     FROM publishing_schedule 
