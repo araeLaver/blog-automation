@@ -4,12 +4,6 @@ on:
   schedule:
     # 매일 새벽 3시 (UTC 18시 전날 = KST 3시)
     - cron: '0 18 * * *'
-    # 매일 오전 9시 (UTC 0시 = KST 9시)
-    - cron: '0 0 * * *'
-    # 매일 오후 2시 (UTC 5시 = KST 14시)
-    - cron: '0 5 * * *'
-    # 매일 저녁 8시 (UTC 11시 = KST 20시)
-    - cron: '0 11 * * *'
   workflow_dispatch:
     inputs:
       site:
