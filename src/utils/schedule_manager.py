@@ -587,16 +587,16 @@ class ScheduleManager:
                     'tistory': {"topic": "재건축 규제 완화, 시장 변화 예상", "category": "일반"}
                 },
                 1: {  # 화요일
-                    'unpre': {"topic": "Docker 컨테이너 운영 실무", "category": "프로그래밍"},
-                    'untab': {"topic": "친환경 부동산 그린 리모델링 트렌드", "category": "투자"}, 
-                    'skewese': {"topic": "4.19혁명과 민주주의 발전", "category": "역사"},
-                    'tistory': {"topic": "2025년 ChatGPT-5와 차세대 AI 혁신", "category": "기술"}
+                    'unpre': {"topic": "JWT 토큰 기반 시큐리티 구현", "category": "프로그래밍"},
+                    'untab': {"topic": "친환경 부동산 그린 리모델링 트렌드", "category": "취미"}, 
+                    'skewese': {"topic": "임진왜란과 이순신의 활약", "category": "뷰티/패션"},
+                    'tistory': {"topic": "MZ세대 투자 패턴 분석, 부작용은?", "category": "일반"}
                 },
                 2: {  # 수요일  
                     'unpre': {"topic": "React Hook 고급 활용법", "category": "프로그래밍"},
                     'untab': {"topic": "고령화 사회와 실버타운 투자", "category": "투자"},
-                    'skewese': {"topic": "임진왜란과 이순신의 활약", "category": "역사"}, 
-                    'tistory': {"topic": "MZ세대 투자 패턴 분석, 부작용은?", "category": "투자"}
+                    'skewese': {"topic": "조선시대 과거제도와 교육", "category": "역사"}, 
+                    'tistory': {"topic": "전기차 시장 현황과 미래 전망", "category": "기술"}
                 },
                 3: {  # 목요일
                     'unpre': {"topic": "Python 데이터 분석 마스터", "category": "프로그래밍"},
