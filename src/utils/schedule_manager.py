@@ -573,20 +573,64 @@ class ScheduleManager:
             return None
     
     def get_today_topic_for_manual(self, site: str) -> Dict:
-        """오늘의 주제 가져오기 (수동발행용 - 모든 상태)"""
+        """오늘의 주제 가져오기 (수동발행용 - 계획표 주제 직접 사용)"""
         try:
             today = datetime.now().date()
             weekday = today.weekday()  # 0=월요일, 6=일요일
             
-            # 이번 주 월요일 계산 (정확한 계산)
-            week_start = today - timedelta(days=weekday)
+            # 계획표 주제 직접 사용 (2025-08-25 주 기준)
+            weekly_topics = {
+                'unpre': [
+                    "Redis 캐싱 전략과 성능 튜닝",  # 월요일 
+                    "Docker 컨테이너 운영 실무",     # 화요일
+                    "React Hook 고급 활용법",       # 수요일
+                    "Python 데이터 분석 마스터",    # 목요일
+                    "TypeScript 고급 타입 시스템",   # 금요일
+                    "GraphQL API 설계와 최적화",    # 토요일
+                    "Kubernetes 클러스터 관리"      # 일요일
+                ],
+                'untab': [
+                    "친환경 부동산 그린 리모델링 트렌드",  # 월요일
+                    "고령화 사회와 실버타운 투자",       # 화요일
+                    "인플레이션 시대의 투자 가이드",     # 수요일
+                    "공모주 투자 전략 분석",           # 목요일
+                    "메타버스 부동산 투자",           # 금요일
+                    "ESG 투자의 미래 전망",          # 토요일
+                    "리츠(REITs) 투자의 장단점"       # 일요일
+                ],
+                'skewese': [
+                    "신라 통일의 과정과 역사적 의미",     # 월요일
+                    "4.19혁명과 민주주의 발전",        # 화요일
+                    "임진왜란과 이순신의 활약",        # 수요일
+                    "한국 전통 건축의 아름다움과 과학",   # 목요일
+                    "정조의 개혁 정치와 화성 건설",     # 금요일
+                    "고구려의 영토 확장과 광개토대왕",   # 토요일
+                    "조선 후기 실학사상의 발전"       # 일요일
+                ]
+            }
             
+            categories = {
+                'unpre': '프로그래밍',
+                'untab': '투자', 
+                'skewese': '역사'
+            }
+            
+            if site in weekly_topics and weekday < len(weekly_topics[site]):
+                topic = weekly_topics[site][weekday]
+                category = categories.get(site, 'general')
+                
+                print(f"[SCHEDULE] {site} 계획표 주제 사용: {topic}")
+                return {
+                    'topic': topic,
+                    'category': category,
+                    'keywords': [],
+                    'length': 'medium'
+                }
+            
+            # 데이터베이스에서 조회 시도 (백업용)
+            week_start = today - timedelta(days=weekday)
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
-                # 디버깅을 위한 상세 로그
-                print(f"[DEBUG] {site} 스케줄 조회: week_start={week_start}, weekday={weekday}, today={today}")
-                
-                # 수동발행에서는 status와 관계없이 오늘 스케줄 사용
                 cursor.execute("""
                     SELECT specific_topic, topic_category, keywords, target_length, status
                     FROM publishing_schedule 
