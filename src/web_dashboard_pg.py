@@ -205,7 +205,7 @@ def get_recent_posts():
 
 @app.route('/api/schedule')
 def get_schedule():
-    """발행 일정"""
+    """발행 일정 (레거시)"""
     try:
         db = get_database()
         site_configs = db.get_site_configs()
@@ -229,6 +229,92 @@ def get_schedule():
             {'site': 'untab', 'time': '09:00', 'days': ['tuesday', 'thursday', 'saturday']},
             {'site': 'skewese', 'time': '15:00', 'days': ['monday', 'wednesday', 'friday']}
         ])
+
+@app.route('/api/dual_category_schedule')
+def get_dual_category_schedule():
+    """2개 카테고리 주간 발행 계획표"""
+    try:
+        from datetime import datetime, timedelta
+        from src.utils.trending_topic_manager import TrendingTopicManager
+        
+        # 이번주 월요일부터 일요일까지
+        today = datetime.now().date()
+        monday = today - timedelta(days=today.weekday())
+        
+        manager = TrendingTopicManager()
+        sites = ['unpre', 'untab', 'skewese', 'tistory']
+        days = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
+        
+        weekly_schedule = []
+        
+        for day_idx in range(7):
+            current_date = monday + timedelta(days=day_idx)
+            day_name = days[day_idx]
+            
+            daily_schedule = {
+                'date': current_date.isoformat(),
+                'day_name': day_name,
+                'is_today': current_date == today,
+                'sites': {}
+            }
+            
+            for site in sites:
+                try:
+                    primary, secondary = manager.get_daily_topics(site, current_date)
+                    
+                    daily_schedule['sites'][site] = {
+                        'primary': {
+                            'category': primary['category'],
+                            'topic': primary['topic'],
+                            'keywords': primary['keywords'][:3]
+                        },
+                        'secondary': {
+                            'category': secondary['category'],
+                            'topic': secondary['topic'],
+                            'keywords': secondary['keywords'][:3]
+                        }
+                    }
+                except Exception as site_error:
+                    daily_schedule['sites'][site] = {
+                        'error': str(site_error),
+                        'primary': None,
+                        'secondary': None
+                    }
+            
+            weekly_schedule.append(daily_schedule)
+        
+        # 사이트 정보 추가
+        site_info = {
+            'unpre': {'name': 'UNPRE', 'domain': 'unpre.co.kr', 'color': '#1976d2'},
+            'untab': {'name': 'UNTAB', 'domain': 'untab.co.kr', 'color': '#388e3c'},
+            'skewese': {'name': 'SKEWESE', 'domain': 'skewese.com', 'color': '#f57c00'},
+            'tistory': {'name': 'TISTORY', 'domain': 'tistory.com', 'color': '#c2185b'}
+        }
+        
+        return jsonify({
+            'success': True,
+            'week_start': monday.isoformat(),
+            'week_end': (monday + timedelta(days=6)).isoformat(),
+            'schedule': weekly_schedule,
+            'site_info': site_info,
+            'stats': {
+                'total_weekly_posts': 56,  # 7일 × 4사이트 × 2카테고리
+                'daily_posts': 8,
+                'sites_count': len(sites),
+                'categories_per_site': 2
+            },
+            'auto_publish_time': '03:00 KST',
+            'generated_at': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        import traceback
+        logger.error(f"Dual category schedule error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 
 @app.route('/api/logs')
