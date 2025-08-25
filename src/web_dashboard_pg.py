@@ -1320,11 +1320,11 @@ def quick_publish():
             today_schedule = {}
             for site in sites:
                 try:
-                    scheduled_topic = schedule_manager.get_today_scheduled_topic(site)
-                    if scheduled_topic and scheduled_topic.get('specific_topic'):
+                    scheduled_topic = schedule_manager.get_today_topic_for_manual(site)
+                    if scheduled_topic and scheduled_topic.get('topic'):
                         today_schedule[site] = {
-                            'topic': scheduled_topic['specific_topic'],
-                            'category': scheduled_topic.get('topic_category', 'general')
+                            'topic': scheduled_topic['topic'],
+                            'category': scheduled_topic.get('category', 'general')
                         }
                     else:
                         # 스케줄이 없는 경우 기본 주제 사용
