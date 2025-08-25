@@ -1327,25 +1327,49 @@ def quick_publish():
                             'category': scheduled_topic.get('category', 'general')
                         }
                     else:
-                        # 스케줄이 없는 경우 기본 주제 사용
-                        fallback_topics = {
-                            'unpre': {'topic': 'Google Cloud ACE 자격증 가이드', 'category': 'certification'},
-                            'untab': {'topic': '부동산 경매 입찰 전 반드시 확인해야 할 15가지 체크리스트', 'category': 'auction'},
-                            'skewese': {'topic': '4.19혁명과 민주주의 발전', 'category': 'koreanhistory'},
-                            'tistory': {'topic': '2026 월드컵 공동개최, 한국 축구 재도약', 'category': '스포츠'}
-                        }
-                        today_schedule[site] = fallback_topics.get(site, {'topic': '일반 주제', 'category': 'general'})
-                        logger.warning(f"{site}에 대한 스케줄을 찾을 수 없어 기본 주제를 사용합니다.")
+                        # 스케줄이 없는 경우 현재 주 스케줄 생성
+                        from datetime import datetime, timedelta
+                        today = datetime.now().date()
+                        week_start = today - timedelta(days=today.weekday())
+                        
+                        logger.warning(f"{site}에 대한 스케줄이 없어 현재 주({week_start}) 스케줄 생성 시도")
+                        
+                        # 현재 주 스케줄 생성
+                        success = schedule_manager.create_weekly_schedule(week_start)
+                        
+                        if success:
+                            # 생성된 스케줄에서 다시 조회
+                            scheduled_topic = schedule_manager.get_today_topic_for_manual(site)
+                            if scheduled_topic and scheduled_topic.get('topic'):
+                                today_schedule[site] = {
+                                    'topic': scheduled_topic['topic'],
+                                    'category': scheduled_topic.get('category', 'general')
+                                }
+                                logger.info(f"{site} 스케줄 생성 후 주제: {scheduled_topic['topic']}")
+                            else:
+                                logger.error(f"{site} 스케줄 생성 후에도 주제를 찾을 수 없음")
+                        else:
+                            logger.error(f"{site} 스케줄 생성 실패")
                 except Exception as e:
                     logger.error(f"스케줄 조회 오류 ({site}): {e}")
-                    # 오류 시 기본 주제 사용
-                    fallback_topics = {
-                        'unpre': {'topic': 'Google Cloud ACE 자격증 가이드', 'category': 'certification'},
-                        'untab': {'topic': '부동산 경매 입찰 전 반드시 확인해야 할 15가지 체크리스트', 'category': 'auction'},
-                        'skewese': {'topic': '4.19혁명과 민주주의 발전', 'category': 'koreanhistory'},
-                        'tistory': {'topic': '2026 월드컵 공동개최, 한국 축구 재도약', 'category': '스포츠'}
-                    }
-                    today_schedule[site] = fallback_topics.get(site, {'topic': '일반 주제', 'category': 'general'})
+                    # 오류 시에도 스케줄 생성 시도
+                    try:
+                        from datetime import datetime, timedelta
+                        today = datetime.now().date()
+                        week_start = today - timedelta(days=today.weekday())
+                        
+                        logger.warning(f"{site} 오류 발생으로 현재 주({week_start}) 스케줄 재생성 시도")
+                        success = schedule_manager.create_weekly_schedule(week_start)
+                        
+                        if success:
+                            scheduled_topic = schedule_manager.get_today_topic_for_manual(site)
+                            if scheduled_topic and scheduled_topic.get('topic'):
+                                today_schedule[site] = {
+                                    'topic': scheduled_topic['topic'],
+                                    'category': scheduled_topic.get('category', 'general')
+                                }
+                    except Exception as e2:
+                        logger.error(f"{site} 스케줄 재생성도 실패: {e2}")
             
             logger.info(f"오늘의 스케줄: {today_schedule}")
             
