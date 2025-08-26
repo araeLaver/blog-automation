@@ -19,6 +19,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
 from src.utils.postgresql_database import PostgreSQLDatabase
 from src.utils.trending_topics import trending_manager
+from src.utils.trending_topic_manager import TrendingTopicManager
 
 app = Flask(__name__, 
             template_folder='../templates',
@@ -3208,6 +3209,81 @@ def get_system_logs_api():
         logs = db.get_system_logs(level=level, component=component, limit=limit)
         
         return jsonify({'success': True, 'logs': logs})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/trending_status')
+def get_trending_status():
+    """실시간 트렌딩 시스템 상태 조회"""
+    try:
+        trending_manager = TrendingTopicManager()
+        summary = trending_manager.get_site_topics_summary()
+        
+        status = {
+            'overall': 'active',
+            'cache_status': 'active',
+            'last_update': max([
+                summary[site]['last_updated'] 
+                for site in summary.keys()
+            ]) if summary else datetime.now().isoformat(),
+            'sites': summary
+        }
+        
+        return jsonify({'success': True, 'trending_status': status})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'trending_status': {'overall': 'error'}}), 500
+
+
+@app.route('/api/update_trending')
+def update_trending():
+    """실시간 트렌딩 데이터 강제 업데이트"""
+    try:
+        trending_manager = TrendingTopicManager()
+        success = trending_manager.update_trending_cache(force_update=True)
+        
+        if success:
+            summary = trending_manager.get_site_topics_summary()
+            return jsonify({
+                'success': True, 
+                'message': '트렌딩 데이터 업데이트 완료',
+                'updated_sites': list(summary.keys()),
+                'update_time': datetime.now().isoformat()
+            })
+        else:
+            return jsonify({'success': False, 'message': '트렌딩 데이터 업데이트 실패'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/trending_topics/<site>')
+def get_site_trending_topics(site):
+    """특정 사이트의 트렌딩 주제 조회"""
+    try:
+        trending_manager = TrendingTopicManager()
+        
+        if site not in trending_manager.site_configs:
+            return jsonify({'success': False, 'error': f'Unknown site: {site}'}), 400
+            
+        config = trending_manager.site_configs[site]
+        primary_category = config['primary']
+        secondary_category = config['secondary']
+        
+        primary_topics = trending_manager.get_trending_topics(site, primary_category, 10)
+        secondary_topics = trending_manager.get_trending_topics(site, secondary_category, 10)
+        
+        return jsonify({
+            'success': True,
+            'site': site,
+            'primary_category': primary_category,
+            'secondary_category': secondary_category,
+            'primary_topics': primary_topics,
+            'secondary_topics': secondary_topics,
+            'last_updated': trending_manager.last_update.get(site, datetime.now()).isoformat()
+        })
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
