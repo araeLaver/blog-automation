@@ -5,7 +5,7 @@
 """
 
 import psycopg2
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import os
 from dotenv import load_dotenv
 
@@ -40,6 +40,7 @@ class MonthlyScheduleManager:
             cursor = conn.cursor()
             
             # 해당 사이트의 오늘 주제들 조회
+            # 먼저 monthly_publishing_schedule 테이블 시도
             cursor.execute("""
                 SELECT topic_category, specific_topic, keywords
                 FROM unble.monthly_publishing_schedule
@@ -48,6 +49,17 @@ class MonthlyScheduleManager:
             """, (today.year, today.month, today.day, site))
             
             topics = cursor.fetchall()
+            
+            # 데이터가 없으면 기존 publishing_schedule 테이블에서 조회 (폴백)
+            if not topics:
+                cursor.execute("""
+                    SELECT topic_category, specific_topic, keywords
+                    FROM unble.publishing_schedule
+                    WHERE scheduled_date = %s AND site = %s
+                    ORDER BY topic_category
+                """, (today, site))
+                
+                topics = cursor.fetchall()
             
             if len(topics) >= 2:
                 # Primary와 Secondary 구분 (알파벳 순)
@@ -156,6 +168,7 @@ class MonthlyScheduleManager:
             conn = self.get_db_connection()
             cursor = conn.cursor()
             
+            # 먼저 monthly_publishing_schedule 테이블 조회
             cursor.execute("""
                 SELECT day, site, topic_category, specific_topic, keywords, status
                 FROM unble.monthly_publishing_schedule
@@ -164,6 +177,19 @@ class MonthlyScheduleManager:
             """, (year, month))
             
             topics = cursor.fetchall()
+            
+            # 데이터가 없으면 기존 publishing_schedule 테이블에서 조회 (폴백)
+            if not topics:
+                # 해당 월의 모든 날짜에 대해 publishing_schedule 테이블 조회
+                cursor.execute("""
+                    SELECT EXTRACT(DAY FROM scheduled_date) as day, site, topic_category, specific_topic, keywords, 'pending' as status
+                    FROM unble.publishing_schedule
+                    WHERE EXTRACT(YEAR FROM scheduled_date) = %s 
+                    AND EXTRACT(MONTH FROM scheduled_date) = %s
+                    ORDER BY day, site, topic_category
+                """, (year, month))
+                
+                topics = cursor.fetchall()
             
             # 날짜별로 그룹핑
             schedule = {}
