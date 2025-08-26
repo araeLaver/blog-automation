@@ -3097,15 +3097,26 @@
         async function triggerManualPublish() {
             const today = new Date().toISOString().split('T')[0];
             
-            // 오늘 날짜의 주제 가져오기
-            const todayTopics = generateWeeklyTopicsClient(today);
+            // 듀얼 카테고리 주제 가져오기
+            let topicList = '📝 오늘 듀얼 카테고리 발행 주제:\n\n';
             
-            let topicList = '📝 오늘 발행될 주제:\n\n';
-            Object.entries(todayTopics).forEach(([site, topic]) => {
-                topicList += `• ${site.toUpperCase()}: ${topic}\n`;
-            });
+            try {
+                const response = await fetch('/api/get_today_topics');
+                const todayTopics = await response.json();
+                
+                Object.entries(todayTopics).forEach(([site, categories]) => {
+                    if (categories && categories.primary && categories.secondary) {
+                        topicList += `🔸 ${site.toUpperCase()}:\n`;
+                        topicList += `   Primary: [${categories.primary.category}] ${categories.primary.topic}\n`;
+                        topicList += `   Secondary: [${categories.secondary.category}] ${categories.secondary.topic}\n\n`;
+                    }
+                });
+            } catch (error) {
+                console.error('주제 조회 실패:', error);
+                topicList += '주제 정보를 불러올 수 없습니다.\n';
+            }
             
-            if (!confirm(`⚠️ 오늘(${today}) 예정된 모든 콘텐츠를 지금 수동으로 생성하고 발행하시겠습니까?\n\n${topicList}\n이 작업은 자동 스케줄과 별개로 즉시 실행됩니다.`)) {
+            if (!confirm(`⚠️ 오늘(${today}) 듀얼 카테고리 시스템으로 총 8개 콘텐츠를 지금 수동 발행하시겠습니까?\n\n${topicList}\n📊 사이트별 2개씩, 총 8개 포스트가 생성됩니다.`)) {
                 return;
             }
             
@@ -3116,14 +3127,15 @@
                     <div class="modal-dialog modal-lg">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title">🚀 자동발행계획 수동 실행 중...</h5>
+                                <h5 class="modal-title">🚀 듀얼 카테고리 수동 발행 중... (총 8개 포스트)</h5>
                             </div>
                             <div class="modal-body">
                                 <div class="progress mb-3">
                                     <div class="progress-bar progress-bar-striped progress-bar-animated" 
                                          role="progressbar" style="width: 0%" id="publishProgress"></div>
                                 </div>
-                                <div id="publishStatus">발행을 시작합니다...</div>
+                                <div id="publishStatus">듀얼 카테고리 발행을 시작합니다...</div>
+                                <div class="text-muted mb-2">각 사이트별로 Primary + Secondary 카테고리 2개씩 발행</div>
                                 <ul id="publishResults" class="mt-3"></ul>
                             </div>
                         </div>
@@ -3135,7 +3147,7 @@
             const modal = new bootstrap.Modal(document.getElementById('publishProgressModal'));
             modal.show();
             
-            showNotification('🚀 자동발행계획에 따른 수동 발행을 시작합니다...', 'info');
+            showNotification('🚀 듀얼 카테고리 수동 발행을 시작합니다... (총 8개 포스트)', 'info');
             
             // 실시간 상태 폴링 시작
             const pollStatus = async () => {
@@ -3169,14 +3181,24 @@
                             statusDiv.innerHTML += ` (현재: ${status.current_site.toUpperCase()})`;
                         }
                         
+                        // 8개 포스트 기준 진행률 표시
+                        if (status.completed_sites !== undefined) {
+                            statusDiv.innerHTML += ` - ${status.completed_sites}/8 완료`;
+                        }
+                        
                         // 완료된 사이트 결과 표시
                         resultsUl.innerHTML = '';
                         if (status.results && Array.isArray(status.results)) {
                             status.results.forEach(result => {
                                 const li = document.createElement('li');
-                                li.className = result.success ? 'text-success' : 'text-danger';
+                                li.className = (result.status === 'success' || result.success) ? 'text-success' : 'text-danger';
                                 
-                                let resultText = `${result.site.toUpperCase()}: ${result.message}`;
+                                // 듀얼 카테고리 배지 표시
+                                const categoryType = result.category || '';
+                                const categoryBadge = categoryType === 'primary' ? '<span class="badge bg-primary me-1">P</span>' : 
+                                                      categoryType === 'secondary' ? '<span class="badge bg-secondary me-1">S</span>' : '';
+                                
+                                let resultText = `${categoryBadge}${result.site.toUpperCase()}: ${result.message}`;
                                 if (result.topic) {
                                     resultText += ` (주제: ${result.topic})`;
                                 }

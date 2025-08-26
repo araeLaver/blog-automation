@@ -640,6 +640,35 @@ def get_revenue_data():
         return jsonify({})
 
 
+@app.route('/api/get_today_topics')
+def get_today_topics():
+    """오늘의 듀얼 카테고리 주제 조회"""
+    try:
+        from src.utils.monthly_schedule_manager import monthly_schedule_manager
+        
+        sites = ['unpre', 'untab', 'skewese', 'tistory']
+        today_topics = {}
+        
+        for site in sites:
+            try:
+                primary, secondary = monthly_schedule_manager.get_today_dual_topics(site)
+                if primary and secondary:
+                    today_topics[site] = {
+                        'primary': primary,
+                        'secondary': secondary
+                    }
+                else:
+                    today_topics[site] = {'error': '주제를 찾을 수 없습니다'}
+            except Exception as e:
+                today_topics[site] = {'error': str(e)}
+        
+        return jsonify(today_topics)
+        
+    except Exception as e:
+        logger.error(f"Today topics error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/system_logs')
 def get_system_logs():
     """시스템 로그 조회"""
