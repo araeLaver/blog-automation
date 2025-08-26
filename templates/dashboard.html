@@ -2272,8 +2272,11 @@
             return sunday.toISOString().split('T')[0];
         }
 
-        // 클라이언트 사이드 날짜별 고정 주제 생성
-        function generateWeeklyTopicsClient(startDate) {
+        // 사용 안함 - 구 시스템 함수 (듀얼 카테고리로 대체됨)
+        function generateWeeklyTopicsClient_DEPRECATED(startDate) {
+            console.warn('구 시스템 함수 호출됨 - 듀얼 카테고리 시스템 사용 필요');
+            return {}; // 빈 객체 반환
+            
             const date = new Date(startDate);
             const dateSeed = Math.floor(date.getTime() / (1000 * 60 * 60 * 24)); // 날짜를 숫자로 변환
             
@@ -2416,8 +2419,8 @@
                 
                 console.log('클라이언트사이드 주제 생성 시작:', targetDate);
                 
-                // 클라이언트사이드에서 주제 생성
-                const weekTopics = generateWeeklyTopicsClient(targetDate);
+                // 듀얼 카테고리 시스템 사용 - 구 함수 비활성화
+                const weekTopics = {}; // generateWeeklyTopicsClient_DEPRECATED(targetDate);
                 console.log('생성된 주차별 주제:', weekTopics);
                 
                 // API 응답 형식으로 데이터 변환 (displayWeeklySchedule 함수가 기대하는 구조)
@@ -2443,8 +2446,8 @@
                     
                     // 각 날짜별로 다른 주제 생성 (일별 + 사이트별 고유 주제)
                     Object.keys(weekTopics).forEach(siteKey => {
-                        // 날짜별 + 사이트별 고유 주제 생성
-                        const dailyTopics = generateWeeklyTopicsClient(dateStr);
+                        // 듀얼 카테고리 시스템 사용 - 구 함수 비활성화  
+                        const dailyTopics = {}; // generateWeeklyTopicsClient_DEPRECATED(dateStr);
                         
                         scheduleData.schedule[dateStr].sites[siteKey] = [{
                             time: '03:00',
