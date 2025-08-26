@@ -2555,17 +2555,25 @@
                                     <div class="schedule-item site-${site}" 
                                          onclick="showDayDetailModal('${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}', ${JSON.stringify(dayData).replace(/"/g, '&quot;')})"
                                          style="cursor: pointer;">
-                                        <small class="site-name">${site.toUpperCase()}</small>
+                                        <div class="site-header">
+                                            <strong class="site-name">${site.toUpperCase()}</strong>
+                                        </div>
                                         ${categories.primary ? `
-                                            <div class="category-item primary" title="${categories.primary.topic}">
+                                            <div class="topic-item primary">
                                                 <span class="badge bg-primary">P</span>
-                                                <span class="category-name">${categories.primary.category}</span>
+                                                <div class="topic-content">
+                                                    <small class="category-name">${categories.primary.category}</small>
+                                                    <div class="topic-title">${categories.primary.topic}</div>
+                                                </div>
                                             </div>
                                         ` : ''}
                                         ${categories.secondary ? `
-                                            <div class="category-item secondary" title="${categories.secondary.topic}">
+                                            <div class="topic-item secondary">
                                                 <span class="badge bg-secondary">S</span>
-                                                <span class="category-name">${categories.secondary.category}</span>
+                                                <div class="topic-content">
+                                                    <small class="category-name">${categories.secondary.category}</small>
+                                                    <div class="topic-title">${categories.secondary.topic}</div>
+                                                </div>
                                             </div>
                                         ` : ''}
                                     </div>
@@ -2603,10 +2611,11 @@
                     <style>
                         .monthly-calendar .calendar-day {
                             border: 1px solid #dee2e6;
-                            min-height: 140px;
-                            padding: 4px;
+                            min-height: 180px;
+                            padding: 3px;
                             background: #fff;
                             position: relative;
+                            overflow-y: auto;
                         }
                         .monthly-calendar .calendar-day.empty-day {
                             background: #f8f9fa;
@@ -2625,33 +2634,58 @@
                             padding: 2px 4px;
                         }
                         .monthly-calendar .schedule-item {
-                            margin-bottom: 2px;
-                            font-size: 0.65rem;
+                            margin-bottom: 3px;
                             border-radius: 3px;
-                            padding: 2px 4px;
+                            padding: 3px;
+                            font-size: 0.6rem;
+                        }
+                        .monthly-calendar .site-header {
+                            text-align: center;
+                            margin-bottom: 2px;
+                            border-bottom: 1px solid rgba(255,255,255,0.3);
+                            padding-bottom: 1px;
                         }
                         .monthly-calendar .site-name {
                             font-weight: bold;
+                            font-size: 0.65rem;
+                            color: #333;
+                        }
+                        .monthly-calendar .topic-item {
+                            display: flex;
+                            align-items: flex-start;
+                            gap: 3px;
+                            margin: 2px 0;
+                            padding: 2px;
+                            background: rgba(255,255,255,0.2);
+                            border-radius: 2px;
+                        }
+                        .monthly-calendar .topic-item .badge {
+                            font-size: 0.5rem;
+                            padding: 1px 2px;
+                            width: 12px;
+                            height: 12px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            flex-shrink: 0;
+                        }
+                        .monthly-calendar .topic-content {
+                            flex: 1;
+                            min-width: 0;
+                        }
+                        .monthly-calendar .category-name {
+                            font-size: 0.55rem;
+                            color: #666;
                             display: block;
                             margin-bottom: 1px;
                         }
-                        .monthly-calendar .category-item {
-                            display: flex;
-                            align-items: center;
-                            gap: 2px;
-                            margin: 1px 0;
-                        }
-                        .monthly-calendar .category-item .badge {
-                            font-size: 0.55rem;
-                            padding: 1px 3px;
-                            width: 16px;
-                            text-align: center;
-                        }
-                        .monthly-calendar .category-name {
+                        .monthly-calendar .topic-title {
                             font-size: 0.6rem;
-                            white-space: nowrap;
-                            overflow: hidden;
-                            text-overflow: ellipsis;
+                            line-height: 1.2;
+                            color: #333;
+                            word-wrap: break-word;
+                            overflow-wrap: break-word;
+                            hyphens: auto;
                         }
                         .monthly-calendar .schedule-item.site-unpre {
                             background: #e3f2fd;
