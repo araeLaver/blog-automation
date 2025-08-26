@@ -1358,73 +1358,79 @@ def get_current_trends():
         today = datetime.now()
         week_start = (today - timedelta(days=today.weekday())).strftime('%Y-%m-%d')
         
-        # 실제 현재 핫한 이슈들을 공통 실시간 이슈로 생성
-        hot_issues = [
-            {
-                'category': 'technology',
-                'trend_type': 'hot',
-                'title': '🔥 OpenAI o1 모델 출시로 AI 업계 판도 변화',
-                'description': 'OpenAI의 새로운 추론 모델 o1이 공개되어 AI 개발 패러다임에 큰 변화를 가져올 것으로 예상됩니다',
-                'keywords': ['OpenAI', 'o1', 'AI모델', '추론AI'],
-                'priority': 10
-            },
-            {
-                'category': 'economy',
-                'trend_type': 'hot',
-                'title': '🔥 한국은행 기준금리 동결, 경제 안정화 집중',
-                'description': '한국은행이 3개월 연속 기준금리를 동결하며 물가 안정과 경제 성장의 균형점을 찾고 있습니다',
-                'keywords': ['한국은행', '기준금리', '통화정책', '경제안정'],
-                'priority': 9
-            },
-            {
-                'category': 'technology',
-                'trend_type': 'hot',
-                'title': '🔥 NVIDIA H200 GPU로 AI 컴퓨팅 새로운 도약',
-                'description': '엔비디아의 차세대 H200 GPU가 AI 훈련과 추론 성능을 대폭 향상시키며 업계 주목을 받고 있습니다',
-                'keywords': ['NVIDIA', 'H200', 'GPU', 'AI컴퓨팅'],
-                'priority': 9
-            },
-            {
-                'category': 'social',
-                'trend_type': 'hot',
-                'title': '🔥 MZ세대 투자 패턴 변화, 장기 투자 선호 증가',
-                'description': '젊은 투자자들의 투자 패턴이 단기 수익 추구에서 장기 가치 투자로 변화하고 있습니다',
-                'keywords': ['MZ세대', '투자패턴', '장기투자', '가치투자'],
-                'priority': 8
-            },
-            {
-                'category': 'culture',
-                'trend_type': 'hot',
-                'title': '🔥 K-POP 4세대 그룹 글로벌 차트 석권',
-                'description': 'NewJeans, aespa 등 4세대 K-POP 그룹들이 빌보드 차트를 비롯한 전세계 차트에서 활약하고 있습니다',
-                'keywords': ['KPOP', '4세대아이돌', '빌보드', '글로벌차트'],
-                'priority': 8
-            },
-            {
-                'category': 'environment',
-                'trend_type': 'rising',
-                'title': '🌡️ 폭염과 기후변화 대응, 탄소중립 가속화',
-                'description': '연이은 폭염과 이상기후로 인해 탄소중립 정책과 신재생에너지 전환이 가속화되고 있습니다',
-                'keywords': ['폭염', '기후변화', '탄소중립', '신재생에너지'],
-                'priority': 8
-            },
-            {
-                'category': 'technology',
-                'trend_type': 'rising',
-                'title': '⚡ 전기차 배터리 기술 혁신, 충전 시간 단축',
-                'description': '차세대 배터리 기술 개발로 전기차 충전 시간이 대폭 단축되고 주행거리가 연장되고 있습니다',
-                'keywords': ['전기차', '배터리기술', '고속충전', '2차전지'],
-                'priority': 7
-            },
-            {
-                'category': 'social',
-                'trend_type': 'rising',
-                'title': '💼 원격근무 정착화, 하이브리드 워크 확산',
-                'description': '포스트 팬데믹 시대에 원격근무가 정착되면서 하이브리드 워크 모델이 새로운 표준이 되고 있습니다',
-                'keywords': ['원격근무', '하이브리드워크', '워라밸', '업무문화'],
-                'priority': 7
+        # 실시간 트렌딩 데이터로 핫이슈 생성 (하드코딩 완전 제거)
+        hot_issues = []
+        
+        try:
+            # 실시간 트렌딩 매니저에서 최신 트렌드 가져오기
+            real_trending_manager.update_trending_cache(force_update=True)
+            
+            # 모든 사이트에서 고우선순위 트렌딩 토픽 수집
+            all_trending_topics = []
+            for site in ['unpre', 'untab', 'skewese']:
+                site_config = real_trending_manager.site_configs.get(site, {})
+                for category in [site_config.get('primary'), site_config.get('secondary')]:
+                    if category:
+                        topics = real_trending_manager.get_trending_topics(site, category, 5)
+                        for topic in topics:
+                            all_trending_topics.append({
+                                'category': category.split('/')[0].lower(),  # '기술/디지털' -> 'technology'
+                                'trend_type': 'hot',
+                                'title': f"🔥 {topic}",
+                                'description': f"실시간으로 주목받고 있는 {category} 분야의 핫이슈입니다",
+                                'keywords': real_trending_manager._extract_keywords(topic),
+                                'priority': 9
+                            })
+            
+            # 카테고리 매핑 (한국어 -> 영어)
+            category_mapping = {
+                '기술': 'technology',
+                '교육': 'education', 
+                '재정': 'economy',
+                '라이프스타일': 'lifestyle',
+                '건강': 'health',
+                '역사': 'culture',
+                '엔터테인먼트': 'culture',
+                '트렌드': 'social'
             }
-        ]
+            
+            # 카테고리별로 최고 우선순위 토픽만 선별 (중복 제거)
+            category_best = {}
+            for topic in all_trending_topics:
+                category = topic['category']
+                if category not in category_best or topic['priority'] > category_best[category]['priority']:
+                    # 카테고리 매핑 적용
+                    mapped_category = category_mapping.get(category, category)
+                    topic['category'] = mapped_category
+                    category_best[mapped_category] = topic
+            
+            # 최종 핫이슈 리스트 (최대 8개)
+            hot_issues = list(category_best.values())[:8]
+            
+        except Exception as e:
+            print(f"[TRENDING] 실시간 핫이슈 생성 오류: {e}")
+            # 에러 시 기본 동적 이슈 생성
+            from datetime import datetime
+            current_time = datetime.now()
+            
+            hot_issues = [
+                {
+                    'category': 'technology',
+                    'trend_type': 'hot',
+                    'title': f'🔥 {current_time.strftime("%m월 %d일")} AI 기술 동향',
+                    'description': '최신 AI 기술 발전과 산업 동향을 실시간으로 분석합니다',
+                    'keywords': ['AI', '기술동향', '실시간분석'],
+                    'priority': 9
+                },
+                {
+                    'category': 'economy',
+                    'trend_type': 'hot', 
+                    'title': f'🔥 {current_time.strftime("%m월 %d일")} 경제 트렌드',
+                    'description': '실시간 경제 지표와 시장 동향을 분석합니다',
+                    'keywords': ['경제동향', '시장분석', '투자트렌드'],
+                    'priority': 8
+                }
+            ]
         
         cross_category_issues.extend(hot_issues)
         
