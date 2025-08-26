@@ -646,6 +646,31 @@ class PostgreSQLDatabase:
             conn.rollback()
             logger.error(f"파일 상태 업데이트 오류: {e}")
     
+    def update_file_status(self, file_id: int, status: str, published_at: datetime = None):
+        """파일 상태 및 발행 시간 업데이트 (web_dashboard용)"""
+        conn = self.get_connection()
+        try:
+            with conn.cursor() as cursor:
+                if published_at:
+                    cursor.execute(f"""
+                        UPDATE {self.schema}.content_files 
+                        SET status = %s, published_at = %s
+                        WHERE id = %s
+                    """, (status, published_at, file_id))
+                else:
+                    cursor.execute(f"""
+                        UPDATE {self.schema}.content_files 
+                        SET status = %s
+                        WHERE id = %s
+                    """, (status, file_id))
+                conn.commit()
+                logger.info(f"파일 상태 업데이트 완료: ID={file_id}, Status={status}")
+                
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"파일 상태 업데이트 오류: {e}")
+            raise
+    
     def get_site_configs(self) -> Dict[str, Dict]:
         """사이트 설정 조회"""
         conn = self.get_connection()

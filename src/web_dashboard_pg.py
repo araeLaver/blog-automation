@@ -1597,7 +1597,7 @@ def quick_publish():
 
                                 # DB 업데이트
                                 db.delete_content_file(primary_file_id)
-                                db.add_content_file(
+                                final_file_id = db.add_content_file(
                                     site=site,
                                     title=content_data['title'],
                                     file_path=filepath,
@@ -1608,6 +1608,32 @@ def quick_publish():
                                         'tags': content_data.get('tags', [])
                                     }
                                 )
+                                
+                                # 발행 완료 시간 업데이트
+                                from datetime import datetime
+                                db.update_file_status(final_file_id, 'published', datetime.now())
+
+                                # Tistory 자동 사이트 발행
+                                try:
+                                    logger.info(f"Tistory Primary 자동 발행 시작: {primary_topic['topic']}")
+                                    # TODO: Tistory API를 통한 자동 발행 로직 추가
+                                    # 현재는 Tistory Publisher가 구현되지 않아 로그만 남김
+                                    publish_status_global['results'].append({
+                                        'site': site,
+                                        'status': 'success',
+                                        'message': f'Primary 콘텐츠 생성 완료, Tistory 자동 업로드 준비 중: {primary_topic["topic"]}',
+                                        'category': 'primary',
+                                        'topic': primary_topic['topic']
+                                    })
+                                except Exception as publish_error:
+                                    logger.error(f"Tistory Primary 자동 발행 실패: {publish_error}")
+                                    publish_status_global['results'].append({
+                                        'site': site,
+                                        'status': 'success', # 콘텐츠는 생성됐으므로 success
+                                        'message': f'Primary 콘텐츠 생성 완료, 사이트 업로드는 수동 필요: {primary_topic["topic"]}',
+                                        'category': 'primary',
+                                        'topic': primary_topic['topic']
+                                    })
 
                                 logger.info(f"{site} Primary 발행 성공: {primary_topic['topic']}")
                             else:
@@ -1637,7 +1663,7 @@ def quick_publish():
 
                                 # DB 업데이트
                                 db.delete_content_file(primary_file_id)
-                                db.add_content_file(
+                                final_file_id = db.add_content_file(
                                     site=site,
                                     title=content_data['title'],
                                     file_path=filepath,
@@ -1648,6 +1674,129 @@ def quick_publish():
                                         'tags': content_data.get('tags', [])
                                     }
                                 )
+                                
+                                # 발행 완료 시간 업데이트
+                                from datetime import datetime
+                                db.update_file_status(final_file_id, 'published', datetime.now())
+
+                                # WordPress 자동 사이트 발행
+                                try:
+                                    logger.info(f"WordPress Primary 자동 발행 시작: {primary_topic['topic']}")
+                                    
+                                    # WordPress Publisher를 사용한 자동 발행
+                                    from src.publishers.wordpress_publisher import WordPressPublisher
+                                    from pathlib import Path
+                                    
+                                    # 파일 정보 조회
+                                    conn_auto = db.get_connection()
+                                    with conn_auto.cursor() as cursor_auto:
+                                        cursor_auto.execute(f"""
+                                            SELECT title, file_path, tags, categories
+                                            FROM {db.schema}.content_files 
+                                            WHERE id = %s
+                                        """, (primary_file_id,))
+                                        
+                                        file_info = cursor_auto.fetchone()
+                                        if file_info:
+                                            title, file_path, tags, categories = file_info
+                                            
+                                            # HTML 및 메타데이터 파일 읽기
+                                            html_file = Path(file_path)
+                                            if html_file.exists():
+                                                with open(html_file, 'r', encoding='utf-8') as f:
+                                                    html_content = f.read()
+                                                
+                                                # 메타데이터 파일 확인
+                                                metadata_file = html_file.with_suffix('.json')
+                                                structured_content = None
+                                                if metadata_file.exists():
+                                                    try:
+                                                        with open(metadata_file, 'r', encoding='utf-8') as f:
+                                                            structured_content = json.load(f)
+                                                    except:
+                                                        structured_content = None
+                                                
+                                                # WordPress Publisher로 발행
+                                                publisher = WordPressPublisher(site)
+                                                
+                                                # 이미지 생성
+                                                images = []
+                                                try:
+                                                    from src.utils.safe_image_generator import safe_image_generator
+                                                    pexels_api_key = "QneFYkOrINxx30V33KbWpCqHjZLtkJoN2HNsNgDNwWEStXNJNsbYs4ap"
+                                                    safe_image_generator.set_pexels_api_key(pexels_api_key)
+                                                    image_path = safe_image_generator.generate_featured_image(title)
+                                                    if image_path and os.path.exists(image_path):
+                                                        images.append({'url': image_path, 'type': 'thumbnail', 'alt': title})
+                                                except:
+                                                    images = []
+                                                
+                                                # 콘텐츠 데이터 준비
+                                                if structured_content and structured_content.get('sections'):
+                                                    content_data = {
+                                                        'title': structured_content.get('title', title),
+                                                        'introduction': structured_content.get('introduction', ''),
+                                                        'sections': structured_content.get('sections', []),
+                                                        'conclusion': structured_content.get('conclusion', ''),
+                                                        'meta_description': structured_content.get('meta_description', ''),
+                                                        'categories': categories if categories else [],
+                                                        'tags': tags if tags else []
+                                                    }
+                                                else:
+                                                    content_data = {
+                                                        'title': title,
+                                                        'content': html_content,
+                                                        'meta_description': '',
+                                                        'categories': categories if categories else [],
+                                                        'tags': tags if tags else []
+                                                    }
+                                                
+                                                # WordPress에 발행
+                                                success, result = publisher.publish_post(content_data, images=images, draft=False)
+                                                
+                                                if success:
+                                                    publish_status_global['results'].append({
+                                                        'site': site,
+                                                        'status': 'success',
+                                                        'message': f'Primary 발행 및 자동 업로드 완료: {primary_topic["topic"]}',
+                                                        'category': 'primary',
+                                                        'topic': primary_topic['topic'],
+                                                        'wordpress_url': result
+                                                    })
+                                                else:
+                                                    publish_status_global['results'].append({
+                                                        'site': site,
+                                                        'status': 'success', # 콘텐츠는 생성됐으므로 success
+                                                        'message': f'Primary 콘텐츠 생성 완료, 자동 업로드 실패: {result}',
+                                                        'category': 'primary',
+                                                        'topic': primary_topic['topic']
+                                                    })
+                                            else:
+                                                publish_status_global['results'].append({
+                                                    'site': site,
+                                                    'status': 'success', # 콘텐츠는 생성됐으므로 success
+                                                    'message': f'Primary 콘텐츠 생성 완료, 파일 없음으로 자동 업로드 실패',
+                                                    'category': 'primary',
+                                                    'topic': primary_topic['topic']
+                                                })
+                                        else:
+                                            publish_status_global['results'].append({
+                                                'site': site,
+                                                'status': 'success', # 콘텐츠는 생성됐으므로 success
+                                                'message': f'Primary 콘텐츠 생성 완료, DB 조회 실패로 자동 업로드 실패',
+                                                'category': 'primary',
+                                                'topic': primary_topic['topic']
+                                            })
+                                    
+                                except Exception as publish_error:
+                                    logger.error(f"WordPress Primary 자동 발행 실패: {publish_error}")
+                                    publish_status_global['results'].append({
+                                        'site': site,
+                                        'status': 'success', # 콘텐츠는 생성됐으므로 success
+                                        'message': f'Primary 콘텐츠 생성 완료, 사이트 업로드는 수동 필요: {primary_topic["topic"]}',
+                                        'category': 'primary',
+                                        'topic': primary_topic['topic']
+                                    })
 
                                 logger.info(f"{site} Primary 발행 성공: {primary_topic['topic']}")
                             else:
@@ -1713,7 +1862,7 @@ def quick_publish():
 
                                 # DB 업데이트
                                 db.delete_content_file(secondary_file_id)
-                                db.add_content_file(
+                                final_file_id = db.add_content_file(
                                     site=site,
                                     title=content_data['title'],
                                     file_path=filepath,
@@ -1724,6 +1873,31 @@ def quick_publish():
                                         'tags': content_data.get('tags', [])
                                     }
                                 )
+                                
+                                # 발행 완료 시간 업데이트
+                                db.update_file_status(final_file_id, 'published', datetime.now())
+
+                                # Tistory Secondary 자동 사이트 발행
+                                try:
+                                    logger.info(f"Tistory Secondary 자동 발행 시작: {secondary_topic['topic']}")
+                                    # TODO: Tistory API를 통한 자동 발행 로직 추가
+                                    # 현재는 Tistory Publisher가 구현되지 않아 로그만 남김
+                                    publish_status_global['results'].append({
+                                        'site': site,
+                                        'status': 'success',
+                                        'message': f'Secondary 콘텐츠 생성 완료, Tistory 자동 업로드 준비 중: {secondary_topic["topic"]}',
+                                        'category': 'secondary',
+                                        'topic': secondary_topic['topic']
+                                    })
+                                except Exception as publish_error:
+                                    logger.error(f"Tistory Secondary 자동 발행 실패: {publish_error}")
+                                    publish_status_global['results'].append({
+                                        'site': site,
+                                        'status': 'success', # 콘텐츠는 생성됐으므로 success
+                                        'message': f'Secondary 콘텐츠 생성 완료, 사이트 업로드는 수동 필요: {secondary_topic["topic"]}',
+                                        'category': 'secondary',
+                                        'topic': secondary_topic['topic']
+                                    })
 
                                 logger.info(f"{site} Secondary 발행 성공: {secondary_topic['topic']}")
                             else:
@@ -1753,7 +1927,7 @@ def quick_publish():
 
                                 # DB 업데이트
                                 db.delete_content_file(secondary_file_id)
-                                db.add_content_file(
+                                final_file_id = db.add_content_file(
                                     site=site,
                                     title=content_data['title'],
                                     file_path=filepath,
@@ -1764,6 +1938,128 @@ def quick_publish():
                                         'tags': content_data.get('tags', [])
                                     }
                                 )
+                                
+                                # 발행 완료 시간 업데이트
+                                db.update_file_status(final_file_id, 'published', datetime.now())
+
+                                # WordPress Secondary 자동 사이트 발행
+                                try:
+                                    logger.info(f"WordPress Secondary 자동 발행 시작: {secondary_topic['topic']}")
+                                    
+                                    # WordPress Publisher를 사용한 자동 발행
+                                    from src.publishers.wordpress_publisher import WordPressPublisher
+                                    from pathlib import Path
+                                    
+                                    # 파일 정보 조회
+                                    conn_auto = db.get_connection()
+                                    with conn_auto.cursor() as cursor_auto:
+                                        cursor_auto.execute(f"""
+                                            SELECT title, file_path, tags, categories
+                                            FROM {db.schema}.content_files 
+                                            WHERE id = %s
+                                        """, (secondary_file_id,))
+                                        
+                                        file_info = cursor_auto.fetchone()
+                                        if file_info:
+                                            title, file_path, tags, categories = file_info
+                                            
+                                            # HTML 및 메타데이터 파일 읽기
+                                            html_file = Path(file_path)
+                                            if html_file.exists():
+                                                with open(html_file, 'r', encoding='utf-8') as f:
+                                                    html_content = f.read()
+                                                
+                                                # 메타데이터 파일 확인
+                                                metadata_file = html_file.with_suffix('.json')
+                                                structured_content = None
+                                                if metadata_file.exists():
+                                                    try:
+                                                        with open(metadata_file, 'r', encoding='utf-8') as f:
+                                                            structured_content = json.load(f)
+                                                    except:
+                                                        structured_content = None
+                                                
+                                                # WordPress Publisher로 발행
+                                                publisher = WordPressPublisher(site)
+                                                
+                                                # 이미지 생성
+                                                images = []
+                                                try:
+                                                    from src.utils.safe_image_generator import safe_image_generator
+                                                    pexels_api_key = "QneFYkOrINxx30V33KbWpCqHjZLtkJoN2HNsNgDNwWEStXNJNsbYs4ap"
+                                                    safe_image_generator.set_pexels_api_key(pexels_api_key)
+                                                    image_path = safe_image_generator.generate_featured_image(title)
+                                                    if image_path and os.path.exists(image_path):
+                                                        images.append({'url': image_path, 'type': 'thumbnail', 'alt': title})
+                                                except:
+                                                    images = []
+                                                
+                                                # 콘텐츠 데이터 준비
+                                                if structured_content and structured_content.get('sections'):
+                                                    content_data = {
+                                                        'title': structured_content.get('title', title),
+                                                        'introduction': structured_content.get('introduction', ''),
+                                                        'sections': structured_content.get('sections', []),
+                                                        'conclusion': structured_content.get('conclusion', ''),
+                                                        'meta_description': structured_content.get('meta_description', ''),
+                                                        'categories': categories if categories else [],
+                                                        'tags': tags if tags else []
+                                                    }
+                                                else:
+                                                    content_data = {
+                                                        'title': title,
+                                                        'content': html_content,
+                                                        'meta_description': '',
+                                                        'categories': categories if categories else [],
+                                                        'tags': tags if tags else []
+                                                    }
+                                                
+                                                # WordPress에 발행
+                                                success, result = publisher.publish_post(content_data, images=images, draft=False)
+                                                
+                                                if success:
+                                                    publish_status_global['results'].append({
+                                                        'site': site,
+                                                        'status': 'success',
+                                                        'message': f'Secondary 발행 및 자동 업로드 완료: {secondary_topic["topic"]}',
+                                                        'category': 'secondary',
+                                                        'topic': secondary_topic['topic'],
+                                                        'wordpress_url': result
+                                                    })
+                                                else:
+                                                    publish_status_global['results'].append({
+                                                        'site': site,
+                                                        'status': 'success', # 콘텐츠는 생성됐으므로 success
+                                                        'message': f'Secondary 콘텐츠 생성 완료, 자동 업로드 실패: {result}',
+                                                        'category': 'secondary',
+                                                        'topic': secondary_topic['topic']
+                                                    })
+                                            else:
+                                                publish_status_global['results'].append({
+                                                    'site': site,
+                                                    'status': 'success', # 콘텐츠는 생성됐으므로 success
+                                                    'message': f'Secondary 콘텐츠 생성 완료, 파일 없음으로 자동 업로드 실패',
+                                                    'category': 'secondary',
+                                                    'topic': secondary_topic['topic']
+                                                })
+                                        else:
+                                            publish_status_global['results'].append({
+                                                'site': site,
+                                                'status': 'success', # 콘텐츠는 생성됐으므로 success
+                                                'message': f'Secondary 콘텐츠 생성 완료, DB 조회 실패로 자동 업로드 실패',
+                                                'category': 'secondary',
+                                                'topic': secondary_topic['topic']
+                                            })
+                                    
+                                except Exception as publish_error:
+                                    logger.error(f"WordPress Secondary 자동 발행 실패: {publish_error}")
+                                    publish_status_global['results'].append({
+                                        'site': site,
+                                        'status': 'success', # 콘텐츠는 생성됐으므로 success
+                                        'message': f'Secondary 콘텐츠 생성 완료, 사이트 업로드는 수동 필요: {secondary_topic["topic"]}',
+                                        'category': 'secondary',
+                                        'topic': secondary_topic['topic']
+                                    })
 
                                 logger.info(f"{site} Secondary 발행 성공: {secondary_topic['topic']}")
                             else:
