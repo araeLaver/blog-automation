@@ -2950,6 +2950,203 @@ def get_all_dual_topics():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+
+# ========================================================================
+# 시스템 상태 및 진단 API
+# ========================================================================
+
+@app.route('/api/system_status')
+def system_status():
+    """시스템 전체 상태 확인"""
+    try:
+        import psutil
+        import time
+        
+        # 시스템 정보 수집
+        status = {
+            'overall': 'healthy',
+            'uptime': f"{int(time.time() - psutil.boot_time())}초",
+            'server_info': 'Python Flask on Koyeb',
+            'memory_usage': f"{psutil.virtual_memory().percent}%",
+            'cpu_usage': f"{psutil.cpu_percent()}%"
+        }
+        
+        # DB 연결 상태 확인
+        db = get_database()
+        try:
+            conn = db.get_connection()
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT 1")
+            status['database'] = 'connected'
+        except:
+            status['database'] = 'disconnected'
+            status['overall'] = 'warning'
+        
+        return jsonify({'success': True, 'status': status})
+        
+    except Exception as e:
+        return jsonify({
+            'success': True, 
+            'status': {
+                'overall': 'error',
+                'uptime': '알 수 없음',
+                'server_info': 'Python Flask',
+                'error': str(e)
+            }
+        })
+
+@app.route('/api/database_status')
+def database_status():
+    """데이터베이스 연결 상태 확인"""
+    try:
+        db = get_database()
+        
+        try:
+            conn = db.get_connection()
+            with conn.cursor() as cursor:
+                # 기본 연결 테스트
+                cursor.execute("SELECT 1")
+                
+                # 테이블 수 확인
+                cursor.execute(f"""
+                    SELECT COUNT(*) FROM information_schema.tables 
+                    WHERE table_schema = '{db.schema}'
+                """)
+                table_count = cursor.fetchone()[0]
+                
+                # 총 레코드 수 확인
+                cursor.execute(f"SELECT COUNT(*) FROM {db.schema}.content_files")
+                total_records = cursor.fetchone()[0]
+                
+            return jsonify({
+                'success': True,
+                'database': {
+                    'connected': True,
+                    'host': db.connection_params['host'],
+                    'database': db.connection_params['database'],
+                    'schema': db.schema,
+                    'table_count': table_count,
+                    'total_records': total_records
+                }
+            })
+            
+        except Exception as db_error:
+            return jsonify({
+                'success': True,
+                'database': {
+                    'connected': False,
+                    'error': str(db_error),
+                    'host': getattr(db, 'connection_params', {}).get('host', '알 수 없음'),
+                    'database': getattr(db, 'connection_params', {}).get('database', '알 수 없음'),
+                    'schema': getattr(db, 'schema', '알 수 없음')
+                }
+            })
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/scheduler_status')
+def scheduler_status():
+    """자동발행 스케줄러 상태 확인"""
+    try:
+        import schedule
+        from src.utils.auto_publisher import auto_publisher
+        
+        jobs = schedule.jobs
+        
+        scheduler_info = {
+            'running': auto_publisher.running if hasattr(auto_publisher, 'running') else False,
+            'jobs_count': len(jobs),
+            'next_run': str(jobs[0].next_run) if jobs else None,
+            'last_run': None,
+            'last_error': None
+        }
+        
+        # 시스템 로그에서 마지막 자동발행 정보 확인
+        try:
+            db = get_database()
+            logs = db.get_system_logs(component='auto_publisher', limit=1)
+            if logs:
+                last_log = logs[0]
+                scheduler_info['last_run'] = last_log.get('timestamp', '').replace('T', ' ')
+                if last_log.get('log_level') == 'ERROR':
+                    scheduler_info['last_error'] = last_log.get('message', '')
+        except:
+            pass
+        
+        return jsonify({'success': True, 'scheduler': scheduler_info})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/environment_status')
+def environment_status():
+    """환경변수 상태 확인"""
+    try:
+        import os
+        
+        # 필수 환경변수들
+        critical_vars = [
+            'PG_HOST', 'PG_DATABASE', 'PG_USER', 'PG_PASSWORD',
+            'ANTHROPIC_API_KEY', 'OPENAI_API_KEY'
+        ]
+        
+        # 선택적 환경변수들  
+        optional_vars = [
+            'PEXELS_API_KEY', 'UNSPLASH_ACCESS_KEY',
+            'UNPRE_USERNAME', 'UNPRE_PASSWORD',
+            'UNTAB_USERNAME', 'UNTAB_PASSWORD', 
+            'SKEWESE_USERNAME', 'SKEWESE_PASSWORD',
+            'TISTORY_ACCESS_TOKEN'
+        ]
+        
+        critical_missing = []
+        optional_missing = []
+        total_set = 0
+        
+        # 필수 변수 확인
+        for var in critical_vars:
+            if os.getenv(var):
+                total_set += 1
+            else:
+                critical_missing.append(var)
+                
+        # 선택적 변수 확인
+        for var in optional_vars:
+            if os.getenv(var):
+                total_set += 1
+            else:
+                optional_missing.append(var)
+        
+        env_info = {
+            'critical_missing': critical_missing,
+            'optional_missing': optional_missing,
+            'total_set': total_set,
+            'total_expected': len(critical_vars) + len(optional_vars)
+        }
+        
+        return jsonify({'success': True, 'environment': env_info})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/system_logs')
+def get_system_logs_api():
+    """시스템 로그 조회"""
+    try:
+        limit = int(request.args.get('limit', 20))
+        level = request.args.get('level')
+        component = request.args.get('component')
+        
+        db = get_database()
+        logs = db.get_system_logs(level=level, component=component, limit=limit)
+        
+        return jsonify({'success': True, 'logs': logs})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
 

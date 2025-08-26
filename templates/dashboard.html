@@ -484,6 +484,9 @@
                             <button class="btn btn-sm btn-warning" onclick="triggerManualPublish()">
                                 <i class="bi bi-lightning"></i> 수동 발행
                             </button>
+                            <button class="btn btn-sm btn-danger" onclick="showSystemStatus()">
+                                <i class="bi bi-exclamation-triangle"></i> 시스템 상태
+                            </button>
                         </div>
                     </div>
                     <div class="card-body" style="max-height: 400px; overflow-y: auto;">
@@ -1627,6 +1630,218 @@
         }, 120000);
     </script>
 
+    <!-- 시스템 상태 모달 -->
+    <div class="modal fade" id="systemStatusModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-gear"></i> 시스템 상태 & 진단
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- 시스템 상태 개요 -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="bi bi-server"></i> 시스템 상태 개요</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="system-status-overview">
+                                        <div class="d-flex justify-content-center">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">상태 확인 중...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- DB 연결 상태 -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="bi bi-database"></i> 데이터베이스 연결</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="db-status">
+                                        <div class="d-flex justify-content-center">
+                                            <div class="spinner-border text-info" role="status">
+                                                <span class="visually-hidden">DB 상태 확인 중...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 자동발행 스케줄러 상태 -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0"><i class="bi bi-clock"></i> 자동발행 스케줄러</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="scheduler-status">
+                                        <div class="d-flex justify-content-center">
+                                            <div class="spinner-border text-warning" role="status">
+                                                <span class="visually-hidden">스케줄러 상태 확인 중...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 환경변수 상태 -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="bi bi-key"></i> 환경변수 상태</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="env-status">
+                                        <div class="d-flex justify-content-center">
+                                            <div class="spinner-border text-success" role="status">
+                                                <span class="visually-hidden">환경변수 확인 중...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 시스템 로그 -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0"><i class="bi bi-list-ul"></i> 최근 시스템 로그</h6>
+                                    <button class="btn btn-sm btn-outline-light" onclick="refreshSystemLogs()">
+                                        <i class="bi bi-arrow-clockwise"></i> 새로고침
+                                    </button>
+                                </div>
+                                <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                    <div id="system-logs">
+                                        <div class="d-flex justify-content-center">
+                                            <div class="spinner-border text-dark" role="status">
+                                                <span class="visually-hidden">로그 로딩 중...</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 해결 방안 -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header bg-secondary text-white">
+                                    <h6 class="mb-0"><i class="bi bi-lightbulb"></i> 문제 해결 가이드</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="troubleshooting-guide">
+                                        <div class="accordion" id="troubleshootingAccordion">
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header">
+                                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#dbTrouble">
+                                                        <i class="bi bi-database-exclamation text-danger me-2"></i>
+                                                        DB 연결 실패 해결방법
+                                                    </button>
+                                                </h2>
+                                                <div id="dbTrouble" class="accordion-collapse collapse">
+                                                    <div class="accordion-body">
+                                                        <strong>주요 원인:</strong>
+                                                        <ul>
+                                                            <li>환경변수 누락: PG_USER, PG_PASSWORD 미설정</li>
+                                                            <li>잘못된 DB 자격증명</li>
+                                                            <li>네트워크 연결 문제</li>
+                                                            <li>Supabase 서비스 중단</li>
+                                                        </ul>
+                                                        <strong>해결방법:</strong>
+                                                        <ul>
+                                                            <li>Koyeb Settings → Environment variables 확인</li>
+                                                            <li>Supabase Dashboard에서 DB 연결 정보 재확인</li>
+                                                            <li>앱 재배포 후 다시 시도</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header">
+                                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#schedulerTrouble">
+                                                        <i class="bi bi-clock-history text-warning me-2"></i>
+                                                        자동발행 실패 해결방법
+                                                    </button>
+                                                </h2>
+                                                <div id="schedulerTrouble" class="accordion-collapse collapse">
+                                                    <div class="accordion-body">
+                                                        <strong>주요 원인:</strong>
+                                                        <ul>
+                                                            <li>스케줄러 서비스 중단</li>
+                                                            <li>월별 계획표 데이터 없음</li>
+                                                            <li>콘텐츠 생성 API 오류</li>
+                                                            <li>파일 저장 권한 문제</li>
+                                                        </ul>
+                                                        <strong>해결방법:</strong>
+                                                        <ul>
+                                                            <li>수동 발행으로 우선 테스트</li>
+                                                            <li>월별 계획표 데이터 확인</li>
+                                                            <li>시스템 로그에서 상세 오류 확인</li>
+                                                            <li>앱 재시작 후 다시 시도</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="accordion-item">
+                                                <h2 class="accordion-header">
+                                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#apiTrouble">
+                                                        <i class="bi bi-cloud-exclamation text-info me-2"></i>
+                                                        API 연결 오류 해결방법
+                                                    </button>
+                                                </h2>
+                                                <div id="apiTrouble" class="accordion-collapse collapse">
+                                                    <div class="accordion-body">
+                                                        <strong>주요 원인:</strong>
+                                                        <ul>
+                                                            <li>AI API 키 만료/한도 초과</li>
+                                                            <li>WordPress API 인증 실패</li>
+                                                            <li>이미지 API 연결 오류</li>
+                                                            <li>네트워크 타임아웃</li>
+                                                        </ul>
+                                                        <strong>해결방법:</strong>
+                                                        <ul>
+                                                            <li>API 키 유효성 및 사용량 확인</li>
+                                                            <li>WordPress App Password 재생성</li>
+                                                            <li>네트워크 연결 상태 확인</li>
+                                                            <li>API 서비스 상태 확인</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="refreshSystemStatus()">
+                        <i class="bi bi-arrow-clockwise"></i> 전체 새로고침
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Tistory 콘텐츠 생성 모달 -->
     <div class="modal fade" id="tistoryModal" tabindex="-1">
         <div class="modal-dialog">
@@ -2384,6 +2599,327 @@
             // 모달이 열리면 현재 주 스케줄 로드
             showScheduleMonth(8); // 8월부터 시작
             calculateNextRunTime();
+        }
+
+        // 시스템 상태 모달 표시
+        function showSystemStatus() {
+            const modal = new bootstrap.Modal(document.getElementById('systemStatusModal'));
+            modal.show();
+            
+            // 모달이 열리면 시스템 상태 로드
+            refreshSystemStatus();
+        }
+
+        // 시스템 상태 전체 새로고침
+        async function refreshSystemStatus() {
+            // 모든 상태 초기화
+            resetStatusLoading();
+            
+            // 병렬로 모든 상태 확인
+            await Promise.all([
+                checkSystemOverview(),
+                checkDatabaseStatus(),
+                checkSchedulerStatus(),
+                checkEnvironmentStatus(),
+                loadSystemLogs()
+            ]);
+        }
+
+        // 로딩 상태로 초기화
+        function resetStatusLoading() {
+            const sections = ['system-status-overview', 'db-status', 'scheduler-status', 'env-status'];
+            sections.forEach(id => {
+                document.getElementById(id).innerHTML = `
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">확인 중...</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 시스템 개요 상태 확인
+        async function checkSystemOverview() {
+            try {
+                const response = await fetch('/api/system_status');
+                const data = await response.json();
+                
+                const statusElement = document.getElementById('system-status-overview');
+                
+                if (data.success) {
+                    const status = data.status;
+                    statusElement.innerHTML = `
+                        <div class="row text-center">
+                            <div class="col-6 mb-3">
+                                <div class="p-3 rounded ${status.overall === 'healthy' ? 'bg-success' : 'bg-danger'} text-white">
+                                    <i class="bi bi-${status.overall === 'healthy' ? 'check-circle' : 'exclamation-triangle'} fs-3"></i>
+                                    <div class="mt-2">${status.overall === 'healthy' ? '정상' : '문제 발생'}</div>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <div class="p-3 rounded bg-info text-white">
+                                    <i class="bi bi-clock fs-3"></i>
+                                    <div class="mt-2">가동시간</div>
+                                    <small>${status.uptime || '알 수 없음'}</small>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="alert alert-light mb-0">
+                                    <strong>서버:</strong> ${status.server_info || 'Python Flask'}<br>
+                                    <strong>마지막 업데이트:</strong> ${new Date().toLocaleString()}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    statusElement.innerHTML = `
+                        <div class="alert alert-danger mb-0">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            시스템 상태 확인 실패: ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('system-status-overview').innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        <i class="bi bi-wifi-off"></i>
+                        네트워크 오류: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // DB 연결 상태 확인
+        async function checkDatabaseStatus() {
+            try {
+                const response = await fetch('/api/database_status');
+                const data = await response.json();
+                
+                const dbElement = document.getElementById('db-status');
+                
+                if (data.success) {
+                    const db = data.database;
+                    dbElement.innerHTML = `
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <div class="alert ${db.connected ? 'alert-success' : 'alert-danger'} mb-2">
+                                    <i class="bi bi-${db.connected ? 'check-circle' : 'x-circle'}"></i>
+                                    <strong>연결 상태:</strong> ${db.connected ? '연결됨' : '연결 실패'}
+                                </div>
+                                ${db.connected ? `
+                                    <div class="small text-muted">
+                                        <div><strong>호스트:</strong> ${db.host}</div>
+                                        <div><strong>데이터베이스:</strong> ${db.database}</div>
+                                        <div><strong>스키마:</strong> ${db.schema}</div>
+                                        <div><strong>테이블 수:</strong> ${db.table_count || '확인 중'}</div>
+                                        <div><strong>총 레코드:</strong> ${db.total_records || '확인 중'}</div>
+                                    </div>
+                                ` : `
+                                    <div class="alert alert-warning mb-0">
+                                        <strong>오류:</strong> ${db.error}<br>
+                                        <small>환경변수 설정을 확인하세요.</small>
+                                    </div>
+                                `}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    dbElement.innerHTML = `
+                        <div class="alert alert-danger mb-0">
+                            <i class="bi bi-database-x"></i>
+                            DB 상태 확인 실패: ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('db-status').innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        <i class="bi bi-wifi-off"></i>
+                        네트워크 오류: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 스케줄러 상태 확인
+        async function checkSchedulerStatus() {
+            try {
+                const response = await fetch('/api/scheduler_status');
+                const data = await response.json();
+                
+                const schedulerElement = document.getElementById('scheduler-status');
+                
+                if (data.success) {
+                    const scheduler = data.scheduler;
+                    schedulerElement.innerHTML = `
+                        <div class="alert ${scheduler.running ? 'alert-success' : 'alert-warning'} mb-2">
+                            <i class="bi bi-${scheduler.running ? 'play-circle' : 'pause-circle'}"></i>
+                            <strong>상태:</strong> ${scheduler.running ? '실행 중' : '중지됨'}
+                        </div>
+                        <div class="small text-muted">
+                            <div><strong>등록된 작업:</strong> ${scheduler.jobs_count}개</div>
+                            <div><strong>다음 실행:</strong> ${scheduler.next_run || '예정 없음'}</div>
+                            <div><strong>마지막 실행:</strong> ${scheduler.last_run || '없음'}</div>
+                            ${scheduler.last_error ? `
+                                <div class="text-danger mt-2">
+                                    <strong>마지막 오류:</strong> ${scheduler.last_error}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                } else {
+                    schedulerElement.innerHTML = `
+                        <div class="alert alert-danger mb-0">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            스케줄러 상태 확인 실패: ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('scheduler-status').innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        <i class="bi bi-wifi-off"></i>
+                        네트워크 오류: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 환경변수 상태 확인
+        async function checkEnvironmentStatus() {
+            try {
+                const response = await fetch('/api/environment_status');
+                const data = await response.json();
+                
+                const envElement = document.getElementById('env-status');
+                
+                if (data.success) {
+                    const env = data.environment;
+                    const criticalMissing = env.critical_missing || [];
+                    const optionalMissing = env.optional_missing || [];
+                    
+                    envElement.innerHTML = `
+                        <div class="alert ${criticalMissing.length === 0 ? 'alert-success' : 'alert-danger'} mb-2">
+                            <i class="bi bi-${criticalMissing.length === 0 ? 'check-circle' : 'exclamation-triangle'}"></i>
+                            <strong>필수 환경변수:</strong> ${criticalMissing.length === 0 ? '모두 설정됨' : '누락됨'}
+                        </div>
+                        ${criticalMissing.length > 0 ? `
+                            <div class="alert alert-danger">
+                                <strong>누락된 필수 변수:</strong>
+                                <ul class="mb-0">
+                                    ${criticalMissing.map(key => `<li>${key}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        ${optionalMissing.length > 0 ? `
+                            <div class="alert alert-warning">
+                                <strong>누락된 선택 변수:</strong>
+                                <ul class="mb-0">
+                                    ${optionalMissing.map(key => `<li>${key}</li>`).join('')}
+                                </ul>
+                            </div>
+                        ` : ''}
+                        <div class="small text-muted">
+                            <div><strong>설정된 변수:</strong> ${env.total_set}개</div>
+                            <div><strong>총 변수:</strong> ${env.total_expected}개</div>
+                        </div>
+                    `;
+                } else {
+                    envElement.innerHTML = `
+                        <div class="alert alert-danger mb-0">
+                            <i class="bi bi-gear-wide-connected"></i>
+                            환경변수 확인 실패: ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('env-status').innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        <i class="bi bi-wifi-off"></i>
+                        네트워크 오류: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 시스템 로그 로드
+        async function loadSystemLogs() {
+            await refreshSystemLogs();
+        }
+
+        // 시스템 로그 새로고침
+        async function refreshSystemLogs() {
+            try {
+                document.getElementById('system-logs').innerHTML = `
+                    <div class="d-flex justify-content-center">
+                        <div class="spinner-border text-dark" role="status">
+                            <span class="visually-hidden">로그 로딩 중...</span>
+                        </div>
+                    </div>
+                `;
+
+                const response = await fetch('/api/system_logs?limit=20');
+                const data = await response.json();
+                
+                const logsElement = document.getElementById('system-logs');
+                
+                if (data.success && data.logs.length > 0) {
+                    logsElement.innerHTML = data.logs.map(log => `
+                        <div class="log-entry border-start border-3 ${getLogBorderColor(log.log_level)} p-2 mb-2 bg-light">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <span class="badge bg-${getLogBadgeColor(log.log_level)} me-2">${log.log_level}</span>
+                                    <span class="text-muted small">${log.component}</span>
+                                    <div class="mt-1">${log.message}</div>
+                                    ${log.details ? `
+                                        <details class="mt-2">
+                                            <summary class="text-muted small cursor-pointer">상세정보 보기</summary>
+                                            <pre class="mt-2 p-2 bg-white border rounded small">${JSON.stringify(log.details, null, 2)}</pre>
+                                        </details>
+                                    ` : ''}
+                                </div>
+                                <small class="text-muted">${new Date(log.timestamp).toLocaleString()}</small>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    logsElement.innerHTML = `
+                        <div class="alert alert-info mb-0">
+                            <i class="bi bi-info-circle"></i>
+                            ${data.logs && data.logs.length === 0 ? '로그가 없습니다.' : '로그를 불러올 수 없습니다.'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('system-logs').innerHTML = `
+                    <div class="alert alert-danger mb-0">
+                        <i class="bi bi-wifi-off"></i>
+                        로그 로딩 실패: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // 로그 레벨에 따른 색상 반환
+        function getLogBorderColor(level) {
+            switch(level.toUpperCase()) {
+                case 'ERROR': return 'border-danger';
+                case 'WARNING': return 'border-warning';
+                case 'INFO': return 'border-info';
+                case 'DEBUG': return 'border-secondary';
+                default: return 'border-primary';
+            }
+        }
+
+        function getLogBadgeColor(level) {
+            switch(level.toUpperCase()) {
+                case 'ERROR': return 'danger';
+                case 'WARNING': return 'warning';
+                case 'INFO': return 'info';
+                case 'DEBUG': return 'secondary';
+                default: return 'primary';
+            }
         }
 
         // 특정 주차 스케줄 표시 - 클라이언트사이드 생성 사용
