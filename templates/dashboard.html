@@ -2552,16 +2552,18 @@
                         Object.entries(dayData).forEach(([site, categories]) => {
                             if (categories.primary || categories.secondary) {
                                 dayContent += `
-                                    <div class="schedule-item site-${site}">
+                                    <div class="schedule-item site-${site}" 
+                                         onclick="showDayDetailModal('${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}', ${JSON.stringify(dayData).replace(/"/g, '&quot;')})"
+                                         style="cursor: pointer;">
                                         <small class="site-name">${site.toUpperCase()}</small>
                                         ${categories.primary ? `
-                                            <div class="category-item primary">
+                                            <div class="category-item primary" title="${categories.primary.topic}">
                                                 <span class="badge bg-primary">P</span>
                                                 <span class="category-name">${categories.primary.category}</span>
                                             </div>
                                         ` : ''}
                                         ${categories.secondary ? `
-                                            <div class="category-item secondary">
+                                            <div class="category-item secondary" title="${categories.secondary.topic}">
                                                 <span class="badge bg-secondary">S</span>
                                                 <span class="category-name">${categories.secondary.category}</span>
                                             </div>
@@ -3543,6 +3545,132 @@
                     button.innerHTML = originalContent;
                 }
             });
+        }
+
+        // 날짜별 상세 주제 모달 표시
+        function showDayDetailModal(date, dayData) {
+            console.log('날짜 상세 보기:', date, dayData);
+            
+            let modalHtml = `
+                <div class="modal fade" id="dayDetailModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">
+                                    <i class="bi bi-calendar-day"></i> ${date} 발행 계획 상세
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row">
+            `;
+            
+            // 사이트별 상세 정보 표시
+            Object.entries(dayData).forEach(([site, categories]) => {
+                const siteNames = {
+                    'unpre': 'UNPRE',
+                    'untab': 'UNTAB',
+                    'skewese': 'SKEWESE',
+                    'tistory': 'Tistory'
+                };
+                
+                modalHtml += `
+                    <div class="col-md-6 mb-4">
+                        <div class="card border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-globe"></i> ${siteNames[site] || site.toUpperCase()}
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                `;
+                
+                // Primary 카테고리
+                if (categories.primary) {
+                    modalHtml += `
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-primary me-2">Primary</span>
+                                <strong>${categories.primary.category}</strong>
+                            </div>
+                            <div class="ps-3">
+                                <p class="mb-2 text-dark">
+                                    <i class="bi bi-lightbulb"></i> ${categories.primary.topic}
+                                </p>
+                                <div class="keywords-section">
+                                    <small class="text-muted">키워드:</small>
+                                    ${categories.primary.keywords ? 
+                                        categories.primary.keywords.map(k => 
+                                            `<span class="badge bg-primary bg-opacity-25 text-primary me-1">${k}</span>`
+                                        ).join('') : 
+                                        '<span class="text-muted">키워드 없음</span>'
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Secondary 카테고리
+                if (categories.secondary) {
+                    modalHtml += `
+                        <div>
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-secondary me-2">Secondary</span>
+                                <strong>${categories.secondary.category}</strong>
+                            </div>
+                            <div class="ps-3">
+                                <p class="mb-2 text-dark">
+                                    <i class="bi bi-lightbulb"></i> ${categories.secondary.topic}
+                                </p>
+                                <div class="keywords-section">
+                                    <small class="text-muted">키워드:</small>
+                                    ${categories.secondary.keywords ? 
+                                        categories.secondary.keywords.map(k => 
+                                            `<span class="badge bg-secondary bg-opacity-25 text-secondary me-1">${k}</span>`
+                                        ).join('') : 
+                                        '<span class="text-muted">키워드 없음</span>'
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                modalHtml += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            modalHtml += `
+                                </div>
+                                <div class="alert alert-info mt-3">
+                                    <i class="bi bi-info-circle"></i>
+                                    <strong>총 ${Object.keys(dayData).length * 2}개</strong> 포스팅이 이 날 발행됩니다.
+                                    (각 사이트별 Primary + Secondary 카테고리)
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 기존 모달 제거 후 새로 추가
+            const existingModal = document.getElementById('dayDetailModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // 모달 표시
+            const modal = new bootstrap.Modal(document.getElementById('dayDetailModal'));
+            modal.show();
         }
 
     </script>
