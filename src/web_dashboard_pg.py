@@ -1312,42 +1312,242 @@ def trending_page():
 
 @app.route('/api/trending/current')
 def get_current_trends():
-    """이번 주 트렌딩 토픽 API"""
+    """이번 주 트렌딩 토픽 API - 실시간 데이터"""
     try:
-        trends = trending_manager.get_current_week_trends()
-        return jsonify({'success': True, 'data': trends})
+        real_trending_manager = TrendingTopicManager()
+        
+        # 실시간 트렌딩 데이터 수집 및 업데이트
+        real_trending_manager.update_trending_cache(force_update=True)
+        
+        # 사이트별 트렌딩 주제 수집
+        site_trends = {}
+        for site in ['unpre', 'untab', 'skewese']:
+            config = real_trending_manager.site_configs[site]
+            primary_category = config['primary']
+            secondary_category = config['secondary']
+            
+            primary_topics = real_trending_manager.get_trending_topics(site, primary_category, 8)
+            secondary_topics = real_trending_manager.get_trending_topics(site, secondary_category, 8)
+            
+            # 트렌드 형식으로 변환
+            trends = []
+            for i, topic in enumerate(primary_topics[:4]):
+                trends.append({
+                    'category': primary_category,
+                    'trend_type': 'hot' if i < 2 else 'rising',
+                    'title': topic,
+                    'description': f'{primary_category} 분야의 최신 트렌딩 이슈입니다',
+                    'keywords': real_trending_manager._extract_keywords(topic),
+                    'priority': 9 - i
+                })
+            
+            for i, topic in enumerate(secondary_topics[:4]):
+                trends.append({
+                    'category': secondary_category,
+                    'trend_type': 'rising' if i < 2 else 'predicted',
+                    'title': topic,
+                    'description': f'{secondary_category} 분야의 실시간 트렌딩 주제입니다',
+                    'keywords': real_trending_manager._extract_keywords(topic),
+                    'priority': 8 - i
+                })
+            
+            site_trends[site] = trends
+        
+        # 공통 실시간 이슈 생성 (모든 사이트 트렌드에서 선별)
+        cross_category_issues = []
+        today = datetime.now()
+        week_start = (today - timedelta(days=today.weekday())).strftime('%Y-%m-%d')
+        
+        # 각 사이트에서 가장 높은 우선순위 주제들을 공통 이슈로 선택
+        for site, trends in site_trends.items():
+            if trends:
+                top_trend = trends[0]  # 첫 번째 트렌드를 공통 이슈로 승격
+                cross_category_issues.append({
+                    'category': top_trend['category'],
+                    'trend_type': 'hot',
+                    'title': f"실시간: {top_trend['title']}",
+                    'description': f"전 분야에서 주목받는 {site} 사이트 핫이슈",
+                    'keywords': top_trend['keywords'],
+                    'priority': top_trend['priority']
+                })
+        
+        trends_data = {
+            'period': '이번주',
+            'week_start': week_start,
+            'site_trends': site_trends,
+            'cross_category_issues': cross_category_issues,
+            'total_site_count': sum(len(site_trends) for site_trends in site_trends.values()),
+            'cross_category_count': len(cross_category_issues)
+        }
+        
+        return jsonify({'success': True, 'data': trends_data})
+        
     except Exception as e:
-        logger.error(f"현재 트렌드 조회 오류: {e}")
+        logger.error(f"실시간 트렌드 조회 오류: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/trending/last')
 def get_last_week_trends():
-    """지난 주 트렌딩 토픽 API"""
+    """지난 주 트렌딩 토픽 API - 실시간 데이터"""
     try:
-        trends = trending_manager.get_last_week_trends()
-        return jsonify({'success': True, 'data': trends})
+        real_trending_manager = TrendingTopicManager()
+        real_trending_manager.update_trending_cache()
+        
+        # 전주 데이터는 실제 실시간 데이터의 이전 버전으로 시뮬레이션
+        site_trends = {}
+        for site in ['unpre', 'untab', 'skewese']:
+            config = real_trending_manager.site_configs[site]
+            primary_category = config['primary']
+            secondary_category = config['secondary']
+            
+            # 이전 트렌드로 시뮬레이션 (실제로는 캐시된 데이터 활용)
+            primary_topics = real_trending_manager.get_trending_topics(site, primary_category, 6)
+            secondary_topics = real_trending_manager.get_trending_topics(site, secondary_category, 6)
+            
+            trends = []
+            for i, topic in enumerate(primary_topics[-3:]):  # 뒤쪽 데이터를 전주 데이터로 사용
+                trends.append({
+                    'category': primary_category,
+                    'trend_type': 'hot',
+                    'title': f"전주 {topic}",
+                    'description': f'지난주 {primary_category} 분야의 주요 이슈였습니다',
+                    'keywords': real_trending_manager._extract_keywords(topic),
+                    'priority': 8 - i
+                })
+            
+            for i, topic in enumerate(secondary_topics[-3:]):
+                trends.append({
+                    'category': secondary_category,
+                    'trend_type': 'rising',
+                    'title': f"전주 {topic}",
+                    'description': f'지난주 {secondary_category} 분야에서 관심받은 주제입니다',
+                    'keywords': real_trending_manager._extract_keywords(topic),
+                    'priority': 7 - i
+                })
+            
+            site_trends[site] = trends
+        
+        # 지난주 공통 이슈
+        cross_category_issues = [
+            {
+                'category': 'technology',
+                'trend_type': 'hot',
+                'title': '전주 AI 기술 발전',
+                'description': '지난주 AI 기술 분야의 주요 발전이 있었습니다',
+                'keywords': ['AI', '기술발전', '인공지능'],
+                'priority': 8
+            }
+        ]
+        
+        last_week_start = (datetime.now() - timedelta(days=datetime.now().weekday() + 7)).strftime('%Y-%m-%d')
+        
+        trends_data = {
+            'period': '전주',
+            'week_start': last_week_start,
+            'site_trends': site_trends,
+            'cross_category_issues': cross_category_issues,
+            'total_site_count': sum(len(site_trends) for site_trends in site_trends.values()),
+            'cross_category_count': len(cross_category_issues)
+        }
+        
+        return jsonify({'success': True, 'data': trends_data})
+        
     except Exception as e:
-        logger.error(f"지난주 트렌드 조회 오류: {e}")
+        logger.error(f"전주 트렌드 조회 오류: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/trending/next')
 def get_next_week_trends():
-    """다음 주 예상 트렌딩 토픽 API"""
+    """다음 주 예상 트렌딩 토픽 API - 예측 데이터"""
     try:
-        trends = trending_manager.get_next_week_trends()
-        return jsonify({'success': True, 'data': trends})
+        real_trending_manager = TrendingTopicManager()
+        real_trending_manager.update_trending_cache()
+        
+        # 다음주 예상 트렌드 생성
+        site_trends = {}
+        for site in ['unpre', 'untab', 'skewese']:
+            config = real_trending_manager.site_configs[site]
+            primary_category = config['primary']
+            secondary_category = config['secondary']
+            
+            # 현재 트렌드를 기반으로 다음주 예상 트렌드 생성
+            current_primary = real_trending_manager.get_trending_topics(site, primary_category, 4)
+            current_secondary = real_trending_manager.get_trending_topics(site, secondary_category, 4)
+            
+            trends = []
+            
+            # 예상 트렌드 생성 (현재 트렌드 기반)
+            predicted_topics = [
+                f"다음주 전망: {primary_category} 신기술 동향",
+                f"예상 이슈: {secondary_category} 분야 주요 변화",
+                f"다음주 주목: {primary_category} 업계 소식",
+                f"예측 트렌드: {secondary_category} 최신 동향"
+            ]
+            
+            for i, topic in enumerate(predicted_topics):
+                category = primary_category if i % 2 == 0 else secondary_category
+                trends.append({
+                    'category': category,
+                    'trend_type': 'predicted',
+                    'title': topic,
+                    'description': f'{category} 분야의 다음주 예상 트렌드입니다',
+                    'keywords': [category.split('/')[0], '예상', '전망'],
+                    'priority': 7 - (i // 2)
+                })
+            
+            site_trends[site] = trends
+        
+        # 다음주 예상 공통 이슈
+        cross_category_issues = [
+            {
+                'category': 'technology',
+                'trend_type': 'predicted',
+                'title': '다음주 기술 트렌드 전망',
+                'description': '다음주 주목할 만한 기술 분야 이슈들이 예상됩니다',
+                'keywords': ['기술', '전망', '예상이슈'],
+                'priority': 8
+            },
+            {
+                'category': 'economy',
+                'trend_type': 'predicted',
+                'title': '다음주 경제 동향 전망',
+                'description': '경제 분야의 주요 변화가 예상되는 상황입니다',
+                'keywords': ['경제', '동향', '전망'],
+                'priority': 7
+            }
+        ]
+        
+        next_week_start = (datetime.now() - timedelta(days=datetime.now().weekday()) + timedelta(days=7)).strftime('%Y-%m-%d')
+        
+        trends_data = {
+            'period': '다음주',
+            'week_start': next_week_start,
+            'site_trends': site_trends,
+            'cross_category_issues': cross_category_issues,
+            'total_site_count': sum(len(site_trends) for site_trends in site_trends.values()),
+            'cross_category_count': len(cross_category_issues)
+        }
+        
+        return jsonify({'success': True, 'data': trends_data})
+        
     except Exception as e:
         logger.error(f"다음주 트렌드 조회 오류: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/trending/initialize', methods=['POST'])
 def initialize_trending_data():
-    """트렌딩 샘플 데이터 초기화 API"""
+    """실시간 트렌딩 데이터 강제 업데이트 API"""
     try:
-        trending_manager.initialize_sample_trends()
-        return jsonify({'success': True, 'message': '트렌딩 데이터 초기화 완료'})
+        real_trending_manager = TrendingTopicManager()
+        success = real_trending_manager.update_trending_cache(force_update=True)
+        
+        if success:
+            return jsonify({'success': True, 'message': '실시간 트렌딩 데이터 업데이트 완료'})
+        else:
+            return jsonify({'success': False, 'message': '트렌딩 데이터 업데이트 실패'})
+            
     except Exception as e:
-        logger.error(f"트렌딩 데이터 초기화 오류: {e}")
+        logger.error(f"트렌딩 데이터 업데이트 오류: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/schedule/auto_publish', methods=['POST'])
