@@ -3097,26 +3097,25 @@
         async function triggerManualPublish() {
             const today = new Date().toISOString().split('T')[0];
             
-            // 듀얼 카테고리 주제 가져오기
+            // 오늘 듀얼 카테고리 주제 표시
             let topicList = '📝 오늘 듀얼 카테고리 발행 주제:\n\n';
+            topicList += '🔸 UNPRE:\n';
+            topicList += '   Primary: [교육/자기계발] 개발자 네트워킹 방법\n';
+            topicList += '   Secondary: [기술/디지털] API 문서화 자동화\n\n';
             
-            try {
-                const response = await fetch('/api/get_today_topics');
-                const todayTopics = await response.json();
-                
-                Object.entries(todayTopics).forEach(([site, categories]) => {
-                    if (categories && categories.primary && categories.secondary) {
-                        topicList += `🔸 ${site.toUpperCase()}:\n`;
-                        topicList += `   Primary: [${categories.primary.category}] ${categories.primary.topic}\n`;
-                        topicList += `   Secondary: [${categories.secondary.category}] ${categories.secondary.topic}\n\n`;
-                    }
-                });
-            } catch (error) {
-                console.error('주제 조회 실패:', error);
-                topicList += '주제 정보를 불러올 수 없습니다.\n';
-            }
+            topicList += '🔸 UNTAB:\n';
+            topicList += '   Primary: [라이프스타일] 강아지와 함께 가는 여행지\n';
+            topicList += '   Secondary: [재정/투자] 청약통장 활용 전략\n\n';
             
-            if (!confirm(`⚠️ 오늘(${today}) 듀얼 카테고리 시스템으로 총 8개 콘텐츠를 지금 수동 발행하시겠습니까?\n\n${topicList}\n📊 사이트별 2개씩, 총 8개 포스트가 생성됩니다.`)) {
+            topicList += '🔸 SKEWESE:\n';
+            topicList += '   Primary: [건강/웰니스] 금연 성공 전략\n';
+            topicList += '   Secondary: [역사/문화] 전통 명절의 유래\n\n';
+            
+            topicList += '🔸 TISTORY:\n';
+            topicList += '   Primary: [엔터테인먼트] 한류 콘텐츠 해외 반응\n';
+            topicList += '   Secondary: [트렌드/이슈] K-뷰티 글로벌 트렌드\n\n';
+            
+            if (!confirm(`⚠️ 오늘(${today}) 듀얼 카테고리 시스템으로 총 8개 콘텐츠를 지금 수동 발행하시겠습니까?\n\n${topicList}📊 사이트별 2개씩, 총 8개 포스트가 생성됩니다.`)) {
                 return;
             }
             
