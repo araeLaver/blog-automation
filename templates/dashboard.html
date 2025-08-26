@@ -3138,6 +3138,8 @@
                                 </div>
                                 <div id="publishStatus">듀얼 카테고리 발행을 시작합니다...</div>
                                 <div class="text-muted mb-2">각 사이트별로 Primary + Secondary 카테고리 2개씩 발행</div>
+                                <div id="estimatedTime" class="text-info mb-2" style="display:none">⏱️ 예상 소요시간: 약 10-15분</div>
+                                <div id="currentProgress" class="text-primary mb-2"></div>
                                 <ul id="publishResults" class="mt-3"></ul>
                             </div>
                         </div>
@@ -3150,6 +3152,9 @@
             modal.show();
             
             showNotification('🚀 듀얼 카테고리 수동 발행을 시작합니다... (총 8개 포스트)', 'info');
+            
+            // 시작 시간 저장
+            window.publishStartTime = Date.now();
             
             // 실시간 상태 폴링 시작
             const pollStatus = async () => {
@@ -3176,16 +3181,38 @@
                     
                     if (progressBar) {
                         progressBar.style.width = `${status.progress}%`;
+                        progressBar.innerHTML = `${status.progress}%`;
                         statusDiv.innerHTML = status.message;
                         
-                        // 현재 처리 중인 사이트 표시
+                        // 예상 시간 표시
+                        const estimatedTimeDiv = document.getElementById('estimatedTime');
+                        const currentProgressDiv = document.getElementById('currentProgress');
+                        
+                        if (status.progress > 0 && status.progress < 100) {
+                            estimatedTimeDiv.style.display = 'block';
+                            
+                            // 경과 시간 기반 예상 시간 계산
+                            const startTime = window.publishStartTime || Date.now();
+                            const elapsed = (Date.now() - startTime) / 1000; // 초
+                            const estimatedTotal = (elapsed / status.progress) * 100;
+                            const remaining = Math.max(0, estimatedTotal - elapsed);
+                            
+                            const remainingMinutes = Math.ceil(remaining / 60);
+                            if (remainingMinutes > 0) {
+                                estimatedTimeDiv.innerHTML = `⏱️ 예상 남은 시간: 약 ${remainingMinutes}분`;
+                            }
+                        }
+                        
+                        // 현재 처리 중인 사이트와 진행률 표시
                         if (status.current_site) {
-                            statusDiv.innerHTML += ` (현재: ${status.current_site.toUpperCase()})`;
+                            currentProgressDiv.innerHTML = `📍 현재 처리중: ${status.current_site.toUpperCase()}`;
+                        } else if (status.progress === 100) {
+                            currentProgressDiv.innerHTML = '✅ 모든 작업 완료';
                         }
                         
                         // 8개 포스트 기준 진행률 표시
                         if (status.completed_sites !== undefined) {
-                            statusDiv.innerHTML += ` - ${status.completed_sites}/8 완료`;
+                            currentProgressDiv.innerHTML += ` - ${status.completed_sites}/8 포스트 완료`;
                         }
                         
                         // 완료된 사이트 결과 표시

@@ -1495,34 +1495,61 @@ def quick_publish():
 
             # 듀얼 카테고리를 위한 월간 스케줄 매니저 사용
             from src.utils.monthly_schedule_manager import monthly_schedule_manager
-            from src.generators.wordpress_content_generator import WordPressContentGenerator
             from src.generators.content_generator import ContentGenerator
             from src.generators.tistory_content_exporter import TistoryContentExporter
             from src.generators.wordpress_content_exporter import WordPressContentExporter
 
             logger.info("듀얼 카테고리 수동 발행 시작")
+            
+            # 상태 초기화
+            publish_status_global['in_progress'] = True
+            publish_status_global['message'] = "발행 준비 중..."
+            publish_status_global['progress'] = 0
+            publish_status_global['current_site'] = None
+            publish_status_global['completed_sites'] = 0
+            publish_status_global['results'] = []
 
             # 각 사이트별로 2개씩 처리 (총 8개)
             total_posts = len(sites) * 2  # 사이트당 2개
             completed_posts = 0
 
             # DB 연결
-            db = get_database()
+            try:
+                db = get_database()
+            except Exception as e:
+                logger.error(f"DB 연결 오류: {e}")
+                publish_status_global['in_progress'] = False
+                publish_status_global['message'] = f"DB 연결 실패: {str(e)}"
+                return
 
             for site in sites:
                 try:
                     # 현재 사이트 상태 업데이트
                     publish_status_global['current_site'] = site
+                    publish_status_global['message'] = f"{site.upper()} 사이트 처리 시작..."
+                    
+                    logger.info(f"{site} 사이트 듀얼 카테고리 발행 시작")
 
                     # 듀얼 카테고리 주제 가져오기
-                    primary_topic, secondary_topic = monthly_schedule_manager.get_today_dual_topics_for_manual(site)
+                    try:
+                        primary_topic, secondary_topic = monthly_schedule_manager.get_today_dual_topics_for_manual(site)
+                    except Exception as e:
+                        logger.error(f"{site} 주제 조회 오류: {e}")
+                        publish_status_global['results'].append({
+                            'site': site,
+                            'status': 'failed',
+                            'message': f'주제 조회 실패: {str(e)}',
+                            'category': 'system'
+                        })
+                        continue
 
                     if not primary_topic or not secondary_topic:
                         logger.error(f"{site}의 듀얼 카테고리 주제를 찾을 수 없습니다")
                         publish_status_global['results'].append({
                             'site': site,
                             'status': 'failed',
-                            'message': '주제를 찾을 수 없음'
+                            'message': '주제를 찾을 수 없음 - DB 확인 필요',
+                            'category': 'system'
                         })
                         continue
 
@@ -1782,6 +1809,16 @@ def quick_publish():
             publish_status_global['progress'] = 100
             publish_status_global['completed_sites'] = completed_posts
             publish_status_global['total_sites'] = total_posts
+            publish_status_global['current_site'] = None
+            
+            # 결과 요약 메시지 생성
+            success_count = len([r for r in publish_status_global['results'] if r.get('status') == 'success'])
+            failed_count = len(publish_status_global['results']) - success_count
+            
+            if failed_count == 0:
+                publish_status_global['message'] = f"🎉 전체 발행 완료! 총 {completed_posts}개 포스트 생성됨"
+            else:
+                publish_status_global['message'] = f"⚠️ 발행 완료 - 성공: {success_count}개, 실패: {failed_count}개"
 
             logger.info(f"듀얼 카테고리 수동 발행 완료: {completed_posts}/{total_posts} 포스트")
         
