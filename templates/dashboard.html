@@ -2648,13 +2648,16 @@
                 const statusElement = document.getElementById('system-status-overview');
                 
                 if (data.success) {
-                    const status = data.status;
+                    const status = data.status || {};
+                    const overall = status.overall || 'unknown';
+                    const isHealthy = overall === 'healthy';
+                    
                     statusElement.innerHTML = `
                         <div class="row text-center">
                             <div class="col-6 mb-3">
-                                <div class="p-3 rounded ${status.overall === 'healthy' ? 'bg-success' : 'bg-danger'} text-white">
-                                    <i class="bi bi-${status.overall === 'healthy' ? 'check-circle' : 'exclamation-triangle'} fs-3"></i>
-                                    <div class="mt-2">${status.overall === 'healthy' ? '정상' : '문제 발생'}</div>
+                                <div class="p-3 rounded ${isHealthy ? 'bg-success' : (overall === 'error' ? 'bg-danger' : 'bg-warning')} text-white">
+                                    <i class="bi bi-${isHealthy ? 'check-circle' : 'exclamation-triangle'} fs-3"></i>
+                                    <div class="mt-2">${isHealthy ? '정상' : (overall === 'error' ? '오류' : '경고')}</div>
                                 </div>
                             </div>
                             <div class="col-6 mb-3">
@@ -2667,7 +2670,11 @@
                             <div class="col-12">
                                 <div class="alert alert-light mb-0">
                                     <strong>서버:</strong> ${status.server_info || 'Python Flask'}<br>
+                                    <strong>DB:</strong> ${status.database === 'connected' ? '연결됨' : (status.database === 'disconnected' ? '연결 실패' : '확인 불가')}<br>
+                                    ${status.memory_usage && status.memory_usage !== 'N/A' ? `<strong>메모리:</strong> ${status.memory_usage}<br>` : ''}
+                                    ${status.cpu_usage && status.cpu_usage !== 'N/A' ? `<strong>CPU:</strong> ${status.cpu_usage}<br>` : ''}
                                     <strong>마지막 업데이트:</strong> ${new Date().toLocaleString()}
+                                    ${status.error ? `<br><small class="text-danger">오류: ${status.error}</small>` : ''}
                                 </div>
                             </div>
                         </div>
@@ -2699,25 +2706,32 @@
                 const dbElement = document.getElementById('db-status');
                 
                 if (data.success) {
-                    const db = data.database;
+                    const db = data.database || {};
+                    const connected = db.connected === true;
+                    
                     dbElement.innerHTML = `
                         <div class="row">
                             <div class="col-12 mb-3">
-                                <div class="alert ${db.connected ? 'alert-success' : 'alert-danger'} mb-2">
-                                    <i class="bi bi-${db.connected ? 'check-circle' : 'x-circle'}"></i>
-                                    <strong>연결 상태:</strong> ${db.connected ? '연결됨' : '연결 실패'}
+                                <div class="alert ${connected ? 'alert-success' : 'alert-danger'} mb-2">
+                                    <i class="bi bi-${connected ? 'check-circle' : 'x-circle'}"></i>
+                                    <strong>연결 상태:</strong> ${connected ? '연결됨' : '연결 실패'}
                                 </div>
-                                ${db.connected ? `
+                                ${connected ? `
                                     <div class="small text-muted">
-                                        <div><strong>호스트:</strong> ${db.host}</div>
-                                        <div><strong>데이터베이스:</strong> ${db.database}</div>
-                                        <div><strong>스키마:</strong> ${db.schema}</div>
-                                        <div><strong>테이블 수:</strong> ${db.table_count || '확인 중'}</div>
-                                        <div><strong>총 레코드:</strong> ${db.total_records || '확인 중'}</div>
+                                        <div><strong>호스트:</strong> ${db.host || '알 수 없음'}</div>
+                                        <div><strong>데이터베이스:</strong> ${db.database || '알 수 없음'}</div>
+                                        <div><strong>스키마:</strong> ${db.schema || 'unble'}</div>
+                                        <div><strong>테이블 수:</strong> ${db.table_count !== undefined ? db.table_count : '확인 중'}</div>
+                                        <div><strong>총 레코드:</strong> ${db.total_records !== undefined ? db.total_records : '확인 중'}</div>
                                     </div>
                                 ` : `
                                     <div class="alert alert-warning mb-0">
-                                        <strong>오류:</strong> ${db.error}<br>
+                                        <strong>오류:</strong> ${db.error || '연결 실패'}<br>
+                                        <div class="small text-muted mt-2">
+                                            <div><strong>호스트:</strong> ${db.host || '알 수 없음'}</div>
+                                            <div><strong>데이터베이스:</strong> ${db.database || '알 수 없음'}</div>
+                                            <div><strong>스키마:</strong> ${db.schema || 'unble'}</div>
+                                        </div>
                                         <small>환경변수 설정을 확인하세요.</small>
                                     </div>
                                 `}
@@ -2751,19 +2765,29 @@
                 const schedulerElement = document.getElementById('scheduler-status');
                 
                 if (data.success) {
-                    const scheduler = data.scheduler;
+                    const scheduler = data.scheduler || {};
+                    const running = scheduler.running === true;
+                    const jobsCount = scheduler.jobs_count || 0;
+                    
                     schedulerElement.innerHTML = `
-                        <div class="alert ${scheduler.running ? 'alert-success' : 'alert-warning'} mb-2">
-                            <i class="bi bi-${scheduler.running ? 'play-circle' : 'pause-circle'}"></i>
-                            <strong>상태:</strong> ${scheduler.running ? '실행 중' : '중지됨'}
+                        <div class="alert ${running ? 'alert-success' : 'alert-warning'} mb-2">
+                            <i class="bi bi-${running ? 'play-circle' : 'pause-circle'}"></i>
+                            <strong>상태:</strong> ${running ? '실행 중' : '중지됨'}
                         </div>
                         <div class="small text-muted">
-                            <div><strong>등록된 작업:</strong> ${scheduler.jobs_count}개</div>
+                            <div><strong>등록된 작업:</strong> ${jobsCount}개</div>
                             <div><strong>다음 실행:</strong> ${scheduler.next_run || '예정 없음'}</div>
                             <div><strong>마지막 실행:</strong> ${scheduler.last_run || '없음'}</div>
                             ${scheduler.last_error ? `
-                                <div class="text-danger mt-2">
-                                    <strong>마지막 오류:</strong> ${scheduler.last_error}
+                                <div class="alert alert-danger mt-2 mb-0">
+                                    <strong>마지막 오류:</strong><br>
+                                    <small>${scheduler.last_error}</small>
+                                </div>
+                            ` : ''}
+                            ${jobsCount > 0 ? `
+                                <div class="alert alert-info mt-2 mb-0">
+                                    <i class="bi bi-info-circle"></i>
+                                    매일 새벽 3시 자동발행 예정
                                 </div>
                             ` : ''}
                         </div>

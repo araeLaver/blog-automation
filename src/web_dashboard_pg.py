@@ -2959,21 +2959,34 @@ def get_all_dual_topics():
 def system_status():
     """시스템 전체 상태 확인"""
     try:
-        import psutil
         import time
+        start_time = time.time()
         
-        # 시스템 정보 수집
+        # 기본 시스템 정보
         status = {
             'overall': 'healthy',
-            'uptime': f"{int(time.time() - psutil.boot_time())}초",
             'server_info': 'Python Flask on Koyeb',
-            'memory_usage': f"{psutil.virtual_memory().percent}%",
-            'cpu_usage': f"{psutil.cpu_percent()}%"
+            'uptime': '서버 실행 중',
+            'memory_usage': 'N/A',
+            'cpu_usage': 'N/A'
         }
         
-        # DB 연결 상태 확인
-        db = get_database()
+        # psutil 사용 가능 시에만 상세 정보 수집
         try:
+            import psutil
+            uptime_seconds = int(time.time() - psutil.boot_time())
+            hours = uptime_seconds // 3600
+            minutes = (uptime_seconds % 3600) // 60
+            status['uptime'] = f"{hours}시간 {minutes}분"
+            status['memory_usage'] = f"{psutil.virtual_memory().percent:.1f}%"
+            status['cpu_usage'] = f"{psutil.cpu_percent(interval=1):.1f}%"
+        except:
+            # psutil 없어도 기본 정보는 제공
+            pass
+        
+        # DB 연결 상태 확인
+        try:
+            db = get_database()
             conn = db.get_connection()
             with conn.cursor() as cursor:
                 cursor.execute("SELECT 1")
@@ -2991,6 +3004,9 @@ def system_status():
                 'overall': 'error',
                 'uptime': '알 수 없음',
                 'server_info': 'Python Flask',
+                'memory_usage': 'N/A',
+                'cpu_usage': 'N/A',
+                'database': 'unknown',
                 'error': str(e)
             }
         })
@@ -3001,83 +3017,133 @@ def database_status():
     try:
         db = get_database()
         
+        # DB 기본 정보
+        db_info = {
+            'connected': False,
+            'host': getattr(db, 'connection_params', {}).get('host', '알 수 없음'),
+            'database': getattr(db, 'connection_params', {}).get('database', '알 수 없음'),
+            'schema': getattr(db, 'schema', 'unble'),
+            'table_count': 0,
+            'total_records': 0,
+            'error': None
+        }
+        
         try:
             conn = db.get_connection()
             with conn.cursor() as cursor:
                 # 기본 연결 테스트
                 cursor.execute("SELECT 1")
+                db_info['connected'] = True
                 
-                # 테이블 수 확인
-                cursor.execute(f"""
-                    SELECT COUNT(*) FROM information_schema.tables 
-                    WHERE table_schema = '{db.schema}'
-                """)
-                table_count = cursor.fetchone()[0]
+                # 테이블 수 확인 (안전하게)
+                try:
+                    cursor.execute(f"""
+                        SELECT COUNT(*) FROM information_schema.tables 
+                        WHERE table_schema = '{db.schema}'
+                    """)
+                    db_info['table_count'] = cursor.fetchone()[0] or 0
+                except:
+                    db_info['table_count'] = '확인 불가'
                 
-                # 총 레코드 수 확인
-                cursor.execute(f"SELECT COUNT(*) FROM {db.schema}.content_files")
-                total_records = cursor.fetchone()[0]
-                
-            return jsonify({
-                'success': True,
-                'database': {
-                    'connected': True,
-                    'host': db.connection_params['host'],
-                    'database': db.connection_params['database'],
-                    'schema': db.schema,
-                    'table_count': table_count,
-                    'total_records': total_records
-                }
-            })
-            
+                # 총 레코드 수 확인 (안전하게)
+                try:
+                    cursor.execute(f"SELECT COUNT(*) FROM {db.schema}.content_files")
+                    db_info['total_records'] = cursor.fetchone()[0] or 0
+                except:
+                    db_info['total_records'] = '확인 불가'
+                    
         except Exception as db_error:
-            return jsonify({
-                'success': True,
-                'database': {
-                    'connected': False,
-                    'error': str(db_error),
-                    'host': getattr(db, 'connection_params', {}).get('host', '알 수 없음'),
-                    'database': getattr(db, 'connection_params', {}).get('database', '알 수 없음'),
-                    'schema': getattr(db, 'schema', '알 수 없음')
-                }
-            })
+            db_info['connected'] = False
+            db_info['error'] = str(db_error)
+            
+        return jsonify({'success': True, 'database': db_info})
             
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        # 완전 실패시에도 기본 구조 유지
+        return jsonify({
+            'success': True,
+            'database': {
+                'connected': False,
+                'host': '알 수 없음',
+                'database': '알 수 없음', 
+                'schema': 'unble',
+                'table_count': 0,
+                'total_records': 0,
+                'error': f'시스템 오류: {str(e)}'
+            }
+        })
 
 @app.route('/api/scheduler_status')
 def scheduler_status():
     """자동발행 스케줄러 상태 확인"""
     try:
-        import schedule
-        from src.utils.auto_publisher import auto_publisher
-        
-        jobs = schedule.jobs
-        
+        # 기본 스케줄러 정보
         scheduler_info = {
-            'running': auto_publisher.running if hasattr(auto_publisher, 'running') else False,
-            'jobs_count': len(jobs),
-            'next_run': str(jobs[0].next_run) if jobs else None,
-            'last_run': None,
+            'running': False,
+            'jobs_count': 0,
+            'next_run': '확인 불가',
+            'last_run': '없음',
             'last_error': None
         }
         
-        # 시스템 로그에서 마지막 자동발행 정보 확인
+        # 스케줄러 상태 확인 (안전하게)
+        try:
+            import schedule
+            from src.utils.auto_publisher import auto_publisher
+            
+            jobs = schedule.jobs
+            scheduler_info['jobs_count'] = len(jobs)
+            scheduler_info['running'] = getattr(auto_publisher, 'running', False)
+            
+            if jobs:
+                next_run = jobs[0].next_run
+                if next_run:
+                    scheduler_info['next_run'] = str(next_run)
+                else:
+                    scheduler_info['next_run'] = '스케줄 없음'
+            else:
+                scheduler_info['next_run'] = '등록된 작업 없음'
+                
+        except ImportError:
+            scheduler_info['next_run'] = '스케줄러 모듈 없음'
+        except Exception as sched_error:
+            scheduler_info['next_run'] = f'오류: {str(sched_error)}'
+        
+        # 시스템 로그에서 마지막 자동발행 정보 확인 (안전하게)
         try:
             db = get_database()
             logs = db.get_system_logs(component='auto_publisher', limit=1)
-            if logs:
+            if logs and len(logs) > 0:
                 last_log = logs[0]
-                scheduler_info['last_run'] = last_log.get('timestamp', '').replace('T', ' ')
+                timestamp = last_log.get('timestamp', '')
+                if timestamp:
+                    # ISO 형식을 한국어로 변환
+                    from datetime import datetime
+                    try:
+                        dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                        scheduler_info['last_run'] = dt.strftime('%Y-%m-%d %H:%M:%S')
+                    except:
+                        scheduler_info['last_run'] = timestamp.replace('T', ' ')
+                        
                 if last_log.get('log_level') == 'ERROR':
                     scheduler_info['last_error'] = last_log.get('message', '')
         except:
+            # 로그 조회 실패해도 기본값 유지
             pass
         
         return jsonify({'success': True, 'scheduler': scheduler_info})
         
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({
+            'success': True, 
+            'scheduler': {
+                'running': False,
+                'jobs_count': 0,
+                'next_run': '시스템 오류',
+                'last_run': '확인 불가',
+                'last_error': f'API 오류: {str(e)}'
+            }
+        })
 
 @app.route('/api/environment_status')
 def environment_status():
