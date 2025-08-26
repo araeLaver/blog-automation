@@ -1487,7 +1487,9 @@ def quick_publish():
         
         logger.info(f"Quick publish started for sites: {sites}")
         
-        import threading        def background_publish():
+        import threading
+        
+        def background_publish():
             """백그라운드에서 실제 콘텐츠 생성 - 듀얼 카테고리 시스템"""
             global publish_status_global
 
