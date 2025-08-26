@@ -1410,7 +1410,6 @@ def get_current_trends():
         except Exception as e:
             print(f"[TRENDING] 실시간 핫이슈 생성 오류: {e}")
             # 에러 시 기본 동적 이슈 생성
-            from datetime import datetime
             current_time = datetime.now()
             
             hot_issues = [
