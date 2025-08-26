@@ -71,8 +71,9 @@ class AutoPublisher:
                     print(f"\n[DUAL_PUBLISH] {site.upper()} 2개 카테고리 발행 시작")
                     
                     # 2개 카테고리 주제 가져오기 (월별 스케줄러 사용)
-                    from .monthly_schedule_manager import monthly_schedule_manager
-                    primary_topic, secondary_topic = monthly_schedule_manager.get_today_dual_topics_for_manual(site)
+                    from .monthly_schedule_manager import MonthlyScheduleManager
+                    manager = MonthlyScheduleManager()
+                    primary_topic, secondary_topic = manager.get_today_dual_topics(site)
                     
                     # Primary 카테고리 발행
                     print(f"  Primary [{primary_topic['category']}]: {primary_topic['topic'][:50]}...")

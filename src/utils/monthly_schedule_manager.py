@@ -15,12 +15,13 @@ class MonthlyScheduleManager:
     """월별 스케줄 관리자"""
     
     def __init__(self):
+        # 환경변수 우선, 없으면 하드코딩 값 사용 
         self.db_config = {
-            'host': "aws-0-ap-northeast-2.pooler.supabase.com",
-            'database': "postgres",
-            'user': "postgres.lhqzjnpwuftaicjurqxq",
-            'password': "Unbleyum1106!",
-            'port': 5432
+            'host': os.getenv('PG_HOST', "aws-0-ap-northeast-2.pooler.supabase.com"),
+            'database': os.getenv('PG_DATABASE', "postgres"),
+            'user': os.getenv('PG_USER', "postgres.lhqzjnpwuftaicjurqxq"),
+            'password': os.getenv('PG_PASSWORD', "Unbleyum1106!"),
+            'port': int(os.getenv('PG_PORT', 5432))
         }
     
     def get_db_connection(self):
@@ -39,8 +40,7 @@ class MonthlyScheduleManager:
             conn = self.get_db_connection()
             cursor = conn.cursor()
             
-            # 해당 사이트의 오늘 주제들 조회
-            # 먼저 monthly_publishing_schedule 테이블 시도
+            # monthly_publishing_schedule 테이블에서만 조회 (정확한 계획표)
             cursor.execute("""
                 SELECT topic_category, specific_topic, keywords
                 FROM unble.monthly_publishing_schedule
@@ -49,17 +49,6 @@ class MonthlyScheduleManager:
             """, (today.year, today.month, today.day, site))
             
             topics = cursor.fetchall()
-            
-            # 데이터가 없으면 기존 publishing_schedule 테이블에서 조회 (폴백)
-            if not topics:
-                cursor.execute("""
-                    SELECT topic_category, specific_topic, keywords
-                    FROM unble.publishing_schedule
-                    WHERE scheduled_date = %s AND site = %s
-                    ORDER BY topic_category
-                """, (today, site))
-                
-                topics = cursor.fetchall()
             
             if len(topics) >= 2:
                 # Primary와 Secondary 구분 (알파벳 순)
@@ -94,13 +83,8 @@ class MonthlyScheduleManager:
                 
         except Exception as e:
             print(f"[MONTHLY_SCHEDULE] 오늘 주제 조회 오류 ({site}): {e}")
-            # 오류 시 기본값 반환
-            default = {
-                'category': 'general',
-                'topic': f'{site} 기본 주제',
-                'keywords': ['기본', '주제']
-            }
-            return default, None
+            # DB 연결 실패 시 자동발행 중단 (잘못된 주제로 발행하지 않음)
+            raise Exception(f"DB 연결 실패로 {site} 자동발행 불가: {e}")
             
         finally:
             if cursor:
