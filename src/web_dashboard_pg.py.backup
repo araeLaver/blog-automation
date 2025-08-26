@@ -1458,301 +1458,204 @@ def quick_publish():
         
         logger.info(f"Quick publish started for sites: {sites}")
         
-        import threading        def background_publish():
-            """백그라운드에서 실제 콘텐츠 생성 - 듀얼 카테고리 시스템"""
+        import threading
+        
+        def background_publish():
+            """백그라운드에서 실제 콘텐츠 생성 - 실시간 상태 업데이트"""
             global publish_status_global
-
+            
             # 듀얼 카테고리를 위한 월간 스케줄 매니저 사용
             from src.utils.monthly_schedule_manager import monthly_schedule_manager
-            from src.generators.wordpress_content_generator import WordPressContentGenerator
-            from src.generators.content_generator import ContentGenerator
-            from src.generators.tistory_content_exporter import TistoryContentExporter
-            from src.generators.wordpress_content_exporter import WordPressContentExporter
-
-            logger.info("듀얼 카테고리 수동 발행 시작")
-
-            # 각 사이트별로 2개씩 처리 (총 8개)
-            total_posts = len(sites) * 2  # 사이트당 2개
-            completed_posts = 0
-
-            # DB 연결
-            db = get_database()
-
+            
+            today_schedule = {}
             for site in sites:
+                try:
+                    # 듀얼 카테고리 주제 가져오기
+                    primary_topic, secondary_topic = monthly_schedule_manager.get_today_dual_topics_for_manual(site)
+                    
+                    if primary_topic and secondary_topic:
+                        today_schedule[site] = {
+                            'primary': {
+                                'topic': primary_topic['topic'],
+                                'category': primary_topic['category']
+                            },
+                            'secondary': {
+                                'topic': secondary_topic['topic'],
+                                'category': secondary_topic['category']
+                            }
+                        }
+                        logger.info(f"{site} 듀얼 카테고리 주제 확인: Primary={primary_topic['topic']}, Secondary={secondary_topic['topic']}")
+                    else:
+                        logger.warning(f"{site}에 대한 듀얼 카테고리 주제가 없습니다")
+                        continue
+                        
+                except Exception as e:
+                    logger.error(f"{site} 주제 가져오기 실패: {e}")
+                    continue
+                            # 생성된 스케줄에서 다시 조회
+                            scheduled_topic = schedule_manager.get_today_topic_for_manual(site)
+                            if scheduled_topic and scheduled_topic.get('topic'):
+                                today_schedule[site] = {
+                                    'topic': scheduled_topic['topic'],
+                                    'category': scheduled_topic.get('category', 'general')
+                                }
+                                logger.info(f"{site} 스케줄 생성 후 주제: {scheduled_topic['topic']}")
+                            else:
+                                logger.error(f"{site} 스케줄 생성 후에도 주제를 찾을 수 없음")
+                        else:
+                            logger.error(f"{site} 스케줄 생성 실패")
+                except Exception as e:
+                    logger.error(f"스케줄 조회 오류 ({site}): {e}")
+                    # 오류 시에도 스케줄 생성 시도
+                    try:
+                        from datetime import datetime, timedelta
+                        today = datetime.now().date()
+                        week_start = today - timedelta(days=today.weekday())
+                        
+                        logger.warning(f"{site} 오류 발생으로 현재 주({week_start}) 스케줄 재생성 시도")
+                        success = schedule_manager.create_weekly_schedule(week_start)
+                        
+                        if success:
+                            scheduled_topic = schedule_manager.get_today_topic_for_manual(site)
+                            if scheduled_topic and scheduled_topic.get('topic'):
+                                today_schedule[site] = {
+                                    'topic': scheduled_topic['topic'],
+                                    'category': scheduled_topic.get('category', 'general')
+                                }
+                    except Exception as e2:
+                        logger.error(f"{site} 스케줄 재생성도 실패: {e2}")
+            
+            logger.info(f"오늘의 스케줄: {today_schedule}")
+            
+            for i, site in enumerate(sites):
                 try:
                     # 현재 사이트 상태 업데이트
                     publish_status_global['current_site'] = site
-
-                    # 듀얼 카테고리 주제 가져오기
-                    primary_topic, secondary_topic = monthly_schedule_manager.get_today_dual_topics_for_manual(site)
-
-                    if not primary_topic or not secondary_topic:
-                        logger.error(f"{site}의 듀얼 카테고리 주제를 찾을 수 없습니다")
-                        publish_status_global['results'].append({
-                            'site': site,
-                            'status': 'failed',
-                            'message': '주제를 찾을 수 없음'
-                        })
-                        continue
-
-                    logger.info(f"{site} 듀얼 주제 - Primary: {primary_topic['topic']}, Secondary: {secondary_topic['topic']}")
-
-                    # Primary 카테고리 발행
-                    try:
-                        logger.info(f"{site} Primary 카테고리 발행 시작: {primary_topic['topic']}")
-
-                        # DB에 처리중 상태로 추가
-                        primary_file_id = db.add_content_file(
+                    publish_status_global['progress'] = int((i / len(sites)) * 100)
+                    
+                    logger.info(f"Starting generation for {site} ({i+1}/{len(sites)})")
+                    
+                    # 먼저 처리중 상태로 목록에 추가
+                    db = get_database()
+                    processing_file_id = db.add_content_file(
+                        site=site,
+                        title=f"[생성중] {today_schedule[site]['topic']}",
+                        file_path="processing",
+                        file_type="wordpress" if site != 'tistory' else 'tistory',
+                        metadata={'status': 'processing', 'category': today_schedule[site]['category']}
+                    )
+                    
+                    if site == 'tistory':
+                        from src.generators.content_generator import ContentGenerator
+                        from src.generators.tistory_content_exporter import TistoryContentExporter
+                        
+                        topic = today_schedule[site]['topic']
+                        category = today_schedule[site]['category']
+                        
+                        generator = ContentGenerator()
+                        exporter = TistoryContentExporter()
+                        
+                        site_config = {
+                            'name': 'Tistory 블로그',
+                            'categories': [category],
+                            'content_style': '친근하고 실용적인 톤',
+                            'target_audience': get_target_audience_by_category(category),
+                            'keywords_focus': ['트렌드', '분석', '최신']
+                        }
+                        
+                        content = generator.generate_content(site_config, topic, category, content_length='medium')
+                        filepath = exporter.export_content(content)
+                        
+                        # 처리중 항목 삭제하고 완성된 항목 추가
+                        db.delete_content_file(processing_file_id)
+                        file_id = db.add_content_file(
+                            site='tistory',
+                            title=content['title'],
+                            file_path=filepath,
+                            file_type="tistory",
+                            metadata={'category': category, 'tags': content.get('tags', [])}
+                        )
+                        
+                    elif site in ['unpre', 'untab', 'skewese']:
+                        from src.generators.content_generator import ContentGenerator
+                        from src.generators.wordpress_content_exporter import WordPressContentExporter
+                        
+                        topic = today_schedule[site]['topic']
+                        category = today_schedule[site]['category']
+                        
+                        generator = ContentGenerator()
+                        exporter = WordPressContentExporter()
+                        
+                        site_config = {
+                            'name': site,
+                            'categories': [category],
+                            'content_style': '전문적이고 신뢰할 수 있는 톤',
+                            'target_audience': get_target_audience_by_category(category),
+                            'keywords_focus': ['트렌드', '분석', '최신']
+                        }
+                        
+                        content = generator.generate_content(site_config, topic, category, content_length='medium')
+                        filepath = exporter.export_content(site, content)
+                        
+                        # 처리중 항목 삭제하고 완성된 항목 추가
+                        db.delete_content_file(processing_file_id)
+                        from pathlib import Path
+                        file_path_obj = Path(filepath)
+                        file_size = file_path_obj.stat().st_size if file_path_obj.exists() else 0
+                        content_text = content.get('introduction', '') + ' '.join([s.get('content', '') for s in content.get('sections', [])])
+                        word_count = len(content_text.replace(' ', ''))
+                        
+                        file_id = db.add_content_file(
                             site=site,
-                            title=f"[Primary 생성중] {primary_topic['topic']}",
-                            file_path="processing",
-                            file_type="wordpress" if site != 'tistory' else 'tistory',
+                            title=content['title'],
+                            file_path=filepath,
+                            file_type="wordpress",
                             metadata={
-                                'status': 'processing',
-                                'category': primary_topic['category'],
-                                'category_type': 'primary'
+                                'tags': content.get('tags', []),
+                                'categories': [content.get('category', category)],
+                                'word_count': word_count,
+                                'file_size': file_size
                             }
                         )
-
-                        # 콘텐츠 생성
-                        if site == 'tistory':
-                            generator = ContentGenerator()
-                            exporter = TistoryContentExporter()
-
-                            site_config = {
-                                'name': 'Tistory 블로그',
-                                'categories': [primary_topic['category']],
-                                'content_style': '친근하고 실용적인 톤',
-                                'target_audience': get_target_audience_by_category(primary_topic['category']),
-                                'keywords_focus': primary_topic.get('keywords', [])
-                            }
-
-                            content_data = generator.generate_content(
-                                site_config,
-                                primary_topic['topic'],
-                                primary_topic['category'],
-                                'medium'
-                            )
-
-                            if content_data:
-                                filepath = exporter.export_content(content_data)
-
-                                # DB 업데이트
-                                db.delete_content_file(primary_file_id)
-                                db.add_content_file(
-                                    site=site,
-                                    title=content_data['title'],
-                                    file_path=filepath,
-                                    file_type='tistory',
-                                    metadata={
-                                        'category': primary_topic['category'],
-                                        'category_type': 'primary',
-                                        'tags': content_data.get('tags', [])
-                                    }
-                                )
-
-                                logger.info(f"{site} Primary 발행 성공: {primary_topic['topic']}")
-                            else:
-                                raise Exception("콘텐츠 생성 실패")
-                        else:
-                            # WordPress 사이트 처리
-                            generator = ContentGenerator()
-                            exporter = WordPressContentExporter()
-
-                            site_config = {
-                                'name': site,
-                                'categories': [primary_topic['category']],
-                                'content_style': '전문적이고 신뢰할 수 있는 톤',
-                                'target_audience': get_target_audience_by_category(primary_topic['category']),
-                                'keywords_focus': primary_topic.get('keywords', [])
-                            }
-
-                            content_data = generator.generate_content(
-                                site_config,
-                                primary_topic['topic'],
-                                primary_topic['category'],
-                                'medium'
-                            )
-
-                            if content_data:
-                                filepath = exporter.export_content(site, content_data)
-
-                                # DB 업데이트
-                                db.delete_content_file(primary_file_id)
-                                db.add_content_file(
-                                    site=site,
-                                    title=content_data['title'],
-                                    file_path=filepath,
-                                    file_type='wordpress',
-                                    metadata={
-                                        'category': primary_topic['category'],
-                                        'category_type': 'primary',
-                                        'tags': content_data.get('tags', [])
-                                    }
-                                )
-
-                                logger.info(f"{site} Primary 발행 성공: {primary_topic['topic']}")
-                            else:
-                                raise Exception("콘텐츠 생성 실패")
-
-                        completed_posts += 1
-                        publish_status_global['completed_sites'] = completed_posts
-                        publish_status_global['progress'] = int((completed_posts / total_posts) * 100)
-
-                    except Exception as e:
-                        logger.error(f"{site} Primary 발행 실패: {e}")
-                        # 처리중 항목 삭제
-                        try:
-                            db.delete_content_file(primary_file_id)
-                        except:
-                            pass
-                        publish_status_global['results'].append({
-                            'site': site,
-                            'status': 'failed',
-                            'message': f'Primary 발행 실패: {str(e)}',
-                            'category': 'primary'
-                        })
-
-                    # Secondary 카테고리 발행
-                    try:
-                        logger.info(f"{site} Secondary 카테고리 발행 시작: {secondary_topic['topic']}")
-
-                        # DB에 처리중 상태로 추가
-                        secondary_file_id = db.add_content_file(
-                            site=site,
-                            title=f"[Secondary 생성중] {secondary_topic['topic']}",
-                            file_path="processing",
-                            file_type="wordpress" if site != 'tistory' else 'tistory',
-                            metadata={
-                                'status': 'processing',
-                                'category': secondary_topic['category'],
-                                'category_type': 'secondary'
-                            }
-                        )
-
-                        # 콘텐츠 생성 (Primary와 유사한 로직)
-                        if site == 'tistory':
-                            generator = ContentGenerator()
-                            exporter = TistoryContentExporter()
-
-                            site_config = {
-                                'name': 'Tistory 블로그',
-                                'categories': [secondary_topic['category']],
-                                'content_style': '친근하고 실용적인 톤',
-                                'target_audience': get_target_audience_by_category(secondary_topic['category']),
-                                'keywords_focus': secondary_topic.get('keywords', [])
-                            }
-
-                            content_data = generator.generate_content(
-                                site_config,
-                                secondary_topic['topic'],
-                                secondary_topic['category'],
-                                'medium'
-                            )
-
-                            if content_data:
-                                filepath = exporter.export_content(content_data)
-
-                                # DB 업데이트
-                                db.delete_content_file(secondary_file_id)
-                                db.add_content_file(
-                                    site=site,
-                                    title=content_data['title'],
-                                    file_path=filepath,
-                                    file_type='tistory',
-                                    metadata={
-                                        'category': secondary_topic['category'],
-                                        'category_type': 'secondary',
-                                        'tags': content_data.get('tags', [])
-                                    }
-                                )
-
-                                logger.info(f"{site} Secondary 발행 성공: {secondary_topic['topic']}")
-                            else:
-                                raise Exception("콘텐츠 생성 실패")
-                        else:
-                            # WordPress 사이트 처리
-                            generator = ContentGenerator()
-                            exporter = WordPressContentExporter()
-
-                            site_config = {
-                                'name': site,
-                                'categories': [secondary_topic['category']],
-                                'content_style': '전문적이고 신뢰할 수 있는 톤',
-                                'target_audience': get_target_audience_by_category(secondary_topic['category']),
-                                'keywords_focus': secondary_topic.get('keywords', [])
-                            }
-
-                            content_data = generator.generate_content(
-                                site_config,
-                                secondary_topic['topic'],
-                                secondary_topic['category'],
-                                'medium'
-                            )
-
-                            if content_data:
-                                filepath = exporter.export_content(site, content_data)
-
-                                # DB 업데이트
-                                db.delete_content_file(secondary_file_id)
-                                db.add_content_file(
-                                    site=site,
-                                    title=content_data['title'],
-                                    file_path=filepath,
-                                    file_type='wordpress',
-                                    metadata={
-                                        'category': secondary_topic['category'],
-                                        'category_type': 'secondary',
-                                        'tags': content_data.get('tags', [])
-                                    }
-                                )
-
-                                logger.info(f"{site} Secondary 발행 성공: {secondary_topic['topic']}")
-                            else:
-                                raise Exception("콘텐츠 생성 실패")
-
-                        completed_posts += 1
-                        publish_status_global['completed_sites'] = completed_posts
-                        publish_status_global['progress'] = int((completed_posts / total_posts) * 100)
-
-                    except Exception as e:
-                        logger.error(f"{site} Secondary 발행 실패: {e}")
-                        # 처리중 항목 삭제
-                        try:
-                            db.delete_content_file(secondary_file_id)
-                        except:
-                            pass
-                        publish_status_global['results'].append({
-                            'site': site,
-                            'status': 'failed',
-                            'message': f'Secondary 발행 실패: {str(e)}',
-                            'category': 'secondary'
-                        })
-
-                    # 사이트 완료 결과 추가
+                    
+                    # 완료된 사이트 결과 추가
                     publish_status_global['results'].append({
                         'site': site,
-                        'status': 'completed',
-                        'message': f'Primary: {primary_topic["topic"]}, Secondary: {secondary_topic["topic"]}',
-                        'primary_topic': primary_topic['topic'],
-                        'secondary_topic': secondary_topic['topic']
+                        'success': True,
+                        'message': '발행 완료',
+                        'topic': topic,
+                        'file_id': file_id,
+                        'url': None
                     })
-
+                    
+                    publish_status_global['completed_sites'] += 1
+                    logger.info(f"Completed {site}: {topic} (file_id: {file_id})")
+                    
                 except Exception as e:
-                    logger.error(f"{site} 전체 처리 실패: {e}")
+                    logger.error(f"Background publish error for {site}: {e}")
+                    # 처리중 항목 삭제
+                    if 'processing_file_id' in locals():
+                        try:
+                            db.delete_content_file(processing_file_id)
+                        except:
+                            pass
+                    
                     publish_status_global['results'].append({
                         'site': site,
-                        'status': 'failed',
-                        'message': str(e)
+                        'success': False,
+                        'message': str(e),
+                        'topic': today_schedule.get(site, {}).get('topic', ''),
+                        'url': None
                     })
-
-            # 완료 처리
-            publish_status_global['in_progress'] = False
-            publish_status_global['progress'] = 100
-            publish_status_global['completed_sites'] = completed_posts
-            publish_status_global['total_sites'] = total_posts
-
-            logger.info(f"듀얼 카테고리 수동 발행 완료: {completed_posts}/{total_posts} 포스트")
+            
+            # 완료 상태로 변경
+            publish_status_global.update({
+                'in_progress': False,
+                'current_site': None,
+                'progress': 100
+            })
+            
+            logger.info("All sites completed")
         
         # 백그라운드 스레드 시작
         thread = threading.Thread(target=background_publish)
