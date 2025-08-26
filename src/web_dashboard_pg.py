@@ -1212,12 +1212,38 @@ def get_monthly_schedule():
             'schedule': {}
         }
         
-        # 날짜별로 정리
+        # 날짜별로 정리하고 primary/secondary 형식으로 변환
         for day, sites in schedule.items():
-            response['schedule'][day] = {
-                'date': f"{year}-{month:02d}-{day:02d}",
-                'sites': sites
-            }
+            day_schedule = {}
+            
+            for site, topics in sites.items():
+                # topics는 리스트 형태이므로 primary/secondary로 분리
+                if len(topics) >= 2:
+                    # 2개 이상인 경우 첫 번째는 primary, 두 번째는 secondary
+                    day_schedule[site] = {
+                        'primary': {
+                            'category': topics[0]['category'],
+                            'topic': topics[0]['topic'],
+                            'keywords': topics[0]['keywords']
+                        },
+                        'secondary': {
+                            'category': topics[1]['category'],
+                            'topic': topics[1]['topic'],
+                            'keywords': topics[1]['keywords']
+                        }
+                    }
+                elif len(topics) == 1:
+                    # 1개만 있는 경우 primary만 설정
+                    day_schedule[site] = {
+                        'primary': {
+                            'category': topics[0]['category'],
+                            'topic': topics[0]['topic'],
+                            'keywords': topics[0]['keywords']
+                        }
+                    }
+            
+            if day_schedule:  # 스케줄이 있는 날만 추가
+                response['schedule'][day] = day_schedule
         
         return jsonify(response)
         
