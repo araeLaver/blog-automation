@@ -19,7 +19,7 @@ class WordPressContentExporter:
         for site in ['unpre', 'untab', 'skewese', 'tistory']:
             (self.export_dir / site).mkdir(parents=True, exist_ok=True)
     
-    def export_content(self, site: str, content: Dict, images: List[Dict] = None) -> str:
+    def export_content(self, site: str, content: Dict, images: List[Dict] = None, category_suffix: str = None) -> str:
         """
         WordPress 콘텐츠를 미리보기 HTML 파일로 저장
         
