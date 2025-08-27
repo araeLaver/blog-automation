@@ -22,15 +22,15 @@ logger = logging.getLogger(__name__)
 class PostgreSQLDatabase:
     def __init__(self):
         """PostgreSQL 데이터베이스 연결 초기화"""
-        # 환경변수에서 연결 정보 가져오기
-        host = os.getenv('PG_HOST', 'aws-0-ap-northeast-2.pooler.supabase.com')
+        # 유료 Koyeb DB 연결 정보
+        host = os.getenv('PG_HOST', 'ep-divine-bird-a1f4mly5.ap-southeast-1.pg.koyeb.app')
         port = int(os.getenv('PG_PORT', 5432))
-        database = os.getenv('PG_DATABASE', 'postgres')
-        user = os.getenv('PG_USER', '')
-        password = os.getenv('PG_PASSWORD', '')
+        database = os.getenv('PG_DATABASE', 'unble')
+        user = os.getenv('PG_USER', 'unble')
+        password = os.getenv('PG_PASSWORD', 'npg_1kjV0mhECxqs')
         
         # 연결 정보 로깅 (비밀번호는 제외)
-        logger.info(f"PostgreSQL 연결 시도: host={host}, port={port}, database={database}, user={user[:20] if user else 'NOT SET'}...")
+        logger.info(f"PostgreSQL 연결 시도: host={host}, port={port}, database={database}, user={user}")
         
         self.connection_params = {
             'host': host,
@@ -39,7 +39,7 @@ class PostgreSQLDatabase:
             'user': user,
             'password': password,
         }
-        self.schema = os.getenv('PG_SCHEMA', 'unble')
+        self.schema = os.getenv('PG_SCHEMA', 'blog_automation')
         self._connection = None
         self.is_connected = False
         

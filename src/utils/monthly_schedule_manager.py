@@ -43,7 +43,7 @@ class MonthlyScheduleManager:
             # monthly_publishing_schedule 테이블에서만 조회 (정확한 계획표)
             cursor.execute("""
                 SELECT topic_category, specific_topic, keywords
-                FROM unble.monthly_publishing_schedule
+                FROM blog_automation.monthly_publishing_schedule
                 WHERE year = %s AND month = %s AND day = %s AND site = %s
                 ORDER BY topic_category
             """, (today.year, today.month, today.day, site))
@@ -105,14 +105,14 @@ class MonthlyScheduleManager:
             if site:
                 cursor.execute("""
                     SELECT site, topic_category, specific_topic, keywords, status
-                    FROM unble.monthly_publishing_schedule
+                    FROM blog_automation.monthly_publishing_schedule
                     WHERE year = %s AND month = %s AND day = %s AND site = %s
                     ORDER BY site, topic_category
                 """, (target_date.year, target_date.month, target_date.day, site))
             else:
                 cursor.execute("""
                     SELECT site, topic_category, specific_topic, keywords, status
-                    FROM unble.monthly_publishing_schedule
+                    FROM blog_automation.monthly_publishing_schedule
                     WHERE year = %s AND month = %s AND day = %s
                     ORDER BY site, topic_category
                 """, (target_date.year, target_date.month, target_date.day))
@@ -155,7 +155,7 @@ class MonthlyScheduleManager:
             # 먼저 monthly_publishing_schedule 테이블 조회
             cursor.execute("""
                 SELECT day, site, topic_category, specific_topic, keywords, status
-                FROM unble.monthly_publishing_schedule
+                FROM blog_automation.monthly_publishing_schedule
                 WHERE year = %s AND month = %s
                 ORDER BY day, site, topic_category
             """, (year, month))
@@ -167,7 +167,7 @@ class MonthlyScheduleManager:
                 # 해당 월의 모든 날짜에 대해 publishing_schedule 테이블 조회
                 cursor.execute("""
                     SELECT EXTRACT(DAY FROM scheduled_date) as day, site, topic_category, specific_topic, keywords, 'pending' as status
-                    FROM unble.publishing_schedule
+                    FROM blog_automation.publishing_schedule
                     WHERE EXTRACT(YEAR FROM scheduled_date) = %s 
                     AND EXTRACT(MONTH FROM scheduled_date) = %s
                     ORDER BY day, site, topic_category
@@ -215,7 +215,7 @@ class MonthlyScheduleManager:
             cursor = conn.cursor()
             
             cursor.execute("""
-                UPDATE unble.monthly_publishing_schedule
+                UPDATE blog_automation.monthly_publishing_schedule
                 SET status = %s, updated_at = CURRENT_TIMESTAMP
                 WHERE year = %s AND month = %s AND day = %s 
                 AND site = %s AND topic_category = %s
