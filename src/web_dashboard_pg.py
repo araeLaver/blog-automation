@@ -788,7 +788,7 @@ def download_content(file_id):
         conn = db.get_connection()
         with conn.cursor() as cursor:
             cursor.execute(f"""
-                SELECT id, title, content, category, keywords, site, created_at, file_path
+                SELECT id, title, file_path, category, tags, site, created_at
                 FROM {db.schema}.content_files 
                 WHERE id = %s
             """, (file_id,))
@@ -799,7 +799,29 @@ def download_content(file_id):
                 logger.error(f"콘텐츠를 찾을 수 없음: ID {file_id}")
                 return jsonify({'error': 'Content not found'}), 404
             
-            content_id, title, content, category, keywords, site, created_at, file_path = result
+            content_id, title, file_path, category, tags, site, created_at = result
+            keywords = tags or []
+            
+            # 실제 파일에서 콘텐츠 읽기
+            content_text = ""
+            if file_path and Path(file_path).exists():
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        file_content = f.read()
+                    
+                    # HTML 파일인 경우 본문 추출
+                    if file_path.endswith('.html'):
+                        from bs4 import BeautifulSoup
+                        soup = BeautifulSoup(file_content, 'html.parser')
+                        content_text = soup.get_text(separator='\n', strip=True)
+                    else:
+                        content_text = file_content
+                        
+                except Exception as e:
+                    logger.error(f"파일 읽기 실패 ({file_path}): {e}")
+                    content_text = "콘텐츠를 읽을 수 없습니다."
+            else:
+                content_text = "파일이 존재하지 않습니다."
             
             # HTML 콘텐츠 생성
             html_content = f"""<!DOCTYPE html>
@@ -872,7 +894,7 @@ def download_content(file_id):
         </div>
         
         <div class="content">
-            {content.replace(chr(10), '<br>')}
+            {content_text.replace(chr(10), '<br>')}
         </div>
         
         <div class="keywords">
