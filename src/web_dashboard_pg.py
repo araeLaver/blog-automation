@@ -749,6 +749,10 @@ def download_file(filepath):
         # 프로젝트 루트 디렉토리 기준으로 절대 경로 생성
         project_root = Path(__file__).parent.parent  # src 폴더의 상위 폴더
         
+        # 보안상 위험한 경로 접근 방지
+        if '..' in filepath or filepath.startswith('/'):
+            return jsonify({'error': 'Invalid file path'}), 400
+        
         # 절대 경로인 경우 그대로 사용, 상대 경로인 경우 프로젝트 루트 기준으로 생성
         if Path(filepath).is_absolute():
             file_path = Path(filepath)
@@ -757,14 +761,21 @@ def download_file(filepath):
         
         logger.info(f"Looking for file at: {file_path}")
         
-        if file_path.exists() and file_path.is_file():
-            return send_file(str(file_path), as_attachment=True)
-        else:
+        # 파일 존재 여부 및 접근 권한 확인
+        if not file_path.exists():
             logger.error(f"File not found: {file_path}")
-            return "File not found", 404
+            return jsonify({'error': 'File not found'}), 404
+            
+        if not file_path.is_file():
+            logger.error(f"Path is not a file: {file_path}")
+            return jsonify({'error': 'Path is not a file'}), 400
+        
+        # 파일 다운로드
+        return send_file(str(file_path), as_attachment=True)
+        
     except Exception as e:
         logger.error(f"File download error: {e}")
-        return f"Error: {str(e)}", 500
+        return jsonify({'error': f'Download error: {str(e)}'}), 500
 
 
 @app.route('/api/download_tistory/<path:filepath>')
@@ -2847,7 +2858,7 @@ def preview_content(file_id):
                 html_content = f.read()
         
         # HTML 콘텐츠 개선 처리
-        processed_content = self._process_content_for_preview(html_content)
+        processed_content = _process_content_for_preview(html_content)
         
         # 스타일링 개선된 미리보기 HTML 생성  
         preview_html = f"""
@@ -3095,51 +3106,51 @@ def preview_content(file_id):
         """
         return error_html, 500, {'Content-Type': 'text/html; charset=utf-8'}
     
-    def _process_content_for_preview(self, html_content: str) -> str:
-        """HTML 콘텐츠를 미리보기용으로 처리"""
-        import re
-        
-        # --- 구분선을 예쁜 구분선으로 변경
-        html_content = re.sub(r'-{3,}', '<hr class="content-divider">', html_content)
-        
-        # 코드 블록을 예쁘게 처리
-        def replace_code_block(match):
-            language = match.group(1) or 'text'
-            code = match.group(2)
-            return f'''
-            <div class="code-block">
-                <div class="code-header">
-                    <span>{language.upper()}</span>
-                    <button class="copy-btn" onclick="copyCode(this)">복사</button>
-                </div>
-                <div class="code-content"><pre><code class="language-{language}">{code}</code></pre></div>
+def _process_content_for_preview(html_content: str) -> str:
+    """HTML 콘텐츠를 미리보기용으로 처리"""
+    import re
+    
+    # --- 구분선을 예쁜 구분선으로 변경
+    html_content = re.sub(r'-{3,}', '<hr class="content-divider">', html_content)
+    
+    # 코드 블록을 예쁘게 처리
+    def replace_code_block(match):
+        language = match.group(1) or 'text'
+        code = match.group(2)
+        return f'''
+        <div class="code-block">
+            <div class="code-header">
+                <span>{language.upper()}</span>
+                <button class="copy-btn" onclick="copyCode(this)">복사</button>
             </div>
-            '''
-        
-        # ```language 형태의 코드 블록 처리
-        html_content = re.sub(r'```(\w+)?\s*\n(.*?)\n```', replace_code_block, html_content, flags=re.DOTALL)
-        
-        # 단일 ` 코드를 인라인 코드로 처리
-        html_content = re.sub(r'`([^`]+)`', r'<code style="background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: monospace;">\1</code>', html_content)
-        
-        # HTML 테이블 스타일링
-        html_content = re.sub(r'<table>', '<table class="table">', html_content)
-        
-        # 강조 표시 개선
-        html_content = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', html_content)
-        
-        # 줄바꿈을 <br>로 변경 (단, HTML 태그 안에서는 제외)
-        lines = html_content.split('\n')
-        processed_lines = []
-        
-        for line in lines:
-            line = line.strip()
-            if line and not line.startswith('<') and not line.endswith('>'):
-                if not re.search(r'<[^>]+>', line):  # HTML 태그가 없는 라인만
-                    line = line + '<br>'
-            processed_lines.append(line)
-        
-        return '\n'.join(processed_lines)
+            <div class="code-content"><pre><code class="language-{language}">{code}</code></pre></div>
+        </div>
+        '''
+    
+    # ```language 형태의 코드 블록 처리
+    html_content = re.sub(r'```(\w+)?\s*\n(.*?)\n```', replace_code_block, html_content, flags=re.DOTALL)
+    
+    # 단일 ` 코드를 인라인 코드로 처리
+    html_content = re.sub(r'`([^`]+)`', r'<code style="background: #f1f5f9; padding: 0.2rem 0.4rem; border-radius: 3px; font-family: monospace;">\1</code>', html_content)
+    
+    # HTML 테이블 스타일링
+    html_content = re.sub(r'<table>', '<table class="table">', html_content)
+    
+    # 강조 표시 개선
+    html_content = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', html_content)
+    
+    # 줄바꿈을 <br>로 변경 (단, HTML 태그 안에서는 제외)
+    lines = html_content.split('\n')
+    processed_lines = []
+    
+    for line in lines:
+        line = line.strip()
+        if line and not line.startswith('<') and not line.endswith('>'):
+            if not re.search(r'<[^>]+>', line):  # HTML 태그가 없는 라인만
+                line = line + '<br>'
+        processed_lines.append(line)
+    
+    return '\n'.join(processed_lines)
 
 @app.route('/api/debug_schedule', methods=['GET'])
 def debug_schedule():
