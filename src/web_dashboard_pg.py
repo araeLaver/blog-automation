@@ -144,10 +144,13 @@ def get_stats():
             """)
             site_stats = dict(cursor.fetchall())
             
-            # 파일 타입별 통계
+            # 파일 타입별 통계 (file_type 컬럼이 없을 경우 site 기반으로 처리)
             cursor.execute(f"""
-                SELECT file_type, COUNT(*) FROM {db.schema}.content_files 
-                GROUP BY file_type
+                SELECT 
+                    COALESCE(file_type, CASE WHEN site = 'tistory' THEN 'tistory' ELSE 'wordpress' END) as file_type, 
+                    COUNT(*) 
+                FROM {db.schema}.content_files 
+                GROUP BY COALESCE(file_type, CASE WHEN site = 'tistory' THEN 'tistory' ELSE 'wordpress' END)
             """)
             file_stats = dict(cursor.fetchall())
         
@@ -1027,16 +1030,13 @@ def get_wordpress_files():
         
         with conn.cursor() as cursor:
             cursor.execute(f"""
-                SELECT id, site, title, file_path, file_type, 
-                       COALESCE(word_count, 0) as word_count,
-                       COALESCE(reading_time, 0) as reading_time,
+                SELECT id, site, title, file_path, 
+                       COALESCE(file_type, 'wordpress') as file_type,
                        COALESCE(status, 'draft') as status,
-                       COALESCE(tags, '[]'::jsonb) as tags,
-                       COALESCE(categories, '[]'::jsonb) as categories,
-                       created_at, published_at,
-                       COALESCE(file_size, 0) as file_size
+                       tags, categories,
+                       created_at, published_at
                 FROM {db.schema}.content_files 
-                WHERE file_type = 'wordpress'
+                WHERE COALESCE(file_type, 'wordpress') = 'wordpress' OR site != 'tistory'
                 ORDER BY created_at DESC, id DESC
                 LIMIT 50
             """)
