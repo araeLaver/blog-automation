@@ -67,6 +67,18 @@ class PostgreSQLDatabase:
     def get_connection(self):
         """데이터베이스 연결 반환 (풀링 방식)"""
         try:
+            # 트랜잭션 오류 상태인 경우 연결 재설정
+            if self._connection and not self._connection.closed:
+                try:
+                    # 연결 상태 확인
+                    with self._connection.cursor() as cursor:
+                        cursor.execute("SELECT 1")
+                except psycopg2.Error:
+                    # 연결에 문제가 있으면 재연결
+                    logger.warning("기존 연결에 문제가 있어 재연결합니다.")
+                    self._connection.close()
+                    self._connection = None
+            
             if self._connection is None or self._connection.closed:
                 self._connection = psycopg2.connect(**self.connection_params)
                 self._connection.autocommit = False
@@ -85,6 +97,15 @@ class PostgreSQLDatabase:
         """연결 종료"""
         if self._connection and not self._connection.closed:
             self._connection.close()
+    
+    def _reset_connection_if_needed(self):
+        """트랜잭션 오류 상황에서 연결 재설정"""
+        try:
+            if self._connection and not self._connection.closed:
+                self._connection.close()
+        except:
+            pass
+        self._connection = None
     
     def execute_schema_sql(self, sql_file_path: str):
         """SQL 스키마 파일 실행"""
@@ -192,13 +213,29 @@ class PostgreSQLDatabase:
     
     def get_recent_posts(self, site: str, limit: int = 10) -> List[Dict]:
         """최근 발행 포스트 조회"""
-        conn = self.get_connection()
         try:
+            # 새로운 연결 사용하여 트랜잭션 오류 방지
+            self._reset_connection_if_needed()
+            conn = self.get_connection()
+            
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-                cursor.execute("""
+                # content_history 테이블이 없을 수 있으므로 안전한 쿼리 사용
+                cursor.execute(f"""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = '{self.schema}' 
+                        AND table_name = 'content_history'
+                    )
+                """)
+                
+                if not cursor.fetchone()[0]:
+                    logger.warning(f"{self.schema}.content_history 테이블이 존재하지 않습니다")
+                    return []
+                
+                cursor.execute(f"""
                     SELECT title, category, url, published_date, status, 
                            tags, word_count, reading_time
-                    FROM content_history
+                    FROM {self.schema}.content_history
                     WHERE site = %s AND status = 'published'
                     ORDER BY published_date DESC
                     LIMIT %s
@@ -216,6 +253,7 @@ class PostgreSQLDatabase:
                 
         except Exception as e:
             logger.error(f"최근 포스트 조회 오류: {e}")
+            self._reset_connection_if_needed()
             return []
     
     # ========================================================================
@@ -292,18 +330,13 @@ class PostgreSQLDatabase:
                         file_type: str, metadata: Dict[str, Any]) -> int:
         """콘텐츠 파일 정보 추가"""
         # 새로운 연결을 사용하여 트랜잭션 오류 방지
-        try:
-            if self._connection and not self._connection.closed:
-                self._connection.close()
-            self._connection = None
-        except:
-            pass
+        self._reset_connection_if_needed()
             
         conn = self.get_connection()
         try:
             with conn.cursor() as cursor:
-                cursor.execute("""
-                    INSERT INTO content_files 
+                cursor.execute(f"""
+                    INSERT INTO {self.schema}.content_files 
                     (site, title, file_path, file_type, word_count, reading_time, 
                      tags, categories, file_size, status)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -315,7 +348,7 @@ class PostgreSQLDatabase:
                     metadata.get('tags', []) or [],  # PostgreSQL 배열 타입으로 전달
                     metadata.get('categories', []) or [],  # PostgreSQL 배열 타입으로 전달
                     metadata.get('file_size', 0),
-                    metadata.get('status', 'published')  # 기본값을 published로 설정
+                    metadata.get('status', 'processing')  # processing 상태로 설정
                 ))
                 
                 file_id = cursor.fetchone()[0]
@@ -330,6 +363,7 @@ class PostgreSQLDatabase:
             except:
                 pass
             logger.error(f"콘텐츠 파일 추가 오류: {e}")
+            self._reset_connection_if_needed()
             raise
     
     def get_content_files(self, site: str = None, file_type: str = None, 
@@ -377,12 +411,14 @@ class PostgreSQLDatabase:
                        details: Dict = None, site: str = None, 
                        trace_id: str = None, duration_ms: int = None):
         """시스템 로그 추가"""
-        conn = self.get_connection()
         try:
+            self._reset_connection_if_needed()
+            conn = self.get_connection()
+            
             with conn.cursor() as cursor:
-                cursor.execute("""
-                    INSERT INTO system_logs 
-                    (log_level, component, message, details, site, trace_id, duration_ms)
+                cursor.execute(f"""
+                    INSERT INTO {self.schema}.system_logs 
+                    (level, component, message, details, site, trace_id, duration_ms)
                     VALUES (%s, %s, %s, %s, %s, %s, %s)
                 """, (
                     level, component, message, 
@@ -394,18 +430,21 @@ class PostgreSQLDatabase:
         except Exception as e:
             # 로그 기록 실패 시에도 메인 프로세스는 계속 진행
             print(f"로그 기록 실패: {e}")
+            self._reset_connection_if_needed()
     
     def get_system_logs(self, level: str = None, component: str = None, 
                        limit: int = 100) -> List[Dict]:
         """시스템 로그 조회"""
-        conn = self.get_connection()
         try:
+            self._reset_connection_if_needed()
+            conn = self.get_connection()
+            
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-                query = "SELECT * FROM system_logs WHERE 1=1"
+                query = f"SELECT * FROM {self.schema}.system_logs WHERE 1=1"
                 params = []
                 
                 if level:
-                    query += " AND log_level = %s"
+                    query += " AND level = %s"  # Fixed column name
                     params.append(level)
                 
                 if component:
@@ -428,6 +467,7 @@ class PostgreSQLDatabase:
                 
         except Exception as e:
             logger.error(f"시스템 로그 조회 오류: {e}")
+            self._reset_connection_if_needed()
             return []
     
     # ========================================================================
@@ -683,13 +723,15 @@ class PostgreSQLDatabase:
     
     def get_site_configs(self) -> Dict[str, Dict]:
         """사이트 설정 조회"""
-        conn = self.get_connection()
         try:
+            self._reset_connection_if_needed()
+            conn = self.get_connection()
+            
             with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-                cursor.execute("""
+                cursor.execute(f"""
                     SELECT site_code, site_name, site_url, site_type,
                            content_config, publishing_schedule
-                    FROM site_configs
+                    FROM {self.schema}.site_configs
                     WHERE is_active = TRUE
                 """)
                 
@@ -708,6 +750,7 @@ class PostgreSQLDatabase:
                 
         except Exception as e:
             logger.error(f"사이트 설정 조회 오류: {e}")
+            self._reset_connection_if_needed()
             return {}
     
     def get_topic_stats(self, site: str = None) -> Dict[str, int]:
