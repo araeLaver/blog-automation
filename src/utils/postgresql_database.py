@@ -291,14 +291,22 @@ class PostgreSQLDatabase:
     def add_content_file(self, site: str, title: str, file_path: str, 
                         file_type: str, metadata: Dict[str, Any]) -> int:
         """콘텐츠 파일 정보 추가"""
+        # 새로운 연결을 사용하여 트랜잭션 오류 방지
+        try:
+            if self._connection and not self._connection.closed:
+                self._connection.close()
+            self._connection = None
+        except:
+            pass
+            
         conn = self.get_connection()
         try:
             with conn.cursor() as cursor:
                 cursor.execute("""
                     INSERT INTO content_files 
                     (site, title, file_path, file_type, word_count, reading_time, 
-                     tags, categories, file_size, content_hash, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                     tags, categories, file_size, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """, (
                     site, title, file_path, file_type,
@@ -307,7 +315,6 @@ class PostgreSQLDatabase:
                     json.dumps(metadata.get('tags', []), ensure_ascii=False),
                     json.dumps(metadata.get('categories', []), ensure_ascii=False),
                     metadata.get('file_size', 0),
-                    metadata.get('content_hash', ''),
                     metadata.get('status', 'published')  # 기본값을 published로 설정
                 ))
                 
@@ -318,7 +325,10 @@ class PostgreSQLDatabase:
                 return file_id
                 
         except Exception as e:
-            conn.rollback()
+            try:
+                conn.rollback()
+            except:
+                pass
             logger.error(f"콘텐츠 파일 추가 오류: {e}")
             raise
     
