@@ -312,8 +312,8 @@ class PostgreSQLDatabase:
                     site, title, file_path, file_type,
                     metadata.get('word_count', 0),
                     metadata.get('reading_time', 0),
-                    json.dumps(metadata.get('tags', []), ensure_ascii=False),
-                    json.dumps(metadata.get('categories', []), ensure_ascii=False),
+                    metadata.get('tags', []) or [],  # PostgreSQL 배열 타입으로 전달
+                    metadata.get('categories', []) or [],  # PostgreSQL 배열 타입으로 전달
                     metadata.get('file_size', 0),
                     metadata.get('status', 'published')  # 기본값을 published로 설정
                 ))
@@ -713,8 +713,29 @@ class PostgreSQLDatabase:
     def get_topic_stats(self, site: str = None) -> Dict[str, int]:
         """주제 통계 조회"""
         try:
+            # topic_pool 테이블이 없을 수 있으므로 새로운 연결로 시도
+            if self._connection and not self._connection.closed:
+                try:
+                    self._connection.close()
+                except:
+                    pass
+            self._connection = None
+                
             conn = self.get_connection()
             with conn.cursor() as cursor:
+                # 테이블 존재 확인
+                cursor.execute(f"""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = '{self.schema}' 
+                        AND table_name = 'topic_pool'
+                    )
+                """)
+                
+                if not cursor.fetchone()[0]:
+                    logger.warning(f"{self.schema}.topic_pool 테이블이 존재하지 않습니다")
+                    return {'used_count': 0, 'unused_count': 0, 'total_count': 0}
+                
                 if site:
                     cursor.execute(f"""
                         SELECT 
@@ -741,6 +762,13 @@ class PostgreSQLDatabase:
                 }
         except Exception as e:
             logger.error(f"주제 통계 조회 오류: {e}")
+            # 오류 발생시에도 연결 재설정
+            try:
+                if self._connection and not self._connection.closed:
+                    self._connection.close()
+                self._connection = None
+            except:
+                pass
             return {'used_count': 0, 'unused_count': 0, 'total_count': 0}
     
     def delete_content_file(self, file_id: int) -> bool:
