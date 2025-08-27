@@ -646,31 +646,53 @@ def get_revenue_data():
 
 @app.route('/api/get_today_topics')
 def get_today_topics():
-    """오늘의 듀얼 카테고리 주제 조회"""
+    """오늘의 실제 듀얼 카테고리 주제 조회 - PostgreSQL DB 기반"""
     try:
-        from src.utils.monthly_schedule_manager import monthly_schedule_manager
+        db = get_database()
+        conn = db.get_connection()
+        today = date.today()
         
-        sites = ['unpre', 'untab', 'skewese', 'tistory']
+        with conn.cursor() as cursor:
+            cursor.execute(f"""
+                SELECT site, topic_category, specific_topic
+                FROM {db.schema}.monthly_publishing_schedule
+                WHERE year = %s AND month = %s AND day = %s
+                ORDER BY site, topic_category
+            """, (today.year, today.month, today.day))
+            
+            results = cursor.fetchall()
+            
+        # 사이트별로 Primary/Secondary 구분
         today_topics = {}
         
-        for site in sites:
-            try:
-                primary, secondary = monthly_schedule_manager.get_today_dual_topics(site)
-                if primary and secondary:
-                    today_topics[site] = {
-                        'primary': primary,
-                        'secondary': secondary
-                    }
-                else:
-                    today_topics[site] = {'error': '주제를 찾을 수 없습니다'}
-            except Exception as e:
-                today_topics[site] = {'error': str(e)}
+        for site, category, topic in results:
+            site_lower = site.lower()
+            if site_lower not in today_topics:
+                today_topics[site_lower] = {}
+                
+            # 첫 번째 주제를 Primary로, 두 번째 주제를 Secondary로 분류
+            if 'primary' not in today_topics[site_lower]:
+                today_topics[site_lower]['primary'] = {
+                    'category': category,
+                    'topic': topic
+                }
+            else:
+                today_topics[site_lower]['secondary'] = {
+                    'category': category,
+                    'topic': topic
+                }
         
+        logger.info(f"오늘({today}) 실제 스케줄 조회 완료: {len(results)}개 주제")
         return jsonify(today_topics)
         
     except Exception as e:
         logger.error(f"Today topics error: {e}")
-        return jsonify({'error': str(e)}), 500
+        # 오류 발생시 빈 객체 대신 실제 오류 정보 반환
+        return jsonify({
+            'error': str(e),
+            'message': 'DB에서 오늘 스케줄을 불러올 수 없습니다',
+            'date': date.today().isoformat()
+        }), 500
 
 
 @app.route('/api/system_logs')

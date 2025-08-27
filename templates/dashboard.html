@@ -3660,25 +3660,55 @@
         async function triggerManualPublish() {
             const today = new Date().toISOString().split('T')[0];
             
-            // 오늘 듀얼 카테고리 주제 표시
-            let topicList = '📝 오늘 듀얼 카테고리 발행 주제:\n\n';
-            topicList += '🔸 UNPRE:\n';
-            topicList += '   Primary: [교육/자기계발] 개발자 네트워킹 방법\n';
-            topicList += '   Secondary: [기술/디지털] API 문서화 자동화\n\n';
-            
-            topicList += '🔸 UNTAB:\n';
-            topicList += '   Primary: [라이프스타일] 강아지와 함께 가는 여행지\n';
-            topicList += '   Secondary: [재정/투자] 청약통장 활용 전략\n\n';
-            
-            topicList += '🔸 SKEWESE:\n';
-            topicList += '   Primary: [건강/웰니스] 금연 성공 전략\n';
-            topicList += '   Secondary: [역사/문화] 전통 명절의 유래\n\n';
-            
-            topicList += '🔸 TISTORY:\n';
-            topicList += '   Primary: [엔터테인먼트] 한류 콘텐츠 해외 반응\n';
-            topicList += '   Secondary: [트렌드/이슈] K-뷰티 글로벌 트렌드\n\n';
-            
-            if (!confirm(`⚠️ 오늘(${today}) 듀얼 카테고리 시스템으로 총 8개 콘텐츠를 지금 수동 발행하시겠습니까?\n\n${topicList}📊 사이트별 2개씩, 총 8개 포스트가 생성됩니다.`)) {
+            try {
+                // 실제 오늘 스케줄 가져오기
+                console.log('🔍 오늘 스케줄 조회 중...');
+                const response = await fetch('/api/get_today_topics');
+                const todayTopics = await response.json();
+                
+                console.log('📋 오늘 스케줄:', todayTopics);
+                
+                if (todayTopics.error) {
+                    alert(`❌ 스케줄 조회 오류: ${todayTopics.message || todayTopics.error}`);
+                    return;
+                }
+                
+                // 실제 주제로 알림 메시지 생성
+                let topicList = '📝 오늘 듀얼 카테고리 발행 주제:\n\n';
+                let totalTopics = 0;
+                
+                ['unpre', 'untab', 'skewese', 'tistory'].forEach(site => {
+                    const siteData = todayTopics[site];
+                    if (siteData && !siteData.error) {
+                        const siteName = site.toUpperCase();
+                        topicList += `🔸 ${siteName}:\n`;
+                        
+                        if (siteData.primary) {
+                            topicList += `   Primary: [${siteData.primary.category}] ${siteData.primary.topic}\n`;
+                            totalTopics++;
+                        }
+                        if (siteData.secondary) {
+                            topicList += `   Secondary: [${siteData.secondary.category}] ${siteData.secondary.topic}\n`;
+                            totalTopics++;
+                        }
+                        topicList += '\n';
+                    } else {
+                        topicList += `🔸 ${site.toUpperCase()}: 스케줄 없음\n\n`;
+                    }
+                });
+                
+                if (totalTopics === 0) {
+                    alert('❌ 오늘 발행할 스케줄이 없습니다.');
+                    return;
+                }
+                
+                if (!confirm(`⚠️ 오늘(${today}) 듀얼 카테고리 시스템으로 총 ${totalTopics}개 콘텐츠를 지금 수동 발행하시겠습니까?\n\n${topicList}📊 사이트별 2개씩, 총 ${totalTopics}개 포스트가 생성됩니다.`)) {
+                    return;
+                }
+                
+            } catch (error) {
+                console.error('❌ 스케줄 조회 실패:', error);
+                alert('❌ 스케줄 조회 중 오류가 발생했습니다. 다시 시도해 주세요.');
                 return;
             }
             
