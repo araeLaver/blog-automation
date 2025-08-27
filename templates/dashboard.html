@@ -3742,7 +3742,52 @@
                     if (progressBar) {
                         progressBar.style.width = `${status.progress}%`;
                         progressBar.innerHTML = `${status.progress}%`;
-                        statusDiv.innerHTML = status.message;
+                        
+                        // 상세한 상태 메시지 구성
+                        let detailedStatus = status.message || '처리 중...';
+                        
+                        if (status.in_progress && status.current_step) {
+                            detailedStatus += `<br><small class="text-muted">🔸 ${status.step_details || status.current_step}</small>`;
+                        }
+                        
+                        if (status.current_task) {
+                            detailedStatus += `<br><small class="text-info">📝 현재 작업: ${status.current_task}</small>`;
+                        }
+                        
+                        if (status.elapsed_time) {
+                            detailedStatus += `<br><small class="text-secondary">⏱️ 경과 시간: ${status.elapsed_time}</small>`;
+                        }
+                        
+                        // 진행률 상세 정보
+                        if (status.total_posts > 0) {
+                            const completed = status.completed_posts || 0;
+                            const failed = status.failed_posts || 0;
+                            const total = status.total_posts;
+                            detailedStatus += `<br><small class="text-success">📊 포스트: ${completed}/${total} 완료`;
+                            if (failed > 0) {
+                                detailedStatus += ` (실패: ${failed})`;
+                            }
+                            detailedStatus += `</small>`;
+                        }
+                        
+                        statusDiv.innerHTML = detailedStatus;
+                        
+                        // 에러 표시
+                        if (status.errors && status.errors.length > 0) {
+                            let errorHtml = '<div class="mt-3"><h6 class="text-danger">🚨 오류 로그:</h6><div class="alert alert-danger p-2" style="max-height: 200px; overflow-y: auto;">';
+                            
+                            status.errors.slice(-5).forEach((error, index) => {
+                                const timestamp = new Date(error.timestamp).toLocaleTimeString();
+                                errorHtml += `<small><strong>[${timestamp}]</strong> ${error.site || ''} ${error.type || ''}: ${error.message}<br>`;
+                                if (error.details) {
+                                    errorHtml += `<em class="text-muted">상세: ${error.details}</em><br>`;
+                                }
+                                errorHtml += '</small><hr class="my-1">';
+                            });
+                            
+                            errorHtml += '</div></div>';
+                            statusDiv.innerHTML += errorHtml;
+                        }
                         
                         // 예상 시간 표시
                         const estimatedTimeDiv = document.getElementById('estimatedTime');

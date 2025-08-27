@@ -47,14 +47,23 @@ logger = logging.getLogger(__name__)
 # 전역 데이터베이스 인스턴스
 database = None
 
-# 전역 발행 상태 관리
+# 전역 발행 상태 관리 - 상세 로깅 및 실시간 현황 지원
 publish_status_global = {
     'in_progress': False,
     'current_site': None,
+    'current_task': None,
     'progress': 0,
+    'total_posts': 0,
+    'completed_posts': 0,
+    'failed_posts': 0,
     'results': [],
     'total_sites': 0,
-    'completed_sites': 0
+    'completed_sites': 0,
+    'errors': [],  # 상세 에러 로그
+    'start_time': None,
+    'current_step': None,  # 현재 수행중인 단계
+    'step_details': None,  # 단계별 상세 정보
+    'message': '대기 중...'
 }
 
 def get_target_audience_by_category(category: str) -> str:
@@ -1801,78 +1810,190 @@ def quick_publish():
             from src.generators.tistory_content_exporter import TistoryContentExporter
             from src.generators.wordpress_content_exporter import WordPressContentExporter
 
+            from datetime import datetime
+            import time
+            
+            start_time = datetime.now()
             logger.info("듀얼 카테고리 수동 발행 시작")
             
-            # 상태 초기화
-            publish_status_global['in_progress'] = True
-            publish_status_global['message'] = "발행 준비 중..."
-            publish_status_global['progress'] = 0
-            publish_status_global['current_site'] = None
-            publish_status_global['completed_sites'] = 0
-            publish_status_global['results'] = []
+            # 상세 상태 초기화
+            publish_status_global.update({
+                'in_progress': True,
+                'message': "발행 준비 중...",
+                'progress': 0,
+                'current_site': None,
+                'current_task': None,
+                'current_step': 'initialization',
+                'step_details': '시스템 초기화 및 준비',
+                'completed_sites': 0,
+                'completed_posts': 0,
+                'failed_posts': 0,
+                'total_posts': len(sites) * 2,
+                'total_sites': len(sites),
+                'results': [],
+                'errors': [],
+                'start_time': start_time.isoformat()
+            })
 
             # 각 사이트별로 2개씩 처리 (총 8개)
             total_posts = len(sites) * 2  # 사이트당 2개
             completed_posts = 0
+            
+            logger.info(f"📊 발행 계획: {len(sites)}개 사이트 × 2개 포스트 = {total_posts}개 총 포스트")
+            
+            # 초기화 완료 상태 업데이트
+            publish_status_global.update({
+                'current_step': 'database_connection',
+                'step_details': 'DB 연결 확인 중...',
+                'message': f"DB 연결 확인 중... (총 {total_posts}개 포스트 예정)"
+            })
 
             # DB 연결
             try:
+                logger.info("🔌 DB 연결 시도 중...")
                 db = get_database()
+                logger.info("✅ DB 연결 성공")
+                
+                publish_status_global.update({
+                    'current_step': 'ready_to_publish',
+                    'step_details': 'DB 연결 완료, 발행 시작 준비',
+                    'message': f"DB 연결 성공! 발행 시작 중... (0/{total_posts})"
+                })
+                
             except Exception as e:
-                logger.error(f"DB 연결 오류: {e}")
-                publish_status_global['in_progress'] = False
-                publish_status_global['message'] = f"DB 연결 실패: {str(e)}"
+                error_msg = f"DB 연결 오류: {str(e)}"
+                logger.error(f"❌ {error_msg}")
+                
+                publish_status_global.update({
+                    'in_progress': False,
+                    'current_step': 'failed',
+                    'step_details': 'DB 연결 실패로 발행 중단',
+                    'message': f"❌ DB 연결 실패: {str(e)}",
+                    'errors': [{
+                        'timestamp': datetime.now().isoformat(),
+                        'type': 'database_connection',
+                        'message': error_msg,
+                        'details': str(e)
+                    }]
+                })
                 return
 
-            for site in sites:
+            for site_idx, site in enumerate(sites, 1):
                 try:
                     # 현재 사이트 상태 업데이트
-                    publish_status_global['current_site'] = site
-                    publish_status_global['message'] = f"{site.upper()} 사이트 처리 시작..."
+                    publish_status_global.update({
+                        'current_site': site,
+                        'current_step': 'topic_loading',
+                        'step_details': f'{site.upper()} 사이트 주제 조회',
+                        'message': f"📋 {site.upper()} 사이트 주제 조회 중... ({site_idx}/{len(sites)} 사이트)"
+                    })
                     
-                    logger.info(f"{site} 사이트 듀얼 카테고리 발행 시작")
+                    logger.info(f"🎯 {site} 사이트 듀얼 카테고리 발행 시작 ({site_idx}/{len(sites)})")
 
                     # 듀얼 카테고리 주제 가져오기
                     try:
                         primary_topic, secondary_topic = monthly_schedule_manager.get_today_dual_topics_for_manual(site)
+                        logger.info(f"✅ {site} 주제 조회 성공")
+                        
                     except Exception as e:
-                        logger.error(f"{site} 주제 조회 오류: {e}")
+                        error_msg = f"{site} 주제 조회 오류: {str(e)}"
+                        logger.error(f"❌ {error_msg}")
+                        
+                        publish_status_global['errors'].append({
+                            'timestamp': datetime.now().isoformat(),
+                            'site': site,
+                            'type': 'topic_loading',
+                            'message': error_msg,
+                            'details': str(e)
+                        })
+                        
                         publish_status_global['results'].append({
                             'site': site,
                             'status': 'failed',
                             'message': f'주제 조회 실패: {str(e)}',
-                            'category': 'system'
+                            'category': 'system',
+                            'error_details': str(e)
                         })
                         continue
 
                     if not primary_topic or not secondary_topic:
-                        logger.error(f"{site}의 듀얼 카테고리 주제를 찾을 수 없습니다")
+                        error_msg = f"{site}의 듀얼 카테고리 주제를 찾을 수 없습니다"
+                        logger.error(f"❌ {error_msg}")
+                        
+                        publish_status_global['errors'].append({
+                            'timestamp': datetime.now().isoformat(),
+                            'site': site,
+                            'type': 'missing_topics',
+                            'message': error_msg,
+                            'details': f'Primary: {primary_topic}, Secondary: {secondary_topic}'
+                        })
+                        
                         publish_status_global['results'].append({
                             'site': site,
                             'status': 'failed',
-                            'message': '주제를 찾을 수 없음 - DB 확인 필요',
+                            'message': '주제를 찾을 수 없음 - DB 스케줄 확인 필요',
                             'category': 'system'
                         })
                         continue
 
-                    logger.info(f"{site} 듀얼 주제 - Primary: {primary_topic['topic']}, Secondary: {secondary_topic['topic']}")
+                    logger.info(f"🎯 {site} 듀얼 주제 확인 - Primary: {primary_topic['topic']}, Secondary: {secondary_topic['topic']}")
+                    
+                    # 주제 조회 완료 상태 업데이트
+                    publish_status_global.update({
+                        'current_step': 'content_generation',
+                        'step_details': f'{site.upper()}: Primary + Secondary 콘텐츠 생성',
+                        'message': f"📝 {site.upper()}: Primary [{primary_topic['topic']}] 생성 시작..."
+                    })
 
                     # Primary 카테고리 발행
                     try:
-                        logger.info(f"{site} Primary 카테고리 발행 시작: {primary_topic['topic']}")
+                        logger.info(f"📝 {site} Primary 카테고리 발행 시작: {primary_topic['topic']}")
+                        
+                        # 상태 업데이트
+                        publish_status_global.update({
+                            'current_task': f"Primary: {primary_topic['topic']}",
+                            'step_details': f'{site.upper()}: DB 저장 및 콘텐츠 생성 준비',
+                            'message': f"💾 {site.upper()}: Primary DB 저장 중..."
+                        })
 
                         # DB에 처리중 상태로 추가
-                        primary_file_id = db.add_content_file(
-                            site=site,
-                            title=f"[Primary 생성중] {primary_topic['topic']}",
-                            file_path="processing",
-                            file_type="wordpress" if site != 'tistory' else 'tistory',
-                            metadata={
-                                'status': 'processing',
-                                'category': primary_topic['category'],
-                                'category_type': 'primary'
-                            }
-                        )
+                        try:
+                            primary_file_id = db.add_content_file(
+                                site=site,
+                                title=f"[Primary 생성중] {primary_topic['topic']}",
+                                file_path="processing",
+                                file_type="wordpress" if site != 'tistory' else 'tistory',
+                                metadata={
+                                    'status': 'processing',
+                                    'category': primary_topic['category'],
+                                    'category_type': 'primary',
+                                    'tags': primary_topic.get('keywords', []),
+                                    'categories': [primary_topic['category']]
+                                }
+                            )
+                            logger.info(f"✅ {site} Primary DB 저장 완료 (ID: {primary_file_id})")
+                            
+                        except Exception as e:
+                            error_msg = f"{site} Primary DB 저장 실패: {str(e)}"
+                            logger.error(f"❌ {error_msg}")
+                            
+                            publish_status_global['errors'].append({
+                                'timestamp': datetime.now().isoformat(),
+                                'site': site,
+                                'type': 'database_save',
+                                'category': 'primary',
+                                'topic': primary_topic['topic'],
+                                'message': error_msg,
+                                'details': str(e)
+                            })
+                            
+                            raise Exception(f"DB 저장 실패: {str(e)}")
+                            
+                        # 콘텐츠 생성 상태 업데이트
+                        publish_status_global.update({
+                            'step_details': f'{site.upper()}: Primary 콘텐츠 AI 생성 중',
+                            'message': f"🤖 {site.upper()}: Primary [{primary_topic['topic']}] AI 생성 중..."
+                        })
 
                         # 콘텐츠 생성
                         if site == 'tistory':
@@ -2443,38 +2564,64 @@ def quick_publish():
 
 @app.route('/api/publish_status')
 def publish_status():
-    """발행 상태 조회 API - 실시간 백그라운드 처리 상태"""
+    """발행 상태 조회 API - 실시간 백그라운드 처리 상태 (상세 로깅 포함)"""
     global publish_status_global
     try:
-        # 진행률 계산
-        progress = 0
-        if publish_status_global['total_sites'] > 0:
-            progress = int((publish_status_global['completed_sites'] / publish_status_global['total_sites']) * 100)
+        from datetime import datetime
+        
+        # 진행률 계산 (포스트 기준)
+        post_progress = 0
+        if publish_status_global.get('total_posts', 0) > 0:
+            completed = publish_status_global.get('completed_posts', 0)
+            total = publish_status_global.get('total_posts', 1)
+            post_progress = int((completed / total) * 100)
+        
+        # 사이트 진행률 계산
+        site_progress = 0
+        if publish_status_global.get('total_sites', 0) > 0:
+            site_progress = int((publish_status_global.get('completed_sites', 0) / publish_status_global.get('total_sites', 1)) * 100)
         
         # 상태 결정
-        if publish_status_global['in_progress']:
+        if publish_status_global.get('in_progress', False):
             status = 'in_progress'
-            message = f"발행 중... ({publish_status_global['completed_sites']}/{publish_status_global['total_sites']})"
-            if publish_status_global['current_site']:
-                message += f" 현재: {publish_status_global['current_site']}"
-        elif publish_status_global['completed_sites'] > 0:
+        elif publish_status_global.get('completed_posts', 0) > 0:
             status = 'completed'
-            message = f"발행 완료 ({publish_status_global['completed_sites']}/{publish_status_global['total_sites']})"
         else:
             status = 'idle'
-            message = "대기 중"
-            
-        return jsonify({
-            'success': True,
+        
+        # 실행 시간 계산
+        elapsed_time = None
+        if publish_status_global.get('start_time'):
+            try:
+                start = datetime.fromisoformat(publish_status_global['start_time'])
+                elapsed = datetime.now() - start
+                elapsed_time = f"{elapsed.seconds // 60}분 {elapsed.seconds % 60}초"
+            except:
+                pass
+        
+        # 응답 데이터 구성
+        response = {
             'status': status,
-            'progress': progress,
-            'in_progress': publish_status_global['in_progress'],
-            'message': message,
-            'current_site': publish_status_global['current_site'],
-            'completed_sites': publish_status_global['completed_sites'],
-            'total_sites': publish_status_global['total_sites'],
-            'results': publish_status_global['results']
-        })
+            'message': publish_status_global.get('message', '대기 중...'),
+            'progress': post_progress,
+            'site_progress': site_progress,
+            'current_site': publish_status_global.get('current_site'),
+            'current_task': publish_status_global.get('current_task'),
+            'current_step': publish_status_global.get('current_step'),
+            'step_details': publish_status_global.get('step_details'),
+            'completed_posts': publish_status_global.get('completed_posts', 0),
+            'failed_posts': publish_status_global.get('failed_posts', 0),
+            'total_posts': publish_status_global.get('total_posts', 0),
+            'completed_sites': publish_status_global.get('completed_sites', 0),
+            'total_sites': publish_status_global.get('total_sites', 0),
+            'results': publish_status_global.get('results', []),
+            'errors': publish_status_global.get('errors', []),  # 상세 에러 로그
+            'start_time': publish_status_global.get('start_time'),
+            'elapsed_time': elapsed_time,
+            'in_progress': publish_status_global.get('in_progress', False)
+        }
+        
+        return jsonify(response)
         
     except Exception as e:
         logger.error(f"Publish status error: {e}")
