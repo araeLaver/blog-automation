@@ -294,7 +294,7 @@ class WordPressPublisher:
                     elif attempt == 2:
                         # 3차 시도: 최소 헤더와 JSON 파라미터
                         headers = {"Authorization": self.headers["Authorization"]}
-                        response = requests.post(
+                        response = self.session.post(
                             f"{self.api_url}posts",
                             headers=headers,
                             json=post_data,  # json 파라미터 사용
@@ -306,7 +306,7 @@ class WordPressPublisher:
                     
                     # 1차, 2차 시도만 여기서 실행 (3차는 위에서 이미 실행됨)
                     if attempt != 2:
-                        response = requests.post(
+                        response = self.session.post(
                             f"{self.api_url}posts",
                             headers=headers,
                             data=json.dumps(post_data),
@@ -349,9 +349,8 @@ class WordPressPublisher:
         try:
             # 방법 1: 포스트 업데이트로 featured_media 설정
             update_data = {"featured_media": media_id}
-            response = requests.post(
+            response = self.session.post(
                 f"{self.api_url}posts/{post_id}",
-                headers=self.headers,
                 data=json.dumps(update_data),
                 timeout=15
             )
@@ -364,9 +363,8 @@ class WordPressPublisher:
             
             # 방법 2: 메타 필드 직접 설정
             meta_data = {"_thumbnail_id": str(media_id)}
-            response = requests.post(
+            response = self.session.post(
                 f"{self.api_url}posts/{post_id}/meta",
-                headers=self.headers,
                 data=json.dumps(meta_data),
                 timeout=15
             )
@@ -392,7 +390,7 @@ class WordPressPublisher:
                 # 외부 URL인 경우 다운로드 (단순화)
                 print(f"[UPLOAD] Downloading from URL: {image['url']}")
                 try:
-                    img_response = requests.get(image['url'], timeout=10)  # timeout 단축
+                    img_response = self.session.get(image['url'], timeout=10)  # timeout 단축
                     print(f"[UPLOAD] Download status code: {img_response.status_code}")
                     
                     if img_response.status_code != 200:
@@ -424,7 +422,7 @@ class WordPressPublisher:
             }
             
             print(f"WordPress 미디어 업로드 중: {filename}")
-            response = requests.post(
+            response = self.session.post(
                 f"{self.api_url}media",
                 headers=headers,
                 data=img_data,
@@ -476,9 +474,8 @@ class WordPressPublisher:
     def _load_categories(self):
         """모든 카테고리 로드"""
         try:
-            response = requests.get(
+            response = self.session.get(
                 f"{self.api_url}categories?per_page=100",
-                headers=self.headers,
                 timeout=10
             )
             if response.status_code == 200:
@@ -492,9 +489,8 @@ class WordPressPublisher:
         """카테고리 생성"""
         try:
             data = {"name": name}
-            response = requests.post(
+            response = self.session.post(
                 f"{self.api_url}categories",
-                headers=self.headers,
                 data=json.dumps(data),
                 timeout=10
             )
@@ -538,9 +534,8 @@ class WordPressPublisher:
     def _load_tags(self):
         """모든 태그 로드"""
         try:
-            response = requests.get(
+            response = self.session.get(
                 f"{self.api_url}tags?per_page=100",
-                headers=self.headers,
                 timeout=10
             )
             if response.status_code == 200:
@@ -554,9 +549,8 @@ class WordPressPublisher:
         """태그 생성"""
         try:
             data = {"name": name}
-            response = requests.post(
+            response = self.session.post(
                 f"{self.api_url}tags",
-                headers=self.headers,
                 data=json.dumps(data),
                 timeout=10
             )
@@ -1091,9 +1085,8 @@ class WordPressPublisher:
     def update_post(self, post_id: int, updates: Dict) -> bool:
         """기존 포스트 업데이트"""
         try:
-            response = requests.post(
+            response = self.session.post(
                 f"{self.api_url}posts/{post_id}",
-                headers=self.headers,
                 data=json.dumps(updates),
                 timeout=30
             )
@@ -1105,9 +1098,8 @@ class WordPressPublisher:
     def get_recent_posts(self, count: int = 10) -> List[Dict]:
         """최근 포스트 가져오기"""
         try:
-            response = requests.get(
+            response = self.session.get(
                 f"{self.api_url}posts",
-                headers=self.headers,
                 params={"per_page": count, "orderby": "date", "order": "desc"},
                 timeout=10
             )
