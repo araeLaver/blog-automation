@@ -778,6 +778,128 @@ def download_file(filepath):
         return jsonify({'error': f'Download error: {str(e)}'}), 500
 
 
+@app.route('/api/download_content/<int:file_id>')
+def download_content(file_id):
+    """콘텐츠 다운로드 (PostgreSQL 기반)"""
+    try:
+        db = get_database()
+        
+        # DB에서 콘텐츠 조회
+        conn = db.get_connection()
+        with conn.cursor() as cursor:
+            cursor.execute(f"""
+                SELECT id, title, content, category, keywords, site, created_at, file_path
+                FROM {db.schema}.content_files 
+                WHERE id = %s
+            """, (file_id,))
+            
+            result = cursor.fetchone()
+            
+            if not result:
+                logger.error(f"콘텐츠를 찾을 수 없음: ID {file_id}")
+                return jsonify({'error': 'Content not found'}), 404
+            
+            content_id, title, content, category, keywords, site, created_at, file_path = result
+            
+            # HTML 콘텐츠 생성
+            html_content = f"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title}</title>
+    <style>
+        body {{
+            font-family: 'Noto Sans KR', Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+        }}
+        .container {{
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }}
+        .header {{
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }}
+        .title {{
+            color: #333;
+            font-size: 2em;
+            font-weight: bold;
+            margin: 0;
+        }}
+        .meta {{
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }}
+        .content {{
+            color: #444;
+            font-size: 1.1em;
+            line-height: 1.8;
+        }}
+        .keywords {{
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }}
+        .keyword {{
+            display: inline-block;
+            background: #007bff;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">{title}</h1>
+            <div class="meta">
+                카테고리: {category} | 사이트: {site.upper()} | 생성일: {created_at.strftime('%Y-%m-%d %H:%M')}
+            </div>
+        </div>
+        
+        <div class="content">
+            {content.replace(chr(10), '<br>')}
+        </div>
+        
+        <div class="keywords">
+            <strong>키워드:</strong><br>
+            {''.join([f'<span class="keyword">{keyword}</span>' for keyword in (keywords or [])])}
+        </div>
+    </div>
+</body>
+</html>"""
+            
+            # 파일로 저장 후 다운로드
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
+                f.write(html_content)
+                temp_path = f.name
+            
+            filename = f"{title[:30]}_{site}_{content_id}.html"
+            # 파일명에서 특수문자 제거
+            import re
+            filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
+            
+            return send_file(temp_path, as_attachment=True, download_name=filename)
+            
+    except Exception as e:
+        logger.error(f"콘텐츠 다운로드 오류: {e}")
+        return jsonify({'error': f'Download error: {str(e)}'}), 500
+
 @app.route('/api/download_tistory/<path:filepath>')
 def download_tistory(filepath):
     """Tistory 파일 다운로드 (임시 호환성)"""
@@ -806,7 +928,7 @@ def download_tistory(filepath):
 
 @app.route('/api/publish_to_wordpress', methods=['POST'])
 def publish_to_wordpress():
-    """WordPress에 실제 발행"""
+    """WordPress에 실제 발행 - 진행상황 업데이트 포함"""
     try:
         from src.publishers.wordpress_publisher import WordPressPublisher
         
@@ -817,9 +939,28 @@ def publish_to_wordpress():
         if not site or not file_id:
             return jsonify({'success': False, 'error': 'site와 file_id가 필요합니다'}), 400
         
+        # 발행 상태 초기화
+        global publish_status_global
+        publish_status_global.update({
+            'in_progress': True,
+            'current_site': site,
+            'current_task': f'콘텐츠 ID {file_id} 발행 중',
+            'current_step': 'preparation',
+            'step_details': f'{site.upper()} 사이트로 개별 발행 시작',
+            'message': f'📤 {site.upper()} 사이트로 발행 시작...',
+            'progress': 10
+        })
+        
         db = get_database()
         
         # 파일 정보 조회
+        publish_status_global.update({
+            'current_step': 'database_query',
+            'step_details': f'DB에서 콘텐츠 정보 조회',
+            'message': f'📋 콘텐츠 정보 조회 중...',
+            'progress': 20
+        })
+        
         conn = db.get_connection()
         with conn.cursor() as cursor:
             cursor.execute(f"""
@@ -830,6 +971,13 @@ def publish_to_wordpress():
             
             file_info = cursor.fetchone()
             if not file_info:
+                publish_status_global.update({
+                    'in_progress': False,
+                    'current_step': 'error',
+                    'step_details': '파일을 찾을 수 없음',
+                    'message': '❌ 파일을 찾을 수 없습니다',
+                    'progress': 0
+                })
                 return jsonify({'success': False, 'error': '파일을 찾을 수 없습니다'}), 404
             
             title, file_path, tags, categories = file_info
@@ -842,9 +990,23 @@ def publish_to_wordpress():
             }
         
         # HTML 파일에서 콘텐츠 추출
+        publish_status_global.update({
+            'current_step': 'file_reading',
+            'step_details': f'콘텐츠 파일 읽기',
+            'message': f'📄 콘텐츠 파일 로드 중...',
+            'progress': 30
+        })
+        
         from pathlib import Path
         html_file = Path(file_path)
         if not html_file.exists():
+            publish_status_global.update({
+                'in_progress': False,
+                'current_step': 'error',
+                'step_details': '파일이 존재하지 않음',
+                'message': '❌ 파일이 존재하지 않습니다',
+                'progress': 0
+            })
             return jsonify({'success': False, 'error': '파일이 존재하지 않습니다'}), 404
         
         # HTML 파일 내용 읽기
@@ -864,7 +1026,28 @@ def publish_to_wordpress():
         
         # WordPress Publisher로 실제 발행
         try:
+            publish_status_global.update({
+                'current_step': 'wordpress_connection',
+                'step_details': f'{site.upper()} WordPress 연결 초기화',
+                'message': f'🔗 {site.upper()} WordPress 연결 중...',
+                'progress': 40
+            })
+            
             publisher = WordPressPublisher(site)
+            
+            # 연결 테스트
+            if not publisher.test_connection():
+                publish_status_global.update({
+                    'in_progress': False,
+                    'current_step': 'error',
+                    'step_details': f'{site.upper()} WordPress 연결 실패',
+                    'message': f'❌ {site.upper()} WordPress 연결 실패 - 호스팅 차단 또는 설정 오류',
+                    'progress': 0
+                })
+                return jsonify({
+                    'success': False, 
+                    'error': f'{site.upper()} WordPress API 연결 실패 - 호스팅에서 REST API가 차단되었을 수 있습니다'
+                }), 503
             
             # 디버깅: 파일 경로와 메타데이터 파일 존재 확인
             print(f"HTML 파일: {html_file}")
@@ -873,6 +1056,13 @@ def publish_to_wordpress():
             print(f"HTML 내용 길이: {len(html_content)}")
             
             # 고품질 대표이미지 생성 (Pexels API 우선, 로컬 폴백)
+            publish_status_global.update({
+                'current_step': 'image_generation',
+                'step_details': f'대표이미지 생성',
+                'message': f'🖼️ 대표이미지 생성 중...',
+                'progress': 50
+            })
+            
             images = []
             try:
                 from src.utils.safe_image_generator import safe_image_generator
@@ -925,10 +1115,24 @@ def publish_to_wordpress():
                 }
             
             # WordPress에 실제 발행 (이미지 포함)
+            publish_status_global.update({
+                'current_step': 'publishing',
+                'step_details': f'{site.upper()} WordPress로 콘텐츠 전송',
+                'message': f'🚀 {site.upper()}로 콘텐츠 발행 중...',
+                'progress': 70
+            })
+            
             success, result = publisher.publish_post(content_data, images=images, draft=False)
             
             if success:
                 # 파일 상태 업데이트
+                publish_status_global.update({
+                    'current_step': 'completion',
+                    'step_details': f'발행 완료 - DB 업데이트',
+                    'message': f'✅ {site.upper()} 발행 성공!',
+                    'progress': 90
+                })
+                
                 db.update_content_file_status(
                     file_id=file_id,
                     status='published',
@@ -944,12 +1148,27 @@ def publish_to_wordpress():
                     site=site
                 )
                 
+                publish_status_global.update({
+                    'in_progress': False,
+                    'current_step': 'success',
+                    'step_details': f'{site.upper()} 발행 완료',
+                    'message': f'🎉 {site.upper()}에 성공적으로 발행되었습니다',
+                    'progress': 100
+                })
+                
                 return jsonify({
                     'success': True,
                     'message': f'{site} 사이트에 성공적으로 발행되었습니다',
                     'url': result
                 })
             else:
+                publish_status_global.update({
+                    'in_progress': False,
+                    'current_step': 'error',
+                    'step_details': f'{site.upper()} 발행 실패',
+                    'message': f'❌ {site.upper()} 발행 실패: {result}',
+                    'progress': 0
+                })
                 return jsonify({
                     'success': False, 
                     'error': f'WordPress 발행 실패: {result}'
@@ -957,6 +1176,13 @@ def publish_to_wordpress():
                 
         except Exception as wp_error:
             logger.error(f"WordPress API 오류: {wp_error}")
+            publish_status_global.update({
+                'in_progress': False,
+                'current_step': 'error',
+                'step_details': f'WordPress 연결 오류',
+                'message': f'❌ WordPress API 오류: {str(wp_error)}',
+                'progress': 0
+            })
             return jsonify({
                 'success': False, 
                 'error': f'WordPress 연결 오류: {str(wp_error)}'
@@ -964,6 +1190,13 @@ def publish_to_wordpress():
         
     except Exception as e:
         logger.error(f"발행 오류: {e}")
+        publish_status_global.update({
+            'in_progress': False,
+            'current_step': 'error',
+            'step_details': f'시스템 오류',
+            'message': f'❌ 시스템 오류: {str(e)}',
+            'progress': 0
+        })
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -2043,31 +2276,30 @@ def quick_publish():
                                     }
                                 )
                                 
-                                # 발행 완료 시간 업데이트
+                                # 발행 완료 시간 업데이트 - DB에 바로 반영되도록
                                 from datetime import datetime
                                 db.update_file_status(final_file_id, 'published', datetime.now())
-
-                                # Tistory 자동 사이트 발행
+                                
+                                # 콘텐츠 목록에 즉시 반영되도록 메타데이터 업데이트
                                 try:
-                                    logger.info(f"Tistory Primary 자동 발행 시작: {primary_topic['topic']}")
-                                    # TODO: Tistory API를 통한 자동 발행 로직 추가
-                                    # 현재는 Tistory Publisher가 구현되지 않아 로그만 남김
-                                    publish_status_global['results'].append({
-                                        'site': site,
-                                        'status': 'success',
-                                        'message': f'Primary 콘텐츠 생성 완료, Tistory 자동 업로드 준비 중: {primary_topic["topic"]}',
-                                        'category': 'primary',
-                                        'topic': primary_topic['topic']
+                                    db.update_content_metadata(final_file_id, {
+                                        'category': primary_topic['category'],
+                                        'category_type': 'primary',
+                                        'tags': content_data.get('tags', []),
+                                        'auto_published': True
                                     })
-                                except Exception as publish_error:
-                                    logger.error(f"Tistory Primary 자동 발행 실패: {publish_error}")
-                                    publish_status_global['results'].append({
-                                        'site': site,
-                                        'status': 'success', # 콘텐츠는 생성됐으므로 success
-                                        'message': f'Primary 콘텐츠 생성 완료, 사이트 업로드는 수동 필요: {primary_topic["topic"]}',
-                                        'category': 'primary',
-                                        'topic': primary_topic['topic']
-                                    })
+                                except Exception as meta_error:
+                                    logger.warning(f"메타데이터 업데이트 실패: {meta_error}")
+
+                                # Tistory는 수동 발행만 지원 (자동 발행 제거)
+                                logger.info(f"Tistory Primary 콘텐츠 생성 완료 (수동 발행): {primary_topic['topic']}")
+                                publish_status_global['results'].append({
+                                    'site': site,
+                                    'status': 'success',
+                                    'message': f'Primary 콘텐츠 생성 완료 (수동 발행 필요): {primary_topic["topic"]}',
+                                    'category': 'primary',
+                                    'topic': primary_topic['topic']
+                                })
 
                                 logger.info(f"{site} Primary 발행 성공: {primary_topic['topic']}")
                             else:
@@ -2109,9 +2341,20 @@ def quick_publish():
                                     }
                                 )
                                 
-                                # 발행 완료 시간 업데이트
+                                # 발행 완료 시간 업데이트 - DB에 바로 반영되도록
                                 from datetime import datetime
                                 db.update_file_status(final_file_id, 'published', datetime.now())
+                                
+                                # 콘텐츠 목록에 즉시 반영되도록 메타데이터 업데이트
+                                try:
+                                    db.update_content_metadata(final_file_id, {
+                                        'category': primary_topic['category'],
+                                        'category_type': 'primary',
+                                        'tags': content_data.get('tags', []),
+                                        'auto_published': True
+                                    })
+                                except Exception as meta_error:
+                                    logger.warning(f"메타데이터 업데이트 실패: {meta_error}")
 
                                 # WordPress 자동 사이트 발행
                                 try:
@@ -2165,7 +2408,7 @@ def quick_publish():
                                                 except:
                                                     images = []
                                                 
-                                                # 콘텐츠 데이터 준비
+                                                # 콘텐츠 데이터 준비 (카테고리 보강)
                                                 if structured_content and structured_content.get('sections'):
                                                     content_data = {
                                                         'title': structured_content.get('title', title),
@@ -2173,7 +2416,7 @@ def quick_publish():
                                                         'sections': structured_content.get('sections', []),
                                                         'conclusion': structured_content.get('conclusion', ''),
                                                         'meta_description': structured_content.get('meta_description', ''),
-                                                        'categories': categories if categories else [],
+                                                        'categories': categories if categories else [primary_topic['category']],
                                                         'tags': tags if tags else []
                                                     }
                                                 else:
@@ -2181,7 +2424,7 @@ def quick_publish():
                                                         'title': title,
                                                         'content': html_content,
                                                         'meta_description': '',
-                                                        'categories': categories if categories else [],
+                                                        'categories': categories if categories else [primary_topic['category']],
                                                         'tags': tags if tags else []
                                                     }
                                                 
@@ -2296,7 +2539,7 @@ def quick_publish():
 
                                 # DB 업데이트
                                 db.delete_content_file(secondary_file_id)
-                                final_file_id = db.add_content_file(
+                                final_secondary_file_id = db.add_content_file(
                                     site=site,
                                     title=content_data['title'],
                                     file_path=filepath,
@@ -2309,29 +2552,17 @@ def quick_publish():
                                 )
                                 
                                 # 발행 완료 시간 업데이트
-                                db.update_file_status(final_file_id, 'published', datetime.now())
+                                db.update_file_status(final_secondary_file_id, 'published', datetime.now())
 
-                                # Tistory Secondary 자동 사이트 발행
-                                try:
-                                    logger.info(f"Tistory Secondary 자동 발행 시작: {secondary_topic['topic']}")
-                                    # TODO: Tistory API를 통한 자동 발행 로직 추가
-                                    # 현재는 Tistory Publisher가 구현되지 않아 로그만 남김
-                                    publish_status_global['results'].append({
-                                        'site': site,
-                                        'status': 'success',
-                                        'message': f'Secondary 콘텐츠 생성 완료, Tistory 자동 업로드 준비 중: {secondary_topic["topic"]}',
-                                        'category': 'secondary',
-                                        'topic': secondary_topic['topic']
-                                    })
-                                except Exception as publish_error:
-                                    logger.error(f"Tistory Secondary 자동 발행 실패: {publish_error}")
-                                    publish_status_global['results'].append({
-                                        'site': site,
-                                        'status': 'success', # 콘텐츠는 생성됐으므로 success
-                                        'message': f'Secondary 콘텐츠 생성 완료, 사이트 업로드는 수동 필요: {secondary_topic["topic"]}',
-                                        'category': 'secondary',
-                                        'topic': secondary_topic['topic']
-                                    })
+                                # Tistory는 수동 발행만 지원 (자동 발행 제거)
+                                logger.info(f"Tistory Secondary 콘텐츠 생성 완료 (수동 발행): {secondary_topic['topic']}")
+                                publish_status_global['results'].append({
+                                    'site': site,
+                                    'status': 'success',
+                                    'message': f'Secondary 콘텐츠 생성 완료 (수동 발행 필요): {secondary_topic["topic"]}',
+                                    'category': 'secondary',
+                                    'topic': secondary_topic['topic']
+                                })
 
                                 logger.info(f"{site} Secondary 발행 성공: {secondary_topic['topic']}")
                             else:
@@ -2428,7 +2659,7 @@ def quick_publish():
                                                 except:
                                                     images = []
                                                 
-                                                # 콘텐츠 데이터 준비
+                                                # 콘텐츠 데이터 준비 (카테고리 보강)
                                                 if structured_content and structured_content.get('sections'):
                                                     content_data = {
                                                         'title': structured_content.get('title', title),
@@ -2436,7 +2667,7 @@ def quick_publish():
                                                         'sections': structured_content.get('sections', []),
                                                         'conclusion': structured_content.get('conclusion', ''),
                                                         'meta_description': structured_content.get('meta_description', ''),
-                                                        'categories': categories if categories else [],
+                                                        'categories': categories if categories else [primary_topic['category']],
                                                         'tags': tags if tags else []
                                                     }
                                                 else:
@@ -2444,7 +2675,7 @@ def quick_publish():
                                                         'title': title,
                                                         'content': html_content,
                                                         'meta_description': '',
-                                                        'categories': categories if categories else [],
+                                                        'categories': categories if categories else [primary_topic['category']],
                                                         'tags': tags if tags else []
                                                     }
                                                 

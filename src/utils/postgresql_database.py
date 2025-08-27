@@ -211,6 +211,28 @@ class PostgreSQLDatabase:
             logger.error(f"콘텐츠 추가 오류: {e}")
             raise
     
+    def update_content_metadata(self, file_id: int, metadata: Dict):
+        """콘텐츠 메타데이터 업데이트 (자동 발행 시 목록 반영용)"""
+        try:
+            self._reset_connection_if_needed()
+            conn = self.get_connection()
+            
+            with conn.cursor() as cursor:
+                # metadata 컬럼을 JSON 형태로 업데이트
+                cursor.execute(f"""
+                    UPDATE {self.schema}.content_files
+                    SET metadata = metadata || %s::jsonb
+                    WHERE id = %s
+                """, (json.dumps(metadata), file_id))
+                
+                conn.commit()
+                logger.info(f"콘텐츠 메타데이터 업데이트 완료: ID={file_id}")
+                
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"메타데이터 업데이트 오류: {e}")
+            # 에러를 무시하고 계속 진행 (메타데이터 업데이트는 선택사항)
+    
     def get_recent_posts(self, site: str, limit: int = 10) -> List[Dict]:
         """최근 발행 포스트 조회"""
         try:

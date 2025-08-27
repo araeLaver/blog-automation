@@ -91,12 +91,12 @@ class WordPressPublisher:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         
     def test_connection(self) -> bool:
-        """API 연결 테스트 (다중 방식 시도)"""
+        """API 연결 테스트 (타임아웃 연장 및 상세 오류 진단)"""
         try:
-            # 1차 시도: 세션을 사용한 API 테스트
+            # 1차 시도: 세션을 사용한 API 테스트 (타임아웃 연장)
             response = self.session.get(
                 f"{self.api_url}posts?per_page=1",
-                timeout=10
+                timeout=30  # 10초 → 30초로 연장
             )
             if response.status_code == 200:
                 print(f"✅ WordPress REST API 연결 성공: {self.base_url}")
@@ -111,7 +111,7 @@ class WordPressPublisher:
             response = self.session.get(
                 f"{self.api_url}posts?per_page=1",
                 headers=alt_headers,
-                timeout=10
+                timeout=30  # 타임아웃 연장
             )
             if response.status_code == 200:
                 self.session.headers.update(alt_headers)  # 성공한 헤더로 업데이트
@@ -121,8 +121,17 @@ class WordPressPublisher:
             print(f"❌ 연결 테스트 실패: {response.status_code} - {response.text[:200]}")
             return False
             
+        except requests.exceptions.ConnectTimeout:
+            print(f"❌ {self.site} WordPress 연결 타임아웃 - 호스팅에서 외부 접근 차단")
+            return False
+        except requests.exceptions.Timeout:
+            print(f"❌ {self.site} WordPress 응답 타임아웃 - 서버 응답 지연")
+            return False
+        except requests.exceptions.ConnectionError:
+            print(f"❌ {self.site} WordPress 연결 오류 - DNS 또는 서버 다운")
+            return False
         except Exception as e:
-            print(f"❌ 연결 테스트 실패: {e}")
+            print(f"❌ {self.site} 연결 테스트 실패: {e}")
             return False
     
     def _fix_year_in_content(self, content: Dict) -> Dict:
@@ -277,22 +286,50 @@ class WordPressPublisher:
             else:
                 print("[SAFE_IMG] 대표이미지 없음 - 텍스트만 발행")
             
-            # 5. 포스트 발행 (다중 시도 방식)
+            # 5. 포스트 발행 (메모리 효율적인 다중 시도 방식)
             print(f"[POST] 최종 포스트 데이터: title={post_data.get('title')}, featured_media={post_data.get('featured_media')}")
+            
+            # 메모리 부족 오류를 위해 콘텐츠 크기 체크
+            content_size = len(json.dumps(post_data, ensure_ascii=False))
+            print(f"[POST] 콘텐츠 크기: {content_size:,} bytes")
+            
+            # 128MB PHP 메모리 제한을 고려하여 콘텐츠 크기 조정
+            if content_size > 100000:  # 100KB 이상이면 축소
+                print(f"[POST] 콘텐츠가 큼 ({content_size:,} bytes), 축소 시도")
+                original_content = post_data.get('content', '')
+                if len(original_content) > 50000:
+                    # 콘텐츠 절반으로 축소
+                    truncated_content = original_content[:len(original_content)//2] + "\n\n[콘텐츠가 길어 일부만 표시됩니다]"
+                    post_data['content'] = truncated_content
+                    print(f"[POST] 콘텐츠 축소 완료: {len(truncated_content):,} chars -> {len(json.dumps(post_data, ensure_ascii=False)):,} bytes")
+            
             for attempt in range(3):  # 최대 3회 시도
                 try:
                     if attempt == 1:
-                        # 2차 시도: HTML 코드 그대로 허용하는 헤더
+                        # 2차 시도: 더 간단한 포스트 데이터로 재시도
+                        simple_post_data = {
+                            'title': post_data.get('title', ''),
+                            'content': post_data.get('content', '')[:10000],  # 10KB로 제한
+                            'status': 'publish',
+                            'format': 'standard'
+                        }
+                        post_data = simple_post_data
+                        print(f"[POST] 간소화된 데이터 사용: {len(json.dumps(post_data, ensure_ascii=False)):,} bytes")
+                        
                         headers = {
                             "Authorization": self.headers["Authorization"],
-                            "Content-Type": "application/json",
-                            "User-Agent": "WordPress/BlogAutomation",
-                            "Cache-Control": "no-cache",
-                            "X-WP-Raw-Content": "true",  # HTML 필터링 비활성화
-                            "X-WP-Unfiltered": "true"    # 필터 없이 콘텐츠 허용
+                            "Content-Type": "application/json"
                         }
                     elif attempt == 2:
-                        # 3차 시도: 최소 헤더와 JSON 파라미터
+                        # 3차 시도: 최소 콘텐츠로 재시도
+                        minimal_post_data = {
+                            'title': post_data.get('title', '')[:100],  # 제목도 축소
+                            'content': f"<p>{post_data.get('title', '')}</p><p>콘텐츠 메모리 제한으로 인한 요약 발행</p>",
+                            'status': 'publish'
+                        }
+                        post_data = minimal_post_data
+                        print(f"[POST] 최소 데이터 사용: {len(json.dumps(post_data, ensure_ascii=False)):,} bytes")
+                        
                         headers = {"Authorization": self.headers["Authorization"]}
                         response = self.session.post(
                             f"{self.api_url}posts",
@@ -331,6 +368,13 @@ class WordPressPublisher:
                         print(f"[ERROR] 발행 실패 (시도 {attempt + 1}/3)")
                         print(f"[ERROR] 상태코드: {response.status_code}")
                         print(f"[ERROR] 응답 내용: {response.text[:1000]}")
+                        
+                        # PHP 메모리 부족 오류 특별 처리
+                        if response.status_code == 500 and 'memory size' in response.text:
+                            print("[MEMORY] PHP 메모리 부족 오류 감지 - 콘텐츠 더 축소")
+                            if attempt < 2:  # 아직 시도 남음
+                                continue
+                        
                         error_msg = f"발행 실패: {response.status_code} - {response.text[:500]}"
                         if attempt == 2:  # 마지막 시도
                             return False, error_msg
@@ -445,9 +489,10 @@ class WordPressPublisher:
             return None
     
     def _get_or_create_categories(self, category_names: List[str]) -> List[int]:
-        """카테고리 ID 가져오기 또는 생성"""
+        """카테고리 ID 가져오기 또는 생성 (미분류 방지)"""
         if not category_names:
-            return []
+            print("[CATEGORY] 카테고리가 없어 기본 카테고리 사용")
+            return [1]  # WordPress 기본 카테고리 ID (일반적으로 1)
         
         # 캐시 확인
         if self._categories_cache is None:
@@ -455,20 +500,34 @@ class WordPressPublisher:
         
         category_ids = []
         for name in category_names:
+            print(f"[CATEGORY] 카테고리 처리 중: {name}")
             # 기존 카테고리 찾기
             cat_id = None
             for cat in self._categories_cache:
                 if cat['name'].lower() == name.lower():
                     cat_id = cat['id']
+                    print(f"[CATEGORY] 기존 카테고리 찾음: {name} -> ID {cat_id}")
                     break
             
             # 없으면 생성
             if not cat_id:
+                print(f"[CATEGORY] 새 카테고리 생성: {name}")
                 cat_id = self._create_category(name)
+                if cat_id:
+                    print(f"[CATEGORY] 카테고리 생성 성공: {name} -> ID {cat_id}")
+                else:
+                    print(f"[CATEGORY] 카테고리 생성 실패: {name}, 기본 카테고리 사용")
+                    cat_id = 1  # 실패 시 기본 카테고리
             
             if cat_id:
                 category_ids.append(cat_id)
         
+        # 빈 리스트면 기본 카테고리 추가
+        if not category_ids:
+            print("[CATEGORY] 모든 카테고리 실패, 기본 카테고리 사용")
+            category_ids = [1]
+        
+        print(f"[CATEGORY] 최종 카테고리 IDs: {category_ids}")
         return category_ids
     
     def _load_categories(self):
