@@ -458,46 +458,55 @@ class WordPressContentExporter:
         return '\n'.join(html)
     
     def _create_wordpress_content(self, content: Dict, images: List[Dict]) -> str:
-        """WordPress 에디터용 HTML 생성"""
+        """WordPress 에디터용 개선된 HTML 생성"""
         html = []
         
-        # 서론
+        # 서론 - 스타일링 개선
         if content.get('introduction'):
-            html.append(f"<p><strong>{content['introduction']}</strong></p>")
+            html.append(f'<div class="intro-section" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin: 20px 0; box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);">')
+            html.append(f'<h3 style="color: white; margin-top: 0; font-size: 1.3em; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">📖 들어가며</h3>')
+            html.append(f'<p style="font-size: 1.1em; line-height: 1.7; margin-bottom: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.2);">{self._format_text_content(content["introduction"])}</p>')
+            html.append('</div>')
         
         # 첫 번째 이미지
         if images and len(images) > 0:
-            html.append(f'<p style="text-align: center;">')
-            html.append(f'<img class="aligncenter size-large" src="{images[0].get("url", "")}" alt="{images[0].get("alt", "")}" />')
-            html.append(f'</p>')
+            html.append(f'<div style="text-align: center; margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 12px; border-left: 4px solid #007cba;">')
+            html.append(f'<img class="aligncenter size-large" src="{images[0].get("url", "")}" alt="{images[0].get("alt", "")}" style="border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); max-width: 100%; height: auto;" />')
+            html.append('</div>')
         
-        # 본문 섹션들
+        # 본문 섹션들 - 향상된 구조
         for i, section in enumerate(content.get('sections', [])):
-            html.append(f"<h2>{section['heading']}</h2>")
+            # 섹션 헤더
+            section_color = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6'][i % 5]
+            html.append(f'<div class="section-wrapper" style="margin: 40px 0; border: 2px solid {section_color}20; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">')
+            html.append(f'<h2 style="background: linear-gradient(135deg, {section_color} 0%, {section_color}dd 100%); color: white; margin: 0; padding: 20px; font-size: 1.4em; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">📌 {section["heading"]}</h2>')
+            html.append(f'<div style="padding: 25px; background: white;">')
             
-            paragraphs = section['content'].split('\n\n')
-            for para in paragraphs:
-                if para.strip():
-                    # ** 특수기호를 <strong> 태그로 변환
-                    para_html = para.strip()
-                    import re
-                    para_html = re.sub(r'\*\*([^*]+)\*\*', r'<strong>\1</strong>', para_html)
-                    html.append(f"<p>{para_html}</p>")
+            # 섹션 내용 파싱 및 포맷팅
+            section_content = self._format_section_content(section['content'])
+            html.append(section_content)
+            
+            html.append('</div></div>')
             
             # 중간 이미지
             if images and i == 1 and len(images) > 1:
-                html.append(f'<p style="text-align: center;">')
-                html.append(f'<img class="aligncenter size-medium" src="{images[1].get("url", "")}" alt="설명 이미지" />')
-                html.append(f'</p>')
+                html.append(f'<div style="text-align: center; margin: 30px 0; padding: 20px; background: #fff3e0; border-radius: 12px; border-left: 4px solid #ff9800;">')
+                html.append(f'<img class="aligncenter size-medium" src="{images[1].get("url", "")}" alt="설명 이미지" style="border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); max-width: 100%; height: auto;" />')
+                html.append('</div>')
         
-        # 결론/추가 내용
-        if content.get('additional_content'):
-            html.append(f"<h2>마무리</h2>")
-            html.append(f"<p><em>{content['additional_content']}</em></p>")
-        elif content.get('conclusion'):
-            # 기존 호환성 유지
-            html.append(f"<h2>마무리</h2>")
-            html.append(f"<p><em>{content['conclusion']}</em></p>")
+        # 결론/추가 내용 - 스타일링 개선
+        conclusion_text = content.get('additional_content') or content.get('conclusion')
+        if conclusion_text:
+            html.append('<div class="conclusion-section" style="background: linear-gradient(135deg, #56ab2f 0%, #a8e6cf 100%); padding: 30px; border-radius: 12px; margin: 30px 0; box-shadow: 0 8px 32px rgba(86, 171, 47, 0.3);">')
+            html.append('<h2 style="color: #2d5016; margin-top: 0; font-size: 1.4em; text-shadow: 0 1px 2px rgba(255,255,255,0.5);">💡 핵심 정리</h2>')
+            html.append(f'<div style="color: #2d5016; font-size: 1.1em; line-height: 1.7;">{self._format_text_content(conclusion_text)}</div>')
+            html.append('</div>')
+        
+        # 마지막에 CTA 섹션 추가
+        html.append('<div class="cta-section" style="background: #f1f3f4; padding: 25px; border-radius: 12px; margin: 30px 0; text-align: center; border: 2px dashed #dadce0;">')
+        html.append('<h3 style="color: #5f6368; margin-top: 0;">🔥 이 글이 도움이 되셨나요?</h3>')
+        html.append('<p style="color: #5f6368; margin-bottom: 0;">댓글로 의견을 남겨주시고, 공유해서 더 많은 분들에게 도움을 주세요!</p>')
+        html.append('</div>')
         
         return '\n'.join(html)
     
@@ -520,6 +529,92 @@ class WordPressContentExporter:
         # 한국어 기준 약 300자/분
         words = len(text)
         return max(1, round(words / 300))
+    
+    def _format_text_content(self, text: str) -> str:
+        """텍스트 내용 포맷팅 개선"""
+        import re
+        
+        # **굵은글씨** -> <strong> 태그로 변환
+        text = re.sub(r'\*\*([^*]+)\*\*', r'<strong style="color: #2c3e50; font-weight: 600;">\1</strong>', text)
+        
+        # 구분선 --- 처리
+        text = re.sub(r'---', '<hr style="border: none; border-top: 2px solid #ecf0f1; margin: 20px 0;" />', text)
+        
+        # 목록 처리 (- 기호)
+        lines = text.split('\n')
+        formatted_lines = []
+        in_list = False
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith('- '):
+                if not in_list:
+                    formatted_lines.append('<ul style="padding-left: 20px; margin: 15px 0;">')
+                    in_list = True
+                formatted_lines.append(f'<li style="margin: 8px 0; line-height: 1.6;">{line[2:]}</li>')
+            elif line.startswith(('1. ', '2. ', '3. ', '4. ', '5. ', '6. ', '7. ', '8. ', '9. ')):
+                if in_list and formatted_lines[-1] != '</ul>':
+                    formatted_lines.append('</ul>')
+                if not in_list or formatted_lines[-1] == '</ul>':
+                    formatted_lines.append('<ol style="padding-left: 20px; margin: 15px 0;">')
+                    in_list = True
+                formatted_lines.append(f'<li style="margin: 8px 0; line-height: 1.6;">{line[3:]}</li>')
+            else:
+                if in_list:
+                    formatted_lines.append('</ol>' if line.startswith(('1. ', '2. ')) else '</ul>')
+                    in_list = False
+                if line:
+                    formatted_lines.append(f'<p style="margin: 15px 0; line-height: 1.7;">{line}</p>')
+        
+        if in_list:
+            formatted_lines.append('</ul>')
+        
+        return '\n'.join(formatted_lines)
+    
+    def _format_section_content(self, content: str) -> str:
+        """섹션 내용 고급 포맷팅"""
+        import re
+        
+        # 테이블 처리 개선
+        if '<table>' in content:
+            content = re.sub(
+                r'<table>',
+                '<table style="width: 100%; border-collapse: collapse; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden;">',
+                content
+            )
+            content = re.sub(
+                r'<th>([^<]+)</th>',
+                r'<th style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; text-align: left; font-weight: 600;">\1</th>',
+                content
+            )
+            content = re.sub(
+                r'<td>([^<]+)</td>',
+                r'<td style="padding: 12px 15px; border-bottom: 1px solid #ecf0f1; background: #fafafa;">\1</td>',
+                content
+            )
+        
+        # 코드 블록 처리
+        content = re.sub(
+            r'```(\w+)?\n([^`]+)```',
+            r'<div style="background: #2d3748; color: #e2e8f0; padding: 20px; border-radius: 8px; margin: 20px 0; font-family: \'Consolas\', \'Monaco\', monospace; overflow-x: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"><pre style="margin: 0; white-space: pre-wrap;"><code>\2</code></pre></div>',
+            content
+        )
+        
+        # 인용구 처리
+        content = re.sub(
+            r'> ([^\n]+)',
+            r'<blockquote style="border-left: 4px solid #3498db; background: #f8f9fa; padding: 15px 20px; margin: 20px 0; font-style: italic; color: #2c3e50;">\1</blockquote>',
+            content
+        )
+        
+        # 중요 알림 박스 (💡, ⚠️, 🎯 등이 포함된 문장)
+        content = re.sub(
+            r'(💡|⚠️|🎯|📌|✅|❌)([^\n]+)',
+            r'<div style="background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%); padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #e17055; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"><strong style="color: #2d3436;">\1\2</strong></div>',
+            content
+        )
+        
+        return self._format_text_content(content)
     
     def _fix_year_in_title(self, title: str) -> str:
         """제목에서 잘못된 연도를 현재 연도로 수정"""
