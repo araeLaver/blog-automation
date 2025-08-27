@@ -1032,9 +1032,13 @@ def get_wordpress_files():
             cursor.execute(f"""
                 SELECT id, site, title, file_path, 
                        COALESCE(file_type, 'wordpress') as file_type,
+                       COALESCE(word_count, 0) as word_count,
+                       COALESCE(reading_time, 0) as reading_time,
                        COALESCE(status, 'draft') as status,
-                       tags, categories,
-                       created_at, published_at
+                       COALESCE(tags, '[]'::text[]) as tags,
+                       COALESCE(categories, '[]'::text[]) as categories,
+                       created_at, published_at,
+                       COALESCE(file_size, 0) as file_size
                 FROM {db.schema}.content_files 
                 WHERE COALESCE(file_type, 'wordpress') = 'wordpress' OR site != 'tistory'
                 ORDER BY created_at DESC, id DESC
@@ -1043,7 +1047,7 @@ def get_wordpress_files():
             
             files = []
             for row in cursor.fetchall():
-                # 카테고리 배열에서 첫 번째 항목을 category로 제공
+                # 인덱스 재조정: id, site, title, file_path, file_type, word_count, reading_time, status, tags, categories, created_at, published_at, file_size
                 categories = row[9] if isinstance(row[9], list) else []
                 first_category = categories[0] if categories else None
                 
