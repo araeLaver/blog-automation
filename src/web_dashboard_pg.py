@@ -1035,8 +1035,8 @@ def get_wordpress_files():
                        COALESCE(word_count, 0) as word_count,
                        COALESCE(reading_time, 0) as reading_time,
                        COALESCE(status, 'draft') as status,
-                       COALESCE(tags, '[]'::text[]) as tags,
-                       COALESCE(categories, '[]'::text[]) as categories,
+                       COALESCE(tags, ARRAY[]::text[]) as tags,
+                       COALESCE(categories, ARRAY[]::text[]) as categories,
                        created_at, published_at,
                        COALESCE(file_size, 0) as file_size
                 FROM {db.schema}.content_files 
