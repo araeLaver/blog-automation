@@ -81,16 +81,25 @@ class WordPressPublisher:
         self._categories_cache = None
         self._tags_cache = None
         
+        # SSL 검증 비활성화된 세션 생성
+        self.session = requests.Session()
+        self.session.verify = False
+        self.session.headers.update(self.headers)
+        
+        # SSL 경고 비활성화
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
     def test_connection(self) -> bool:
         """API 연결 테스트 (다중 방식 시도)"""
         try:
-            # 1차 시도: 일반 API 테스트
-            response = requests.get(
+            # 1차 시도: 세션을 사용한 API 테스트
+            response = self.session.get(
                 f"{self.api_url}posts?per_page=1",
-                headers=self.headers,
                 timeout=10
             )
             if response.status_code == 200:
+                print(f"✅ WordPress REST API 연결 성공: {self.base_url}")
                 return True
             
             # 2차 시도: 다른 헤더로 테스트
@@ -99,20 +108,21 @@ class WordPressPublisher:
                 "Content-Type": "application/json",
                 "X-WP-Nonce": "wp_rest"
             }
-            response = requests.get(
+            response = self.session.get(
                 f"{self.api_url}posts?per_page=1",
                 headers=alt_headers,
                 timeout=10
             )
             if response.status_code == 200:
-                self.headers = alt_headers  # 성공한 헤더로 업데이트
+                self.session.headers.update(alt_headers)  # 성공한 헤더로 업데이트
+                print(f"✅ WordPress REST API 연결 성공 (alt headers): {self.base_url}")
                 return True
             
-            print(f"연결 테스트 실패: {response.status_code} - {response.text[:200]}")
+            print(f"❌ 연결 테스트 실패: {response.status_code} - {response.text[:200]}")
             return False
             
         except Exception as e:
-            print(f"연결 테스트 실패: {e}")
+            print(f"❌ 연결 테스트 실패: {e}")
             return False
     
     def _fix_year_in_content(self, content: Dict) -> Dict:
