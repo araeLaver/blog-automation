@@ -892,8 +892,22 @@
                     const site = file.site || 'unknown';
                     const siteClass = `site-${site}`;
                     const title = file.title || '제목 없음';
-                    const date = file.date || new Date().toLocaleString();
-                    const size = file.size || '0KB';
+                    
+                    // 실제 생성일 사용
+                    let date;
+                    if (file.created_at) {
+                        const dateObj = new Date(file.created_at);
+                        const year = dateObj.getFullYear();
+                        const month = dateObj.getMonth() + 1;
+                        const day = dateObj.getDate();
+                        const hours = String(dateObj.getHours()).padStart(2, '0');
+                        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                        date = `${year}. ${month}. ${day}. ${hours}:${minutes}`;
+                    } else {
+                        date = new Date().toLocaleString();
+                    }
+                    
+                    const size = file.file_size ? `${Math.round(file.file_size / 1024)}KB` : '0KB';
                     const status = file.status || 'draft';
                     const actions = file.actions || ['view', 'edit', 'download', 'delete'];
                     
@@ -987,8 +1001,22 @@
             } else {
                 files.forEach(file => {
                     const title = file.title || '제목 없음';
-                    const date = file.date || new Date().toLocaleString();
-                    const size = file.size || '0KB';
+                    
+                    // 실제 생성일 사용
+                    let date;
+                    if (file.created_at) {
+                        const dateObj = new Date(file.created_at);
+                        const year = dateObj.getFullYear();
+                        const month = dateObj.getMonth() + 1;
+                        const day = dateObj.getDate();
+                        const hours = String(dateObj.getHours()).padStart(2, '0');
+                        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                        date = `${year}. ${month}. ${day}. ${hours}:${minutes}`;
+                    } else {
+                        date = new Date().toLocaleString();
+                    }
+                    
+                    const size = file.file_size ? `${Math.round(file.file_size / 1024)}KB` : '0KB';
                     const status = file.status || 'draft';
                     const category = file.category || '카테고리 없음';
                     const tags = file.tags || [];
