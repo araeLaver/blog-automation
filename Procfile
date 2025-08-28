@@ -1,1 +1,1 @@
-web: gunicorn src.web_dashboard_pg:app --bind 0.0.0.0:$PORT --workers 1 --timeout 60
+web: gunicorn src.web_dashboard_pg:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120

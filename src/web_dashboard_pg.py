@@ -10,8 +10,17 @@ from flask import Flask, render_template, jsonify, request, send_file
 from flask_cors import CORS
 from dotenv import load_dotenv
 import logging
+import threading
 
 load_dotenv()
+
+# 스케줄러 서비스 import
+try:
+    from scheduler_service import init_scheduler, get_scheduler_status
+    scheduler_available = True
+except ImportError:
+    scheduler_available = False
+    logging.warning("스케줄러 서비스를 사용할 수 없습니다.")
 
 # PostgreSQL 데이터베이스 import
 import sys
@@ -4002,5 +4011,16 @@ def get_site_trending_topics(site):
 
 
 if __name__ == '__main__':
+    # 백그라운드 스케줄러 시작
+    if scheduler_available:
+        def start_scheduler():
+            init_scheduler()
+        
+        scheduler_thread = threading.Thread(target=start_scheduler, daemon=True)
+        scheduler_thread.start()
+        logger.info("✅ 백그라운드 자동발행 스케줄러 시작됨")
+    else:
+        logger.warning("⚠️ 자동발행 스케줄러를 사용할 수 없습니다")
+    
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
 
