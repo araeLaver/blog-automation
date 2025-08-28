@@ -14,14 +14,6 @@ import threading
 
 load_dotenv()
 
-# 스케줄러 서비스 import
-try:
-    from scheduler_service import init_scheduler, get_scheduler_status
-    scheduler_available = True
-except ImportError:
-    scheduler_available = False
-    logging.warning("스케줄러 서비스를 사용할 수 없습니다.")
-
 # PostgreSQL 데이터베이스 import
 import sys
 from pathlib import Path
@@ -29,6 +21,22 @@ sys.path.append(str(Path(__file__).parent.parent))
 from src.utils.postgresql_database import PostgreSQLDatabase
 from src.utils.trending_topics import trending_manager
 from src.utils.trending_topic_manager import TrendingTopicManager
+
+# 스케줄러 서비스 import - 안전한 import 처리
+scheduler_available = False
+try:
+    # 프로젝트 루트를 Python 경로에 추가
+    project_root = Path(__file__).parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    
+    from scheduler_service import init_scheduler, get_scheduler_status
+    scheduler_available = True
+    logging.info("스케줄러 서비스가 성공적으로 로드되었습니다.")
+except Exception as e:
+    scheduler_available = False
+    logging.warning(f"스케줄러 서비스를 사용할 수 없습니다: {e}")
+    logging.warning("자동발행 스케줄러는 비활성화됩니다.")
 
 app = Flask(__name__, 
             template_folder='../templates',
@@ -4011,16 +4019,23 @@ def get_site_trending_topics(site):
 
 
 if __name__ == '__main__':
-    # 백그라운드 스케줄러 시작
+    # 백그라운드 스케줄러 시작 (안전한 처리)
     if scheduler_available:
-        def start_scheduler():
-            init_scheduler()
-        
-        scheduler_thread = threading.Thread(target=start_scheduler, daemon=True)
-        scheduler_thread.start()
-        logger.info("✅ 백그라운드 자동발행 스케줄러 시작됨")
+        try:
+            def start_scheduler():
+                try:
+                    init_scheduler()
+                    logging.info("✅ 자동발행 스케줄러가 성공적으로 시작되었습니다")
+                except Exception as e:
+                    logging.error(f"❌ 스케줄러 시작 실패: {e}")
+            
+            scheduler_thread = threading.Thread(target=start_scheduler, daemon=True)
+            scheduler_thread.start()
+            logging.info("📅 백그라운드 스케줄러 스레드 시작됨")
+        except Exception as e:
+            logging.error(f"❌ 스케줄러 스레드 생성 실패: {e}")
     else:
-        logger.warning("⚠️ 자동발행 스케줄러를 사용할 수 없습니다")
+        logging.warning("⚠️ 자동발행 스케줄러는 비활성화됩니다 (수동발행은 정상 작동)")
     
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
 
