@@ -29,13 +29,17 @@ from src.publishers.tistory_publisher import TistoryPublisher
 
 load_dotenv()
 
+# 로그 디렉토리 생성
+log_dir = Path('./data/logs')
+log_dir.mkdir(parents=True, exist_ok=True)
+
 # 로깅 설정
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('./data/logs/scheduler.log')
+        logging.FileHandler(log_dir / 'scheduler.log')
     ]
 )
 logger = logging.getLogger(__name__)
