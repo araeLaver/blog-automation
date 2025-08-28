@@ -96,7 +96,7 @@ class WordPressPublisher:
             # 1차 시도: 세션을 사용한 API 테스트 (타임아웃 연장)
             response = self.session.get(
                 f"{self.api_url}posts?per_page=1",
-                timeout=30  # 10초 → 30초로 연장
+                timeout=60  # 30초 → 60초로 더 연장
             )
             if response.status_code == 200:
                 print(f"✅ WordPress REST API 연결 성공: {self.base_url}")
@@ -111,7 +111,7 @@ class WordPressPublisher:
             response = self.session.get(
                 f"{self.api_url}posts?per_page=1",
                 headers=alt_headers,
-                timeout=30  # 타임아웃 연장
+                timeout=60  # 타임아웃 60초로 연장
             )
             if response.status_code == 200:
                 self.session.headers.update(alt_headers)  # 성공한 헤더로 업데이트
@@ -183,6 +183,13 @@ class WordPressPublisher:
             (성공여부, URL 또는 에러메시지)
         """
         try:
+            # 콘텐츠 크기 사전 체크 및 최적화
+            original_size = len(content.get('content', ''))
+            if original_size > 15000:  # 15KB 초과시 자동 축소
+                print(f"[OPTIMIZE] 콘텐츠 크기 초과 ({original_size:,} bytes), 15KB 이하로 최적화")
+                content['content'] = content['content'][:14000]  # 14KB로 제한 (여유분)
+                print(f"[OPTIMIZE] 최적화 완료: {len(content['content']):,} bytes")
+            
             # 연도 수정 적용
             content = self._fix_year_in_content(content)
             
@@ -309,7 +316,7 @@ class WordPressPublisher:
                         # 2차 시도: 더 간단한 포스트 데이터로 재시도
                         simple_post_data = {
                             'title': post_data.get('title', ''),
-                            'content': post_data.get('content', '')[:10000],  # 10KB로 제한
+                            'content': post_data.get('content', '')[:8000],  # 8KB로 더 엄격하게 제한
                             'status': 'publish',
                             'format': 'standard'
                         }
@@ -335,7 +342,7 @@ class WordPressPublisher:
                             f"{self.api_url}posts",
                             headers=headers,
                             json=post_data,  # json 파라미터 사용
-                            timeout=30
+                            timeout=60  # 30초 → 60초로 증가
                         )
                     else:
                         # 1차 시도: 기본 헤더
@@ -347,7 +354,7 @@ class WordPressPublisher:
                             f"{self.api_url}posts",
                             headers=headers,
                             data=json.dumps(post_data),
-                            timeout=30
+                            timeout=60  # 30초 → 60초로 증가
                         )
                     
                     print(f"[PUBLISH] 응답 상태코드: {response.status_code}")
@@ -396,7 +403,7 @@ class WordPressPublisher:
             response = self.session.post(
                 f"{self.api_url}posts/{post_id}",
                 data=json.dumps(update_data),
-                timeout=15
+                timeout=30  # 15초 → 30초로 증가
             )
             
             if response.status_code == 200:
@@ -410,7 +417,7 @@ class WordPressPublisher:
             response = self.session.post(
                 f"{self.api_url}posts/{post_id}/meta",
                 data=json.dumps(meta_data),
-                timeout=15
+                timeout=30  # 15초 → 30초로 증가
             )
             
             if response.status_code in [200, 201]:
@@ -470,7 +477,7 @@ class WordPressPublisher:
                 f"{self.api_url}media",
                 headers=headers,
                 data=img_data,
-                timeout=60
+                timeout=120  # 업로드는 더 긴 타임아웃 필요
             )
             
             print(f"업로드 응답 상태: {response.status_code}")
@@ -535,7 +542,7 @@ class WordPressPublisher:
         try:
             response = self.session.get(
                 f"{self.api_url}categories?per_page=100",
-                timeout=10
+                timeout=30  # 10초 → 30초로 증가
             )
             if response.status_code == 200:
                 self._categories_cache = response.json()
@@ -551,7 +558,7 @@ class WordPressPublisher:
             response = self.session.post(
                 f"{self.api_url}categories",
                 data=json.dumps(data),
-                timeout=10
+                timeout=30  # 10초 → 30초로 증가
             )
             if response.status_code in [200, 201]:
                 category = response.json()
@@ -595,7 +602,7 @@ class WordPressPublisher:
         try:
             response = self.session.get(
                 f"{self.api_url}tags?per_page=100",
-                timeout=10
+                timeout=30  # 10초 → 30초로 증가
             )
             if response.status_code == 200:
                 self._tags_cache = response.json()
@@ -611,7 +618,7 @@ class WordPressPublisher:
             response = self.session.post(
                 f"{self.api_url}tags",
                 data=json.dumps(data),
-                timeout=10
+                timeout=30  # 10초 → 30초로 증가
             )
             if response.status_code in [200, 201]:
                 tag = response.json()
@@ -1160,7 +1167,7 @@ class WordPressPublisher:
             response = self.session.get(
                 f"{self.api_url}posts",
                 params={"per_page": count, "orderby": "date", "order": "desc"},
-                timeout=10
+                timeout=30  # 10초 → 30초로 증가
             )
             if response.status_code == 200:
                 posts = response.json()
@@ -1185,7 +1192,7 @@ class WordPressPublisher:
                 f"{self.api_url}posts/{post_id}",
                 headers=self.headers,
                 params=params,
-                timeout=10
+                timeout=30  # 10초 → 30초로 증가
             )
             return response.status_code == 200
         except Exception as e:
