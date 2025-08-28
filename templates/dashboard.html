@@ -2711,7 +2711,7 @@
                     statusElement.innerHTML = `
                         <div class="alert alert-danger mb-0">
                             <i class="bi bi-exclamation-triangle"></i>
-                            시스템 상태 확인 실패: ${data.error}
+                            시스템 상태 확인 실패: ${data.error || '알 수 없는 오류'}
                         </div>
                     `;
                 }
@@ -3688,23 +3688,23 @@
         async function triggerManualPublish() {
             const today = new Date().toISOString().split('T')[0];
             
-            // 오늘(8/27) 실제 스케줄 - 올바른 주제들
+            // 오늘(28일) 실제 스케줄 - 올바른 주제들
             let topicList = '📝 오늘 듀얼 카테고리 발행 주제:\n\n';
             topicList += '🔸 UNPRE:\n';
-            topicList += '   Primary: [교육/자기계발] 기술 서적 추천 리스트\n';
-            topicList += '   Secondary: [기술/디지털] 보안 취약점 점검 가이드\n\n';
+            topicList += '   Primary: [교육/자기계발] 개발자 커리어 성장 전략\n';
+            topicList += '   Secondary: [기술/디지털] AI 개발 도구 최신 트렌드\n\n';
             
             topicList += '🔸 UNTAB:\n';
-            topicList += '   Primary: [라이프스타일] 홈파티 준비 체크리스트\n';
-            topicList += '   Secondary: [재정/투자] 재테크 자동화 시스템\n\n';
+            topicList += '   Primary: [라이프스타일] 미니멀 라이프 실천법\n';
+            topicList += '   Secondary: [재정/투자] 부동산 경매 투자 전략\n\n';
             
             topicList += '🔸 SKEWESE:\n';
-            topicList += '   Primary: [건강/웰니스] 알레르기 관리법 완전 가이드\n';
-            topicList += '   Secondary: [역사/문화] 한국 고대사 논쟁점들 심층 분석\n\n';
+            topicList += '   Primary: [건강/웰니스] 여름철 건강관리 필수 가이드\n';
+            topicList += '   Secondary: [역사/문화] 조선시대 궁중문화 탐구\n\n';
             
             topicList += '🔸 TISTORY:\n';
-            topicList += '   Primary: [엔터테인먼트] 리얼리티쇼 인기 비결 분석\n';
-            topicList += '   Secondary: [트렌드/이슈] 스트리트 패션 분석 2025\n\n';
+            topicList += '   Primary: [엔터테인먼트] K-POP 4세대 아이돌 분석\n';
+            topicList += '   Secondary: [트렌드/이슈] MZ세대 소비 트렌드 2025\n\n';
             
             if (!confirm(`⚠️ 오늘(${today}) 듀얼 카테고리 시스템으로 총 8개 콘텐츠를 지금 수동 발행하시겠습니까?\n\n${topicList}📊 사이트별 2개씩, 총 8개 포스트가 생성됩니다.`)) {
                 return;
