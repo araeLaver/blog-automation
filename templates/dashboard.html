@@ -2671,50 +2671,68 @@
         async function checkSystemOverview() {
             try {
                 const response = await fetch('/api/system_status');
-                const data = await response.json();
                 
+                // 응답 상태 확인
+                if (!response.ok) {
+                    throw new Error(`서버 응답 오류: ${response.status}`);
+                }
+                
+                const data = await response.json();
                 const statusElement = document.getElementById('system-status-overview');
                 
-                if (data.success) {
-                    const status = data.status || {};
-                    const overall = status.overall || 'unknown';
-                    const isHealthy = overall === 'healthy';
-                    
-                    statusElement.innerHTML = `
-                        <div class="row text-center">
-                            <div class="col-6 mb-3">
-                                <div class="p-3 rounded ${isHealthy ? 'bg-success' : (overall === 'error' ? 'bg-danger' : 'bg-warning')} text-white">
-                                    <i class="bi bi-${isHealthy ? 'check-circle' : 'exclamation-triangle'} fs-3"></i>
-                                    <div class="mt-2">${isHealthy ? '정상' : (overall === 'error' ? '오류' : '경고')}</div>
-                                </div>
-                            </div>
-                            <div class="col-6 mb-3">
-                                <div class="p-3 rounded bg-info text-white">
-                                    <i class="bi bi-clock fs-3"></i>
-                                    <div class="mt-2">가동시간</div>
-                                    <small>${status.uptime || '알 수 없음'}</small>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="alert alert-light mb-0">
-                                    <strong>서버:</strong> ${status.server_info || 'Python Flask'}<br>
-                                    <strong>DB:</strong> ${status.database === 'connected' ? '연결됨' : (status.database === 'disconnected' ? '연결 실패' : '확인 불가')}<br>
-                                    ${status.memory_usage && status.memory_usage !== 'N/A' ? `<strong>메모리:</strong> ${status.memory_usage}<br>` : ''}
-                                    ${status.cpu_usage && status.cpu_usage !== 'N/A' ? `<strong>CPU:</strong> ${status.cpu_usage}<br>` : ''}
-                                    <strong>마지막 업데이트:</strong> ${new Date().toLocaleString()}
-                                    ${status.error ? `<br><small class="text-danger">오류: ${status.error}</small>` : ''}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    statusElement.innerHTML = `
-                        <div class="alert alert-danger mb-0">
-                            <i class="bi bi-exclamation-triangle"></i>
-                            시스템 상태 확인 실패: ${data.error || '알 수 없는 오류'}
-                        </div>
-                    `;
+                // API는 항상 success를 반환하므로 status 객체 확인
+                const status = data.status || {};
+                const overall = status.overall || 'healthy';
+                
+                // 상태별 스타일 설정
+                const isHealthy = overall === 'healthy';
+                const isWarning = overall === 'warning';
+                const isError = overall === 'error';
+                
+                let statusColor = 'bg-success';
+                let statusIcon = 'check-circle';
+                let statusText = '시스템 정상';
+                let alertClass = 'alert-success';
+                
+                if (isWarning) {
+                    statusColor = 'bg-warning';
+                    statusIcon = 'exclamation-triangle';
+                    statusText = 'DB 연결 확인 필요';
+                    alertClass = 'alert-warning';
+                } else if (isError) {
+                    statusColor = 'bg-danger';
+                    statusIcon = 'x-circle';
+                    statusText = '시스템 오류';
+                    alertClass = 'alert-danger';
                 }
+                
+                statusElement.innerHTML = `
+                    <div class="row text-center">
+                        <div class="col-6 mb-3">
+                            <div class="p-3 rounded ${statusColor} text-white">
+                                <i class="bi bi-${statusIcon} fs-3"></i>
+                                <div class="mt-2">${statusText}</div>
+                            </div>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <div class="p-3 rounded bg-info text-white">
+                                <i class="bi bi-clock fs-3"></i>
+                                <div class="mt-2">가동시간</div>
+                                <small>${status.uptime || '서버 실행 중'}</small>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="alert ${alertClass} mb-0">
+                                <strong>🖥️ 서버:</strong> ${status.server_info || 'Python Flask on Koyeb'}<br>
+                                <strong>🗄️ DB:</strong> ${status.database === 'connected' ? '✅ PostgreSQL 연결됨' : status.database === 'disconnected' ? '❌ PostgreSQL 연결 실패' : '⏳ 확인 중...'}<br>
+                                ${status.memory_usage && status.memory_usage !== 'N/A' ? `<strong>💾 메모리:</strong> ${status.memory_usage}<br>` : ''}
+                                ${status.cpu_usage && status.cpu_usage !== 'N/A' ? `<strong>⚡ CPU:</strong> ${status.cpu_usage}<br>` : ''}
+                                <strong>🔄 업데이트:</strong> ${new Date().toLocaleString()}<br>
+                                ${!isHealthy ? `<hr><small><strong>📌 조치사항:</strong> ${status.database === 'disconnected' ? 'PostgreSQL 연결 상태를 확인해주세요. (Koyeb DB 서비스 확인)' : '시스템 로그를 확인해주세요.'}</small>` : '<hr><small>✅ 모든 시스템이 정상 작동 중입니다.</small>'}
+                            </div>
+                        </div>
+                    </div>
+                `;
             } catch (error) {
                 document.getElementById('system-status-overview').innerHTML = `
                     <div class="alert alert-danger mb-0">
