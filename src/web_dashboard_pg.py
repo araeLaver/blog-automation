@@ -1101,17 +1101,22 @@ def publish_to_wordpress():
             print(f"메타데이터 파일 존재: {metadata_file.exists()}")
             print(f"HTML 내용 길이: {len(html_content)}")
             
-            # 고품질 대표이미지 생성 (Pexels API 우선, 로컬 폴백)
+            # 텍스트 전용 고속 발행 - 이미지 생성 완전 스킵
             publish_status_global.update({
-                'current_step': 'image_generation',
-                'step_details': f'대표이미지 생성',
-                'message': f'🖼️ 대표이미지 생성 중...',
+                'current_step': 'text_only_mode',
+                'step_details': f'텍스트 전용 고속 발행 모드',
+                'message': f'⚡ 이미지 스킵하여 고속 발행 중...',
                 'progress': 50
             })
             
+            # 이미지 완전 스킵
             images = []
-            try:
-                from src.utils.safe_image_generator import safe_image_generator
+            print("[TEXT_ONLY] 이미지 생성 완전 스킵 - 고속 발행 모드")
+            
+            # 기존 이미지 생성 코드 주석 처리
+            if False:  # 이미지 생성 비활성화
+                try:
+                    from src.utils.safe_image_generator import safe_image_generator
                 
                 # Pexels API 키 설정
                 pexels_api_key = "QneFYkOrINxx30V33KbWpCqHjZLtkJoN2HNsNgDNwWEStXNJNsbYs4ap"
@@ -1131,9 +1136,9 @@ def publish_to_wordpress():
                 else:
                     print("[IMG] 대표이미지 생성 실패, 텍스트만 발행")
                     
-            except Exception as e:
-                print(f"[IMG] 이미지 생성 중 오류 (무시하고 텍스트만 발행): {e}")
-                images = []
+                except Exception as e:
+                    print(f"[IMG] 이미지 생성 중 오류 (무시하고 텍스트만 발행): {e}")
+                    images = []
             
             # 구조화된 데이터가 있고 sections도 있으면 사용, 없으면 HTML 직접 사용
             if structured_content and structured_content.get('sections'):
