@@ -3706,23 +3706,34 @@
         async function triggerManualPublish() {
             const today = new Date().toISOString().split('T')[0];
             
-            // 오늘(28일) 실제 스케줄 - 올바른 주제들
+            // 실제 오늘 주제를 API에서 가져오기
+            let todayTopics = {};
             let topicList = '📝 오늘 듀얼 카테고리 발행 주제:\n\n';
-            topicList += '🔸 UNPRE:\n';
-            topicList += '   Primary: [교육/자기계발] 개발자 커리어 성장 전략\n';
-            topicList += '   Secondary: [기술/디지털] AI 개발 도구 최신 트렌드\n\n';
             
-            topicList += '🔸 UNTAB:\n';
-            topicList += '   Primary: [라이프스타일] 미니멀 라이프 실천법\n';
-            topicList += '   Secondary: [재정/투자] 부동산 경매 투자 전략\n\n';
-            
-            topicList += '🔸 SKEWESE:\n';
-            topicList += '   Primary: [건강/웰니스] 여름철 건강관리 필수 가이드\n';
-            topicList += '   Secondary: [역사/문화] 조선시대 궁중문화 탐구\n\n';
-            
-            topicList += '🔸 TISTORY:\n';
-            topicList += '   Primary: [엔터테인먼트] K-POP 4세대 아이돌 분석\n';
-            topicList += '   Secondary: [트렌드/이슈] MZ세대 소비 트렌드 2025\n\n';
+            try {
+                const response = await fetch('/api/today_topics');
+                const data = await response.json();
+                
+                if (data.success && data.sites) {
+                    todayTopics = data.sites;
+                    
+                    // API에서 가져온 실제 주제로 표시
+                    Object.keys(todayTopics).forEach(site => {
+                        if (todayTopics[site].primary && todayTopics[site].secondary) {
+                            topicList += `🔸 ${site.toUpperCase()}:\n`;
+                            topicList += `   Primary: [${todayTopics[site].primary.category}] ${todayTopics[site].primary.topic}\n`;
+                            topicList += `   Secondary: [${todayTopics[site].secondary.category}] ${todayTopics[site].secondary.topic}\n\n`;
+                        }
+                    });
+                } else {
+                    throw new Error('주제 로딩 실패');
+                }
+            } catch (error) {
+                console.error('주제 로딩 오류:', error);
+                // 실패시 기본 메시지
+                topicList += '⚠️ 실시간 주제 로딩 실패 - 기본 주제로 발행됩니다.\n';
+                topicList += '각 사이트별로 듀얼 카테고리 시스템에 따라 2개씩 생성됩니다.\n\n';
+            }
             
             if (!confirm(`⚠️ 오늘(${today}) 듀얼 카테고리 시스템으로 총 8개 콘텐츠를 지금 수동 발행하시겠습니까?\n\n${topicList}📊 사이트별 2개씩, 총 8개 포스트가 생성됩니다.`)) {
                 return;
