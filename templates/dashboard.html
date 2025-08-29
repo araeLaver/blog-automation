@@ -3711,11 +3711,11 @@
             let topicList = '📝 오늘 듀얼 카테고리 발행 주제:\n\n';
             
             try {
-                const response = await fetch('/api/today_topics');
+                const response = await fetch('/api/get_today_topics');
                 const data = await response.json();
                 
-                if (data.success && data.sites) {
-                    todayTopics = data.sites;
+                if (data.success && data.today_topics) {
+                    todayTopics = data.today_topics;
                     
                     // API에서 가져온 실제 주제로 표시
                     Object.keys(todayTopics).forEach(site => {
