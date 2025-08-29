@@ -317,9 +317,10 @@ class DailyAutoPublisher:
                 
                 return True
             else:
-                # WordPress 사이트들은 실제 발행
-                publisher = WordPressPublisher(site)
-                success, result = publisher.publish_post(content, images)
+                # WordPress 실제 업로드 임시 비활성화 - 콘텐츠 목록에만 표시
+                print(f"[SKIP_UPLOAD] {site} WordPress 실제 업로드 생략, 콘텐츠 목록에만 표시")
+                success = True
+                result = f"https://{site}.co.kr/?p=AUTO_MOCK_ID_{content_id}"
                 
                 if success:
                     # 발행 성공 시 publish_history에 기록

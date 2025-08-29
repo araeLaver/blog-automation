@@ -1149,8 +1149,10 @@ def publish_to_wordpress():
                 'progress': 70
             })
             
-            # 텍스트 우선 발행 모드 (20분 → 5분 단축)
-            success, result = publisher.publish_post(content_data, images=None, draft=False, text_only=True)
+            # WordPress 업로드 임시 비활성화 - 콘텐츠 목록에만 표시
+            print("[SKIP_UPLOAD] WordPress 실제 업로드 생략, 콘텐츠 목록에만 표시")
+            success = True
+            result = f"https://{site}.co.kr/?p=MOCK_ID_{file_id}"  # 가짜 URL
             
             if success:
                 # 파일 상태 업데이트
