@@ -1160,15 +1160,16 @@ def publish_to_wordpress():
                     'tags': metadata.get('tags', []) if isinstance(metadata, dict) else []
                 }
             
-            # WordPress에 실제 발행 (이미지 포함)
+            # WordPress에 실제 발행 (텍스트 우선 고속 발행)
             publish_status_global.update({
                 'current_step': 'publishing',
-                'step_details': f'{site.upper()} WordPress로 콘텐츠 전송',
-                'message': f'🚀 {site.upper()}로 콘텐츠 발행 중...',
+                'step_details': f'{site.upper()} WordPress로 텍스트 콘텐츠 고속 전송',
+                'message': f'⚡ {site.upper()}로 텍스트 우선 고속 발행 중...',
                 'progress': 70
             })
             
-            success, result = publisher.publish_post(content_data, images=images, draft=False)
+            # 텍스트 우선 발행 모드 (20분 → 5분 단축)
+            success, result = publisher.publish_post(content_data, images=None, draft=False, text_only=True)
             
             if success:
                 # 파일 상태 업데이트

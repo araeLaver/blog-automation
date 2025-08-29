@@ -170,7 +170,7 @@ class WordPressPublisher:
         return fixed_content
 
     def publish_post(self, content: Dict, images: List[Dict] = None, 
-                    draft: bool = False) -> Tuple[bool, str]:
+                    draft: bool = False, text_only: bool = False) -> Tuple[bool, str]:
         """
         포스트 발행
         
@@ -193,11 +193,11 @@ class WordPressPublisher:
             # 연도 수정 적용
             content = self._fix_year_in_content(content)
             
-            # 1. 안전한 이미지 업로드 (로컬 파일만, 외부 API 없음)
+            # 1. 텍스트 전용 모드일 때는 이미지 업로드 완전 스킵
             content_images = []
             featured_media_id = None
             
-            if images:
+            if not text_only and images:
                 print(f"[SAFE_IMG] 안전한 이미지 업로드 시작: {len(images)}개")
                 for img in images:
                     try:
@@ -223,13 +223,19 @@ class WordPressPublisher:
             else:
                 print("[SAFE_IMG] 업로드할 이미지 없음")
             
-            # 2. 카테고리/태그 처리
-            category_ids = self._get_or_create_categories(
-                content.get('categories', [])
-            )
-            tag_ids = self._get_or_create_tags(
-                content.get('tags', [])
-            )
+            # 2. 카테고리/태그 처리 (텍스트 전용 모드에서는 간소화)
+            if text_only:
+                # 텍스트 전용: 기본 카테고리만 사용, 태그는 스킵
+                category_ids = [1]  # 기본 카테고리 ID
+                tag_ids = []
+                print("[TEXT_ONLY] 카테고리/태그 처리 스킵")
+            else:
+                category_ids = self._get_or_create_categories(
+                    content.get('categories', [])
+                )
+                tag_ids = self._get_or_create_tags(
+                    content.get('tags', [])
+                )
             
             # 3. HTML 구조 그대로 유지하면서 최소한만 정리
             if 'content' in content and content['content']:
@@ -260,31 +266,42 @@ class WordPressPublisher:
                 print("경고: 콘텐츠가 비어있습니다!")
                 return False, "콘텐츠가 비어있어서 발행할 수 없습니다"
             
-            # 4. 포스트 데이터 구성 (코드 편집기 모드)
-            post_data = {
-                "title": content['title'],
-                "content": post_content,  # HTML 코드 그대로
-                "excerpt": content.get('meta_description', ''),
-                "status": "draft" if draft else "publish", 
-                "categories": category_ids,
-                "tags": tag_ids,
-                "format": "standard",
-                "meta": {
-                    # WordPress 코드 편집기 모드 강제 설정
-                    "_classic_editor_remember": "classic-editor",
-                    "_wp_editor_expand": "on",
-                    "_edit_lock": "",
-                    "_edit_last": "1",
-                    # Gutenberg 비활성화
-                    "_gutenberg_editor_disabled": "1",
-                    "_classic_editor_disabled": "0",
-                    # SEO 설정
-                    "_yoast_wpseo_metadesc": content.get('meta_description', ''),
-                    "_yoast_wpseo_focuskw": content.get('keywords', [''])[0] if content.get('keywords') else '',
-                    # HTML 그대로 저장하도록 설정
-                    "_wp_page_template": "default"
+            # 4. 포스트 데이터 구성 (텍스트 전용 모드에서는 간소화)
+            if text_only:
+                # 텍스트 전용: 최소한의 데이터만 사용
+                post_data = {
+                    "title": content['title'],
+                    "content": post_content,
+                    "status": "draft" if draft else "publish",
+                    "categories": category_ids
                 }
-            }
+                print("[TEXT_ONLY] 간소화된 포스트 데이터 사용")
+            else:
+                # 일반 모드: 전체 메타데이터 포함
+                post_data = {
+                    "title": content['title'],
+                    "content": post_content,  # HTML 코드 그대로
+                    "excerpt": content.get('meta_description', ''),
+                    "status": "draft" if draft else "publish", 
+                    "categories": category_ids,
+                    "tags": tag_ids,
+                    "format": "standard",
+                    "meta": {
+                        # WordPress 코드 편집기 모드 강제 설정
+                        "_classic_editor_remember": "classic-editor",
+                        "_wp_editor_expand": "on",
+                        "_edit_lock": "",
+                        "_edit_last": "1",
+                        # Gutenberg 비활성화
+                        "_gutenberg_editor_disabled": "1",
+                        "_classic_editor_disabled": "0",
+                        # SEO 설정
+                        "_yoast_wpseo_metadesc": content.get('meta_description', ''),
+                        "_yoast_wpseo_focuskw": content.get('keywords', [''])[0] if content.get('keywords') else '',
+                        # HTML 그대로 저장하도록 설정
+                        "_wp_page_template": "default"
+                    }
+                }
             
             # 안전한 대표 이미지 설정
             if featured_media_id:
@@ -310,7 +327,10 @@ class WordPressPublisher:
                     post_data['content'] = truncated_content
                     print(f"[POST] 콘텐츠 축소 완료: {len(truncated_content):,} chars -> {len(json.dumps(post_data, ensure_ascii=False)):,} bytes")
             
-            for attempt in range(3):  # 최대 3회 시도
+            # 텍스트 전용 모드에서는 재시도 횟수 줄임, 타임아웃도 단축
+            max_attempts = 1 if text_only else 3
+            publish_timeout = 20 if text_only else 60  # 텍스트 전용: 20초, 일반: 60초
+            for attempt in range(max_attempts):  # 텍스트 전용시 1회, 일반 모드 3회 시도
                 try:
                     if attempt == 1:
                         # 2차 시도: 더 간단한 포스트 데이터로 재시도
@@ -342,7 +362,7 @@ class WordPressPublisher:
                             f"{self.api_url}posts",
                             headers=headers,
                             json=post_data,  # json 파라미터 사용
-                            timeout=60  # 30초 → 60초로 증가
+                            timeout=publish_timeout
                         )
                     else:
                         # 1차 시도: 기본 헤더
@@ -354,7 +374,7 @@ class WordPressPublisher:
                             f"{self.api_url}posts",
                             headers=headers,
                             data=json.dumps(post_data),
-                            timeout=60  # 30초 → 60초로 증가
+                            timeout=publish_timeout
                         )
                     
                     print(f"[PUBLISH] 응답 상태코드: {response.status_code}")
@@ -558,7 +578,7 @@ class WordPressPublisher:
             response = self.session.post(
                 f"{self.api_url}categories",
                 data=json.dumps(data),
-                timeout=30  # 10초 → 30초로 증가
+                timeout=10  # 고속 발행을 위해 타임아웃 단축
             )
             if response.status_code in [200, 201]:
                 category = response.json()
