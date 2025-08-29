@@ -1113,32 +1113,8 @@ def publish_to_wordpress():
             images = []
             print("[TEXT_ONLY] 이미지 생성 완전 스킵 - 고속 발행 모드")
             
-            # 기존 이미지 생성 코드 주석 처리
-            if False:  # 이미지 생성 비활성화
-                try:
-                    from src.utils.safe_image_generator import safe_image_generator
-                
-                # Pexels API 키 설정
-                pexels_api_key = "QneFYkOrINxx30V33KbWpCqHjZLtkJoN2HNsNgDNwWEStXNJNsbYs4ap"
-                safe_image_generator.set_pexels_api_key(pexels_api_key)
-                
-                print("[IMG] 고품질 대표이미지 생성 시작...")
-                image_path = safe_image_generator.generate_featured_image(title)
-                
-                if image_path and os.path.exists(image_path):
-                    featured_image = {
-                        'url': image_path,  # 로컬 파일 경로
-                        'type': 'thumbnail',
-                        'alt': title
-                    }
-                    images.append(featured_image)
-                    print(f"[IMG] 고품질 대표이미지 생성 완료: {image_path}")
-                else:
-                    print("[IMG] 대표이미지 생성 실패, 텍스트만 발행")
-                    
-                except Exception as e:
-                    print(f"[IMG] 이미지 생성 중 오류 (무시하고 텍스트만 발행): {e}")
-                    images = []
+            # 텍스트 전용 모드: 이미지 생성 코드 완전 제거됨
+            print("[TEXT_ONLY] 이미지 생성 단계를 완전히 스킵합니다")
             
             # 구조화된 데이터가 있고 sections도 있으면 사용, 없으면 HTML 직접 사용
             if structured_content and structured_content.get('sections'):
