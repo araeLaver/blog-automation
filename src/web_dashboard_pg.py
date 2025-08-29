@@ -2014,6 +2014,8 @@ def quick_publish():
     try:
         data = request.json
         sites = data.get('sites', ['unpre', 'untab', 'skewese', 'tistory'])
+        manual_topic = data.get('topic')  # alert으로 받은 주제
+        manual_category = data.get('category')  # alert으로 받은 카테고리
         
         # 중복 실행 방지
         if publish_status_global['in_progress']:
@@ -2126,53 +2128,68 @@ def quick_publish():
                     
                     logger.info(f"🎯 {site} 사이트 듀얼 카테고리 발행 시작 ({site_idx}/{len(sites)})")
 
-                    # 듀얼 카테고리 주제 가져오기
-                    try:
-                        primary_topic, secondary_topic = monthly_schedule_manager.get_today_dual_topics_for_manual(site)
-                        logger.info(f"✅ {site} 주제 조회 성공")
+                    # alert으로 받은 주제가 있으면 사용, 없으면 스케줄에서 가져오기
+                    if manual_topic:
+                        # alert에서 받은 주제 사용 (단일 주제)
+                        primary_topic = {
+                            'topic': manual_topic,
+                            'category': manual_category or '일반',
+                            'keywords': [manual_topic.split()[0]] if manual_topic else []
+                        }
+                        secondary_topic = None  # 수동은 하나의 주제만
+                        logger.info(f"✅ {site} alert 주제 사용: {manual_topic}")
                         
-                    except Exception as e:
-                        error_msg = f"{site} 주제 조회 오류: {str(e)}"
-                        logger.error(f"❌ {error_msg}")
-                        
-                        publish_status_global['errors'].append({
-                            'timestamp': datetime.now().isoformat(),
-                            'site': site,
-                            'type': 'topic_loading',
-                            'message': error_msg,
-                            'details': str(e)
-                        })
-                        
-                        publish_status_global['results'].append({
-                            'site': site,
-                            'status': 'failed',
-                            'message': f'주제 조회 실패: {str(e)}',
-                            'category': 'system',
-                            'error_details': str(e)
-                        })
-                        continue
+                    else:
+                        # 스케줄에서 듀얼 카테고리 주제 가져오기
+                        try:
+                            primary_topic, secondary_topic = monthly_schedule_manager.get_today_dual_topics_for_manual(site)
+                            logger.info(f"✅ {site} 스케줄 주제 조회 성공")
+                            
+                        except Exception as e:
+                            error_msg = f"{site} 주제 조회 오류: {str(e)}"
+                            logger.error(f"❌ {error_msg}")
+                            
+                            publish_status_global['errors'].append({
+                                'timestamp': datetime.now().isoformat(),
+                                'site': site,
+                                'type': 'topic_loading',
+                                'message': error_msg,
+                                'details': str(e)
+                            })
+                            
+                            publish_status_global['results'].append({
+                                'site': site,
+                                'status': 'failed',
+                                'message': f'주제 조회 실패: {str(e)}',
+                                'category': 'system',
+                                'error_details': str(e)
+                            })
+                            continue
 
-                    if not primary_topic or not secondary_topic:
-                        error_msg = f"{site}의 듀얼 카테고리 주제를 찾을 수 없습니다"
-                        logger.error(f"❌ {error_msg}")
-                        
-                        publish_status_global['errors'].append({
-                            'timestamp': datetime.now().isoformat(),
-                            'site': site,
-                            'type': 'missing_topics',
-                            'message': error_msg,
-                            'details': f'Primary: {primary_topic}, Secondary: {secondary_topic}'
-                        })
-                        
-                        publish_status_global['results'].append({
-                            'site': site,
-                            'status': 'failed',
-                            'message': '주제를 찾을 수 없음 - DB 스케줄 확인 필요',
-                            'category': 'system'
-                        })
-                        continue
+                        if not primary_topic or not secondary_topic:
+                            error_msg = f"{site}의 듀얼 카테고리 주제를 찾을 수 없습니다"
+                            logger.error(f"❌ {error_msg}")
+                            
+                            publish_status_global['errors'].append({
+                                'timestamp': datetime.now().isoformat(),
+                                'site': site,
+                                'type': 'missing_topics',
+                                'message': error_msg,
+                                'details': f'Primary: {primary_topic}, Secondary: {secondary_topic}'
+                            })
+                            
+                            publish_status_global['results'].append({
+                                'site': site,
+                                'status': 'failed',
+                                'message': '주제를 찾을 수 없음 - DB 스케줄 확인 필요',
+                                'category': 'system'
+                            })
+                            continue
 
-                    logger.info(f"🎯 {site} 듀얼 주제 확인 - Primary: {primary_topic['topic']}, Secondary: {secondary_topic['topic']}")
+                    if secondary_topic:
+                        logger.info(f"🎯 {site} 듀얼 주제 확인 - Primary: {primary_topic['topic']}, Secondary: {secondary_topic['topic']}")
+                    else:
+                        logger.info(f"🎯 {site} 단일 주제 확인 - Primary: {primary_topic['topic']}")
                     
                     # 주제 조회 완료 상태 업데이트
                     publish_status_global.update({
@@ -2380,9 +2397,10 @@ def quick_publish():
                             'category': 'primary'
                         })
 
-                    # Secondary 카테고리 발행
-                    try:
-                        logger.info(f"{site} Secondary 카테고리 발행 시작: {secondary_topic['topic']}")
+                    # Secondary 카테고리 발행 (alert 주제 사용시 스킵)
+                    if secondary_topic:
+                        try:
+                            logger.info(f"{site} Secondary 카테고리 발행 시작: {secondary_topic['topic']}")
 
                         # DB에 처리중 상태로 추가
                         secondary_file_id = db.add_content_file(
@@ -2504,31 +2522,34 @@ def quick_publish():
                             else:
                                 raise Exception("콘텐츠 생성 실패")
 
-                        completed_posts += 1
-                        publish_status_global['completed_sites'] = completed_posts
-                        publish_status_global['progress'] = int((completed_posts / total_posts) * 100)
+                            completed_posts += 1
+                            publish_status_global['completed_sites'] = completed_posts
+                            publish_status_global['progress'] = int((completed_posts / total_posts) * 100)
 
-                    except Exception as e:
-                        logger.error(f"{site} Secondary 발행 실패: {e}")
-                        # 처리중 항목 삭제
-                        try:
-                            db.delete_content_file(secondary_file_id)
-                        except:
-                            pass
-                        publish_status_global['results'].append({
-                            'site': site,
-                            'status': 'failed',
-                            'message': f'Secondary 발행 실패: {str(e)}',
-                            'category': 'secondary'
-                        })
+                        except Exception as e:
+                            logger.error(f"{site} Secondary 발행 실패: {e}")
+                            # 처리중 항목 삭제
+                            try:
+                                db.delete_content_file(secondary_file_id)
+                            except:
+                                pass
+                            publish_status_global['results'].append({
+                                'site': site,
+                                'status': 'failed',
+                                'message': f'Secondary 발행 실패: {str(e)}',
+                                'category': 'secondary'
+                            })
+                    else:
+                        logger.info(f"{site} alert 주제 사용으로 Secondary 발행 스킵")
 
                     # 사이트 완료 결과 추가
+                    secondary_msg = secondary_topic['topic'] if secondary_topic else '(스킵됨)'
                     publish_status_global['results'].append({
                         'site': site,
                         'status': 'completed',
-                        'message': f'Primary: {primary_topic["topic"]}, Secondary: {secondary_topic["topic"]}',
+                        'message': f'Primary: {primary_topic["topic"]}, Secondary: {secondary_msg}',
                         'primary_topic': primary_topic['topic'],
-                        'secondary_topic': secondary_topic['topic']
+                        'secondary_topic': secondary_topic['topic'] if secondary_topic else None
                     })
 
                 except Exception as e:
