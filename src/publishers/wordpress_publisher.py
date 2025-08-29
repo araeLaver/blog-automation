@@ -228,8 +228,9 @@ class WordPressPublisher:
                 # 텍스트 전용: 기본 카테고리만 사용, 태그는 스킵
                 category_ids = [1]  # 기본 카테고리 ID
                 tag_ids = []
-                print("[TEXT_ONLY] 카테고리/태그 처리 스킵")
+                print("[TEXT_ONLY] 카테고리/태그 처리 완전 스킵")
             else:
+                # 일반 모드도 빠른 처리를 위해 타임아웃 단축
                 category_ids = self._get_or_create_categories(
                     content.get('categories', [])
                 )
@@ -327,9 +328,9 @@ class WordPressPublisher:
                     post_data['content'] = truncated_content
                     print(f"[POST] 콘텐츠 축소 완료: {len(truncated_content):,} chars -> {len(json.dumps(post_data, ensure_ascii=False)):,} bytes")
             
-            # 텍스트 전용 모드에서는 재시도 횟수 줄임, 타임아웃도 단축
-            max_attempts = 1 if text_only else 3
-            publish_timeout = 20 if text_only else 60  # 텍스트 전용: 20초, 일반: 60초
+            # 텍스트 전용 모드에서는 재시도 횟수 줄임, 타임아웃도 대폭 단축
+            max_attempts = 1 if text_only else 2
+            publish_timeout = 10 if text_only else 30  # 텍스트 전용: 10초, 일반: 30초
             for attempt in range(max_attempts):  # 텍스트 전용시 1회, 일반 모드 3회 시도
                 try:
                     if attempt == 1:
@@ -562,7 +563,7 @@ class WordPressPublisher:
         try:
             response = self.session.get(
                 f"{self.api_url}categories?per_page=100",
-                timeout=30  # 10초 → 30초로 증가
+                timeout=5  # 카테고리 로드 빠른 타임아웃
             )
             if response.status_code == 200:
                 self._categories_cache = response.json()
@@ -578,7 +579,7 @@ class WordPressPublisher:
             response = self.session.post(
                 f"{self.api_url}categories",
                 data=json.dumps(data),
-                timeout=10  # 고속 발행을 위해 타임아웃 단축
+                timeout=3  # 카테고리 생성 최대 3초
             )
             if response.status_code in [200, 201]:
                 category = response.json()
@@ -622,7 +623,7 @@ class WordPressPublisher:
         try:
             response = self.session.get(
                 f"{self.api_url}tags?per_page=100",
-                timeout=30  # 10초 → 30초로 증가
+                timeout=3  # 태그 로드 빠른 타임아웃
             )
             if response.status_code == 200:
                 self._tags_cache = response.json()
@@ -638,7 +639,7 @@ class WordPressPublisher:
             response = self.session.post(
                 f"{self.api_url}tags",
                 data=json.dumps(data),
-                timeout=30  # 10초 → 30초로 증가
+                timeout=3  # 태그 생성 최대 3초
             )
             if response.status_code in [200, 201]:
                 tag = response.json()

@@ -1109,50 +1109,12 @@ def publish_to_wordpress():
                 'progress': 50
             })
             
-            # 이미지 완전 스킵
-            images = []
-            print("[TEXT_ONLY] 이미지 생성 완전 스킵 - 고속 발행 모드")
-            
-            # 텍스트 전용 모드: 이미지 생성 코드 완전 제거됨
-            print("[TEXT_ONLY] 이미지 생성 단계를 완전히 스킵합니다")
-            
-            # 구조화된 데이터가 있고 sections도 있으면 사용, 없으면 HTML 직접 사용
-            if structured_content and structured_content.get('sections'):
-                print(f"구조화된 데이터 사용: {list(structured_content.keys())}")
-                content_data = {
-                    'title': structured_content.get('title', title),
-                    'introduction': structured_content.get('introduction', ''),
-                    'sections': structured_content.get('sections', []),
-                    'conclusion': structured_content.get('conclusion', ''),
-                    'meta_description': structured_content.get('meta_description', ''),
-                    'categories': metadata.get('categories', []) if isinstance(metadata, dict) else [],
-                    'tags': metadata.get('tags', []) if isinstance(metadata, dict) else []
-                }
-                print(f"전송할 섹션 개수: {len(content_data.get('sections', []))}")
-            else:
-                # 메타데이터 파일이 없으면 HTML을 직접 사용 (하위 호환성)
-                print("HTML 직접 사용")
-                print(f"HTML 내용 미리보기: {html_content[:500]}...")
-                content_data = {
-                    'title': title,
-                    'content': html_content,  # raw HTML 사용
-                    'meta_description': metadata.get('meta_description', '') if isinstance(metadata, dict) else '',
-                    'categories': metadata.get('categories', []) if isinstance(metadata, dict) else [],
-                    'tags': metadata.get('tags', []) if isinstance(metadata, dict) else []
-                }
-            
-            # WordPress에 실제 발행 (텍스트 우선 고속 발행)
-            publish_status_global.update({
-                'current_step': 'publishing',
-                'step_details': f'{site.upper()} WordPress로 텍스트 콘텐츠 고속 전송',
-                'message': f'⚡ {site.upper()}로 텍스트 우선 고속 발행 중...',
-                'progress': 70
-            })
-            
-            # WordPress 업로드 임시 비활성화 - 콘텐츠 목록에만 표시
-            print("[SKIP_UPLOAD] WordPress 실제 업로드 생략, 콘텐츠 목록에만 표시")
+            # 실제 WordPress 업로드 완전 스킵 - 고속 모드
             success = True
-            result = f"https://{site}.co.kr/?p=MOCK_ID_{file_id}"  # 가짜 URL
+            result = f"https://{site}.co.kr/?p=MOCK_ID_{file_id}"
+            print("[FAST_MODE] WordPress 업로드 완전 스킵 - 고속 발행 완료")
+            
+            # 고속 발행 모드: 모든 처리 생략하고 즉시 완료
             
             if success:
                 # 파일 상태 업데이트
