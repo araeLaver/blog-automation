@@ -204,15 +204,18 @@ class DailyAutoPublisher:
     def get_today_topics(self, site: str, year: int, month: int, day: int) -> list:
         """오늘 발행 예정인 주제 조회"""
         try:
+            # 날짜 형식을 YYYY-MM-DD로 변경
+            scheduled_date = f"{year:04d}-{month:02d}-{day:02d}"
+            
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
                 cursor.execute(f"""
                     SELECT id, topic_category, specific_topic, keywords
-                    FROM {self.db.schema}.monthly_publishing_schedule
-                    WHERE site = %s AND year = %s AND month = %s AND day = %s
+                    FROM {self.db.schema}.publishing_schedule
+                    WHERE site = %s AND scheduled_date = %s
                     AND status = 'pending'
                     ORDER BY id
-                """, (site, year, month, day))
+                """, (site, scheduled_date))
                 
                 results = cursor.fetchall()
                 topics = []
@@ -225,6 +228,7 @@ class DailyAutoPublisher:
                         'keywords': row[3] or []
                     })
                 
+                logger.info(f"📋 {site.upper()}: {scheduled_date} 예정 주제 {len(topics)}개 조회")
                 return topics
                 
         except Exception as e:
@@ -237,12 +241,13 @@ class DailyAutoPublisher:
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
                 cursor.execute(f"""
-                    UPDATE {self.db.schema}.monthly_publishing_schedule
+                    UPDATE {self.db.schema}.publishing_schedule
                     SET status = 'completed', updated_at = %s
                     WHERE id = %s
                 """, (datetime.now(), schedule_id))
                 
                 conn.commit()
+                logger.info(f"✅ 스케줄 ID {schedule_id} 완료 처리됨")
                 
         except Exception as e:
             logger.error(f"스케줄 완료 처리 오류: {e}")
@@ -305,15 +310,29 @@ class DailyAutoPublisher:
             
             # 사이트별 발행 처리
             if site == 'tistory':
-                # tistory는 콘텐츠만 저장하고 자동 발행하지 않음
-                logger.info(f"✅ {site.upper()}: 콘텐츠 생성 완료 (자동발행 안함)")
+                # tistory는 콘텐츠만 저장하고 자동 발행하지 않음 - 목록에 표시됨
+                logger.info(f"✅ {site.upper()}: 콘텐츠 생성 완료 (목록에 표시됨)")
+                
+                # 상태를 published로 설정하여 목록에 표시되도록 함
+                conn = self.db.get_connection()
+                with conn.cursor() as cursor:
+                    cursor.execute(f"""
+                        UPDATE {self.db.schema}.content_files
+                        SET status = 'published', updated_at = %s
+                        WHERE id = %s
+                    """, (datetime.now(), content_id))
+                    conn.commit()
                 
                 # 메타데이터 업데이트 (목록에 즉시 반영)
-                self.db.update_content_metadata(content_id, {
-                    'auto_generated': True,
-                    'generated_at': datetime.now().isoformat(),
-                    'status': 'ready_for_manual_publish'
-                })
+                try:
+                    self.db.update_content_metadata(content_id, {
+                        'auto_generated': True,
+                        'generated_at': datetime.now().isoformat(),
+                        'schedule_id': topic_data.get('id'),
+                        'category': topic_data['category']
+                    })
+                except Exception as meta_error:
+                    logger.warning(f"메타데이터 업데이트 실패: {meta_error}")
                 
                 return True
             else:
@@ -347,35 +366,48 @@ class DailyAutoPublisher:
             return False
     
     def save_content_to_db(self, site: str, content: dict, topic_data: dict) -> int:
-        """콘텐츠를 데이터베이스에 저장"""
+        """콘텐츠를 데이터베이스에 저장 - 수동발행과 동일한 방식"""
         try:
-            # 콘텐츠 텍스트 생성
-            content_text = f"{content.get('introduction', '')}\n\n"
-            for section in content.get('sections', []):
-                content_text += f"{section.get('content', '')}\n\n"
-            content_text += content.get('conclusion', '')
+            # 사이트별 exporter 사용하여 파일 생성
+            if site == 'tistory':
+                from src.generators.tistory_content_exporter import TistoryContentExporter
+                exporter = TistoryContentExporter()
+            else:
+                from src.generators.wordpress_content_exporter import WordPressContentExporter
+                exporter = WordPressContentExporter()
             
-            # content_files 테이블에 저장
+            # 콘텐츠 파일 생성
+            filepath = exporter.export_content(site, content) if site != 'tistory' else exporter.export_content(content)
+            
+            # content_files 테이블에 저장 (수동발행과 동일한 구조)
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
                 cursor.execute(f"""
                     INSERT INTO {self.db.schema}.content_files 
-                    (title, content, category, keywords, site, created_at, updated_at, status)
+                    (site, title, file_path, file_type, metadata, created_at, updated_at, status)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
                 """, (
-                    content['title'],
-                    content_text,
-                    topic_data['category'],
-                    topic_data['keywords'],
                     site,
+                    content['title'],
+                    filepath,
+                    'tistory' if site == 'tistory' else 'wordpress',
+                    {
+                        'category': topic_data['category'],
+                        'auto_generated': True,
+                        'schedule_id': topic_data.get('id'),
+                        'tags': content.get('tags', []),
+                        'keywords': topic_data['keywords']
+                    },
                     datetime.now(),
                     datetime.now(),
-                    'published' if site != 'tistory' else 'ready'
+                    'ready'  # 초기상태는 ready로 설정
                 ))
                 
                 content_id = cursor.fetchone()[0]
                 conn.commit()
+                
+                logger.info(f"✅ {site.upper()}: 콘텐츠 파일 저장 완료 - ID: {content_id}, Path: {filepath}")
                 return content_id
                 
         except Exception as e:
