@@ -709,15 +709,22 @@ def get_today_topics():
                 }
         
         logger.info(f"오늘({today}) 실제 스케줄 조회 완료: {len(results)}개 주제")
-        return jsonify(today_topics)
+        return jsonify({
+            'success': True,
+            'today_topics': today_topics,
+            'date': today.isoformat(),
+            'total_topics': len(results)
+        })
         
     except Exception as e:
         logger.error(f"Today topics error: {e}")
-        # 오류 발생시 빈 객체 대신 실제 오류 정보 반환
+        # 오류 발생시 실패 응답
         return jsonify({
+            'success': False,
             'error': str(e),
             'message': 'DB에서 오늘 스케줄을 불러올 수 없습니다',
-            'date': date.today().isoformat()
+            'date': date.today().isoformat(),
+            'today_topics': {}
         }), 500
 
 
