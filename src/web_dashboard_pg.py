@@ -2495,7 +2495,7 @@ def quick_publish():
                                     )
                                     
                                     # 발행 완료 시간 업데이트
-                                    db.update_file_status(final_secondary_file_id, 'ready', datetime.now())
+                                    db.update_file_status(final_secondary_file_id, 'published', datetime.now())
 
                                     logger.info(f"{site} Secondary 콘텐츠 생성 완료: {secondary_topic['topic']}")
 
@@ -2579,9 +2579,32 @@ def quick_publish():
     except Exception as e:
         publish_status_global['in_progress'] = False
         logger.error(f"Quick publish error: {e}")
+        
+        # 상세한 오류 정보 로깅
+        import traceback
+        error_details = traceback.format_exc()
+        logger.error(f"Quick publish error details: {error_details}")
+        
+        # 오류 유형별 분류
+        error_message = str(e)
+        if "Request interrupted" in error_message:
+            error_type = "timeout"
+            user_message = "요청 시간 초과: 콘텐츠 생성에 시간이 오래 걸립니다. 잠시 후 다시 시도해주세요."
+        elif "UnicodeEncodeError" in error_message:
+            error_type = "encoding"
+            user_message = "문자 인코딩 오류: 특수 문자 처리 중 오류가 발생했습니다."
+        elif "relation" in error_message and "does not exist" in error_message:
+            error_type = "database"
+            user_message = "데이터베이스 연결 오류: 스케줄 테이블에 접근할 수 없습니다."
+        else:
+            error_type = "unknown"
+            user_message = f"발행 처리 중 오류 발생: {error_message}"
+        
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': user_message,
+            'error_type': error_type,
+            'timestamp': datetime.now().isoformat()
         }), 500
 
 

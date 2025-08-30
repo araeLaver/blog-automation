@@ -404,7 +404,7 @@ class DailyAutoPublisher:
                     },
                     datetime.now(),
                     datetime.now(),
-                    'ready'  # 초기상태는 ready로 설정
+                    'published'  # 초기상태는 published로 설정
                 ))
                 
                 content_id = cursor.fetchone()[0]
