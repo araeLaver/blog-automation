@@ -508,7 +508,20 @@ def generate_wordpress():
         )
         
         # 파일로 저장
-        filepath = exporter.export_content(site, content)
+        try:
+            logger.info(f"Exporting content for site: {site}, title: {content.get('title', 'N/A')[:50]}...")
+            filepath = exporter.export_content(site, content)
+            logger.info(f"Content exported to: {filepath}")
+            
+            # 파일 존재 확인
+            from pathlib import Path
+            if not Path(filepath).exists():
+                logger.error(f"파일이 생성되지 않았습니다: {filepath}")
+                raise FileNotFoundError(f"파일 생성 실패: {filepath}")
+                
+        except Exception as e:
+            logger.error(f"파일 내보내기 실패: {e}")
+            return jsonify({'error': f'파일 생성 실패: {str(e)}'}), 500
         
         # 데이터베이스에 파일 정보 저장 (PostgreSQL)
         try:
@@ -596,7 +609,20 @@ def generate_tistory():
             content_length=content_length
         )
         
-        filepath = exporter.export_content(content)
+        try:
+            logger.info(f"Exporting Tistory content, title: {content.get('title', 'N/A')[:50]}...")
+            filepath = exporter.export_content(content)
+            logger.info(f"Tistory content exported to: {filepath}")
+            
+            # 파일 존재 확인
+            from pathlib import Path
+            if not Path(filepath).exists():
+                logger.error(f"Tistory 파일이 생성되지 않았습니다: {filepath}")
+                raise FileNotFoundError(f"Tistory 파일 생성 실패: {filepath}")
+                
+        except Exception as e:
+            logger.error(f"Tistory 파일 내보내기 실패: {e}")
+            return jsonify({'error': f'Tistory 파일 생성 실패: {str(e)}'}), 500
         
         # 데이터베이스에 파일 정보 저장
         try:
@@ -827,6 +853,7 @@ def download_content(file_id):
             keywords = tags or []
             
             # 실제 파일에서 콘텐츠 읽기
+            from pathlib import Path
             content_text = ""
             if file_path and Path(file_path).exists():
                 try:
