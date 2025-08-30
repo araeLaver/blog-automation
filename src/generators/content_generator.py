@@ -106,31 +106,36 @@ class ContentGenerator:
         
         settings = length_settings.get(content_length, length_settings['medium'])
         
-        # 섹션 템플릿 생성 - 개선된 구조
+        # 섹션 템플릿 생성 - 주제별 맞춤 구조
         section_topics = [
-            "대상 목표와 특징 분석",
-            "단계별 실행 방법",  
-            "주의사항과 팁",
-            "실제 사례와 예시",
-            "기대 효과와 결론"
+            f"{topic}의 핵심 개념과 특징",
+            f"{topic}의 구체적 활용 방법",  
+            f"{topic} 관련 주의사항과 팁",
+            f"{topic}의 실제 사례와 예시",
+            f"{topic}의 기대 효과와 미래 전망"
         ]
         
         sections_template = []
         for i in range(settings['sections']):
-            topic = section_topics[i] if i < len(section_topics) else f"{i+1}번째 핵심 내용"
+            section_topic = section_topics[i] if i < len(section_topics) else f"{i+1}번째 핵심 내용"
             sections_template.append(f'''        {{
-            "heading": "{topic}에 대한 구체적이고 매력적인 제목",
+            "heading": "{section_topic}에 대한 구체적이고 매력적인 제목",
             "content": "{settings['section_length']}의 상세한 설명. 반드시 다음 형식을 포함하세요:\\n\\n📌 **구조화된 내용 요구사항:**\\n\\n1. **도입 문장**: 이 섹션의 중요성 설명 (2-3문장)\\n\\n2. **핵심 내용**: \\n   - 주요 포인트 3-5개를 목록이나 표 형태로 정리\\n   - 각 포인트마다 **굵은 글씨**로 키워드 강조\\n   - 비교/정리 필요시 HTML 표 활용\\n\\n3. **실용 정보**: \\n   - 구체적인 예시나 수치 제시\\n   - 단계별 가이드나 체크리스트\\n   - 코드나 도구 예시 (필요시)\\n\\n4. **주의사항**: ⚠️ 아이콘과 함께 중요한 주의점 안내\\n\\n5. **마무리**: 이 섹션의 핵심 포인트 요약 (2-3문장)\\n\\n반드시 실용적이고 전문적인 내용으로 작성하세요."
         }}''')
         
         sections_json = ',\n'.join(sections_template)
         
-        prompt = f"""🎯 전문가급 블로그 콘텐츠 작성 미션 🎯
+        prompt = f"""TOPIC: {topic}
 
-📝 **작성 주제**: {topic}
-🏢 **블로그**: {site_config['name']}
-👥 **타겟 독자**: {site_config['target_audience']}
-📊 **카테고리**: {category}
+Write a comprehensive blog post about "{topic}" ONLY.
+
+Title must be about: {topic}
+Content must be about: {topic}
+Do not write about general topics or other subjects.
+
+Blog: {site_config['name']}
+Audience: {site_config['target_audience']}
+Category: {category}
 📏 **분량**: {settings['total_guide']}
 
 🔥 **품질 요구사항 (매우 중요!)** 🔥

@@ -2286,7 +2286,8 @@ def quick_publish():
                                 site_config,
                                 primary_topic['topic'],
                                 primary_topic['category'],
-                                'medium'
+                                None,  # existing_posts
+                                'medium'  # content_length
                             )
 
                             if content_data:
@@ -2351,7 +2352,8 @@ def quick_publish():
                                 site_config,
                                 primary_topic['topic'],
                                 primary_topic['category'],
-                                'medium'
+                                None,  # existing_posts
+                                'medium'  # content_length
                             )
 
                             if content_data:
@@ -2453,7 +2455,8 @@ def quick_publish():
                                     site_config,
                                     secondary_topic['topic'],
                                     secondary_topic['category'],
-                                    'medium'
+                                    None,  # existing_posts
+                                    'medium'  # content_length
                                 )
 
                                 if content_data:
@@ -2495,7 +2498,8 @@ def quick_publish():
                                     site_config,
                                     secondary_topic['topic'],
                                     secondary_topic['category'],
-                                    'medium'
+                                    None,  # existing_posts
+                                    'medium'  # content_length
                                 )
 
                                 if content_data:
