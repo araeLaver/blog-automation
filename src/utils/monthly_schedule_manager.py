@@ -8,6 +8,7 @@ import psycopg2
 from datetime import datetime, date, timedelta
 import os
 from dotenv import load_dotenv
+from src.utils.postgresql_database import PostgreSQLDatabase
 
 load_dotenv('.env.example')
 
@@ -15,18 +16,12 @@ class MonthlyScheduleManager:
     """월별 스케줄 관리자"""
     
     def __init__(self):
-        # 환경변수 우선, 없으면 하드코딩 값 사용 
-        self.db_config = {
-            'host': os.getenv('PG_HOST', "aws-0-ap-northeast-2.pooler.supabase.com"),
-            'database': os.getenv('PG_DATABASE', "postgres"),
-            'user': os.getenv('PG_USER', "postgres.lhqzjnpwuftaicjurqxq"),
-            'password': os.getenv('PG_PASSWORD', "Unbleyum1106!"),
-            'port': int(os.getenv('PG_PORT', 5432))
-        }
+        # PostgreSQLDatabase 인스턴스 사용
+        self.db = PostgreSQLDatabase()
     
     def get_db_connection(self):
         """데이터베이스 연결"""
-        return psycopg2.connect(**self.db_config)
+        return self.db.get_connection()
     
     def get_today_dual_topics(self, site):
         """오늘 날짜의 듀얼 카테고리 주제 가져오기"""
@@ -41,10 +36,8 @@ class MonthlyScheduleManager:
             cursor = conn.cursor()
             
             # monthly_publishing_schedule 테이블에서만 조회 (정확한 계획표)
-            # 동적 스키마 이름 사용
-            from src.utils.postgresql_database import PostgreSQLDatabase
-            db_instance = PostgreSQLDatabase()
-            schema_name = db_instance.schema
+            # 스키마 이름 직접 지정
+            schema_name = 'unble'
             
             cursor.execute(f"""
                 SELECT topic_category, specific_topic, keywords
@@ -108,16 +101,20 @@ class MonthlyScheduleManager:
             cursor = conn.cursor()
             
             if site:
-                cursor.execute("""
+                # 스키마 이름 직접 지정
+                schema_name = 'unble'
+                
+                cursor.execute(f"""
                     SELECT site, topic_category, specific_topic, keywords, status
-                    FROM blog_automation.monthly_publishing_schedule
+                    FROM {schema_name}.monthly_publishing_schedule
                     WHERE year = %s AND month = %s AND day = %s AND site = %s
                     ORDER BY site, topic_category
                 """, (target_date.year, target_date.month, target_date.day, site))
             else:
-                cursor.execute("""
+                # 동적 스키마 이름 사용 (이미 위에서 정의됨)
+                cursor.execute(f"""
                     SELECT site, topic_category, specific_topic, keywords, status
-                    FROM blog_automation.monthly_publishing_schedule
+                    FROM {schema_name}.monthly_publishing_schedule
                     WHERE year = %s AND month = %s AND day = %s
                     ORDER BY site, topic_category
                 """, (target_date.year, target_date.month, target_date.day))
@@ -158,9 +155,12 @@ class MonthlyScheduleManager:
             cursor = conn.cursor()
             
             # 먼저 monthly_publishing_schedule 테이블 조회
-            cursor.execute("""
+            # 스키마 이름 직접 지정 (환경변수 문제 해결까지)
+            schema_name = 'unble'
+            
+            cursor.execute(f"""
                 SELECT day, site, topic_category, specific_topic, keywords, status
-                FROM blog_automation.monthly_publishing_schedule
+                FROM {schema_name}.monthly_publishing_schedule
                 WHERE year = %s AND month = %s
                 ORDER BY day, site, topic_category
             """, (year, month))
@@ -170,9 +170,9 @@ class MonthlyScheduleManager:
             # 데이터가 없으면 기존 publishing_schedule 테이블에서 조회 (폴백)
             if not topics:
                 # 해당 월의 모든 날짜에 대해 publishing_schedule 테이블 조회
-                cursor.execute("""
+                cursor.execute(f"""
                     SELECT EXTRACT(DAY FROM scheduled_date) as day, site, topic_category, specific_topic, keywords, 'pending' as status
-                    FROM blog_automation.publishing_schedule
+                    FROM {schema_name}.publishing_schedule
                     WHERE EXTRACT(YEAR FROM scheduled_date) = %s 
                     AND EXTRACT(MONTH FROM scheduled_date) = %s
                     ORDER BY day, site, topic_category
@@ -219,8 +219,11 @@ class MonthlyScheduleManager:
             conn = self.get_db_connection()
             cursor = conn.cursor()
             
-            cursor.execute("""
-                UPDATE blog_automation.monthly_publishing_schedule
+            # 스키마 이름 직접 지정
+            schema_name = 'unble'
+            
+            cursor.execute(f"""
+                UPDATE {schema_name}.monthly_publishing_schedule
                 SET status = %s, updated_at = CURRENT_TIMESTAMP
                 WHERE year = %s AND month = %s AND day = %s 
                 AND site = %s AND topic_category = %s
