@@ -4,6 +4,7 @@ AI 기반 콘텐츠 생성 모듈
 
 import os
 import json
+import re
 from typing import Dict, List, Optional
 from datetime import datetime
 import anthropic
@@ -354,6 +355,24 @@ Category: {category}
     
     def _validate_content(self, content: Dict) -> Dict:
         """생성된 콘텐츠 검증 및 필터링"""
+        import datetime
+        current_year = datetime.datetime.now().year
+        
+        # 연도 수정 (2024년 → 현재 연도)
+        for key in ['title', 'meta_description', 'introduction', 'additional_content']:
+            if key in content and content[key]:
+                content[key] = re.sub(r'2024년', f'{current_year}년', content[key])
+                content[key] = re.sub(r'\[2024년\]', f'[{current_year}년]', content[key])
+        
+        # 섹션 내용도 연도 수정
+        if 'sections' in content and isinstance(content['sections'], list):
+            for section in content['sections']:
+                if isinstance(section, dict):
+                    for key in ['heading', 'content']:
+                        if key in section and section[key]:
+                            section[key] = re.sub(r'2024년', f'{current_year}년', section[key])
+                            section[key] = re.sub(r'\[2024년\]', f'[{current_year}년]', section[key])
+        
         # 제목 검증
         title = content.get('title', '')
         

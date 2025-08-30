@@ -417,6 +417,12 @@ class PostgreSQLDatabase:
                     for field in ['tags', 'categories']:
                         if file_dict.get(field):
                             file_dict[field] = json.loads(file_dict[field]) if isinstance(file_dict[field], str) else file_dict[field]
+                    
+                    # DateTime 필드 포맷팅
+                    for field in ['created_at', 'published_at']:
+                        if file_dict.get(field):
+                            file_dict[field] = self._format_datetime_for_display(file_dict[field])
+                    
                     files.append(file_dict)
                 
                 return files
@@ -892,8 +898,8 @@ class PostgreSQLDatabase:
                         'status': row['status'],
                         'tags': tags,
                         'categories': categories,
-                        'created_at': row['created_at'].isoformat() if row['created_at'] else None,
-                        'published_at': row['published_at'].isoformat() if row['published_at'] else None,
+                        'created_at': self._format_datetime_for_display(row['created_at']),
+                        'published_at': self._format_datetime_for_display(row['published_at']),
                         'file_size': row['file_size'],
                         'category': categories[0] if categories else 'N/A',  # 호환성
                         'filename': row['file_path'].split('/')[-1] if row['file_path'] else 'unknown'  # 호환성
@@ -904,6 +910,24 @@ class PostgreSQLDatabase:
         except Exception as e:
             logger.error(f"콘텐츠 파일 목록 조회 오류: {e}")
             return []
+    
+    def _format_datetime_for_display(self, dt):
+        """한국 시간으로 포맷된 날짜/시간 문자열 반환"""
+        if not dt:
+            return None
+        
+        from datetime import timezone, timedelta
+        
+        # PostgreSQL에서 가져온 datetime이 naive인 경우 UTC로 가정
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        
+        # 한국 시간으로 변환 (UTC+9)
+        kst = timezone(timedelta(hours=9))
+        kst_time = dt.astimezone(kst)
+        
+        # 사용자 친화적 형식으로 반환
+        return kst_time.strftime('%Y-%m-%d %H:%M:%S')
     
     def __del__(self):
         """소멸자 - 연결 정리"""
