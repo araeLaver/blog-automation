@@ -41,9 +41,14 @@ class MonthlyScheduleManager:
             cursor = conn.cursor()
             
             # monthly_publishing_schedule 테이블에서만 조회 (정확한 계획표)
-            cursor.execute("""
+            # 동적 스키마 이름 사용
+            from src.utils.postgresql_database import PostgreSQLDatabase
+            db_instance = PostgreSQLDatabase()
+            schema_name = db_instance.schema
+            
+            cursor.execute(f"""
                 SELECT topic_category, specific_topic, keywords
-                FROM blog_automation.monthly_publishing_schedule
+                FROM {schema_name}.monthly_publishing_schedule
                 WHERE year = %s AND month = %s AND day = %s AND site = %s
                 ORDER BY topic_category
             """, (today.year, today.month, today.day, site))
