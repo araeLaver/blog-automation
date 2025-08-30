@@ -1576,6 +1576,27 @@ def create_weekly_schedule():
         logger.error(f"Create schedule error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/schedule/auto-updater/status')
+def get_auto_updater_status():
+    """월간 스케줄 자동 업데이트 상태 조회"""
+    try:
+        from src.utils.auto_schedule_updater import auto_schedule_updater
+        status = auto_schedule_updater.get_scheduler_status()
+        return jsonify(status)
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/api/schedule/auto-updater/test', methods=['POST'])
+def test_auto_updater():
+    """월간 스케줄 자동 업데이트 테스트"""
+    try:
+        from src.utils.auto_schedule_updater import auto_schedule_updater
+        auto_schedule_updater.update_next_month_schedule()
+        return jsonify({'success': True, 'message': '다음 달 스케줄 생성 완료'})
+    except Exception as e:
+        logger.error(f"Auto updater test error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/trending')
 def trending_page():
     """트렌딩 이슈 페이지"""
@@ -3801,6 +3822,14 @@ if __name__ == '__main__':
             logging.error(f"❌ 스케줄러 스레드 생성 실패: {e}")
     else:
         logging.warning("⚠️ 자동발행 스케줄러는 비활성화됩니다 (수동발행은 정상 작동)")
+    
+    # 월간 스케줄 자동 업데이트 스케줄러 시작
+    try:
+        from src.utils.auto_schedule_updater import auto_schedule_updater
+        auto_schedule_updater.start_scheduler()
+        logging.info("✅ 월간 스케줄 자동 업데이트 스케줄러 시작됨")
+    except Exception as e:
+        logging.error(f"❌ 월간 스케줄 자동 업데이트 스케줄러 시작 실패: {e}")
     
     app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
 

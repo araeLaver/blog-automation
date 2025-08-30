@@ -167,18 +167,10 @@ class MonthlyScheduleManager:
             
             topics = cursor.fetchall()
             
-            # 데이터가 없으면 기존 publishing_schedule 테이블에서 조회 (폴백)
+            # 데이터가 없으면 빈 결과 반환 (폴백 제거)
             if not topics:
-                # 해당 월의 모든 날짜에 대해 publishing_schedule 테이블 조회
-                cursor.execute(f"""
-                    SELECT EXTRACT(DAY FROM scheduled_date) as day, site, topic_category, specific_topic, keywords, 'pending' as status
-                    FROM {schema_name}.publishing_schedule
-                    WHERE EXTRACT(YEAR FROM scheduled_date) = %s 
-                    AND EXTRACT(MONTH FROM scheduled_date) = %s
-                    ORDER BY day, site, topic_category
-                """, (year, month))
-                
-                topics = cursor.fetchall()
+                print(f"[MONTHLY_SCHEDULE] {year}년 {month}월 스케줄이 없습니다.")
+                topics = []
             
             # 날짜별로 그룹핑
             schedule = {}
