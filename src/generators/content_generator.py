@@ -330,6 +330,11 @@ class ContentGenerator:
             
             print(f"Cleaned content for JSON parsing: {content[:300]}...")
             
+            # 특수 문자 정리 (인코딩 오류 방지)
+            print("Applying unicode sanitization...")
+            content = self._sanitize_unicode_for_json(content)
+            print("Unicode sanitization completed.")
+            
             parsed_content = json.loads(content)
             print(f"Successfully parsed JSON: {list(parsed_content.keys())}")
             
@@ -508,3 +513,51 @@ JSON 배열 형식으로 출력:
 """
         
         return self._generate_with_claude(prompt)
+    
+    def _sanitize_unicode_for_json(self, content: str) -> str:
+        """JSON 파싱 전 유니코드 특수 문자 정리"""
+        import re
+        
+        # 문제가 되는 유니코드 이모지 및 특수 문자를 안전한 텍스트로 변환
+        replacements = {
+            '⚠️': '[주의]',
+            '⚠': '[주의]',
+            '✅': '[확인]',
+            '❌': '[오류]',
+            '⭐': '[중요]',
+            '🔥': '[핫]',
+            '💡': '[팁]',
+            '📌': '[포인트]',
+            '🚀': '[시작]',
+            '⏰': '[시간]',
+            '💰': '[가격]',
+            '📈': '[상승]',
+            '📉': '[하락]',
+            '👍': '[좋음]',
+            '👎': '[나쁨]',
+            '🎯': '[목표]',
+            '📊': '[차트]',
+            '🔍': '[검색]',
+            '📝': '[작성]',
+            '🎨': '[디자인]',
+            '🛠': '[도구]',
+            '⚡': '[빠름]',
+            '🌟': '[별점]'
+        }
+        
+        for emoji, replacement in replacements.items():
+            content = content.replace(emoji, replacement)
+        
+        # CP949에서 인코딩할 수 없는 문자들을 안전하게 제거/변환
+        try:
+            # 먼저 CP949로 인코딩해보고 오류가 있으면 해당 문자 제거
+            content.encode('cp949')
+            print(f"Content is CP949 safe: {len(content)} chars")
+        except UnicodeEncodeError as e:
+            print(f"UnicodeEncodeError detected: {e}")
+            # CP949로 인코딩할 수 없는 문자들을 ignore하여 제거
+            content = content.encode('cp949', errors='ignore').decode('cp949')
+            print(f"CP949 problematic chars removed: {len(content)} chars remaining")
+        
+        print(f"Unicode sanitized content preview: {content[:200]}...")
+        return content

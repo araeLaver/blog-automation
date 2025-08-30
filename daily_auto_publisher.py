@@ -32,7 +32,7 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s',
     handlers=[
         logging.StreamHandler(),
-        logging.FileHandler('./data/logs/auto_publisher.log')
+        logging.FileHandler('./data/logs/auto_publisher.log', encoding='utf-8')
     ]
 )
 logger = logging.getLogger(__name__)
@@ -81,7 +81,7 @@ class DailyAutoPublisher:
             misfire_grace_time=3600  # 1시간 지연까지 허용
         )
         
-        logger.info(f"📅 전체 사이트 자동발행 스케줄 등록: 매일 {self.publish_time}")
+        logger.info(f"[SCHEDULE] 전체 사이트 자동발행 스케줄 등록: 매일 {self.publish_time}")
         
         # 디버깅을 위한 테스트 스케줄 (1분마다)
         if os.getenv('DEBUG_MODE', 'false').lower() == 'true':
@@ -92,11 +92,11 @@ class DailyAutoPublisher:
                 id='scheduler_heartbeat',
                 replace_existing=True
             )
-            logger.info("🔧 DEBUG MODE: 스케줄러 heartbeat 활성화")
+            logger.info("DEBUG MODE: 스케줄러 heartbeat 활성화")
     
     def test_scheduler_alive(self):
         """스케줄러 동작 테스트용"""
-        logger.info("💓 스케줄러 heartbeat - 정상 동작 중")
+        logger.info("[HEARTBEAT] 스케줄러 heartbeat - 정상 동작 중")
         
         # 시스템 로그에 기록
         try:
@@ -111,36 +111,36 @@ class DailyAutoPublisher:
     
     def auto_publish_all_sites(self):
         """모든 사이트 순차 자동발행"""
-        logger.info("🚀 새벽 3시 전체 사이트 자동발행 시작")
+        logger.info("[AUTO_PUBLISH] 새벽 3시 전체 사이트 자동발행 시작")
         
         success_count = 0
         total_count = 0
         
         for site in self.site_order:
-            logger.info(f"📍 {site.upper()} 사이트 발행 시작...")
+            logger.info(f"[PUBLISH] {site.upper()} 사이트 발행 시작...")
             
             try:
                 site_success = self.auto_publish_for_site(site)
                 if site_success:
                     success_count += 1
-                    logger.info(f"✅ {site.upper()} 발행 완료")
+                    logger.info(f"[SUCCESS] {site.upper()} 발행 완료")
                 else:
-                    logger.error(f"❌ {site.upper()} 발행 실패")
+                    logger.error(f"[FAILED] {site.upper()} 발행 실패")
                 
                 total_count += 1
                 
                 # 사이트 간 간격 (5분)
                 if site != self.site_order[-1]:  # 마지막 사이트가 아니면
-                    logger.info(f"⏳ 다음 사이트까지 5분 대기...")
+                    logger.info(f"[WAIT] 다음 사이트까지 5분 대기...")
                     import time
                     time.sleep(300)  # 5분 대기
                     
             except Exception as e:
-                logger.error(f"💥 {site.upper()} 발행 중 예외: {e}")
+                logger.error(f"[EXCEPTION] {site.upper()} 발행 중 예외: {e}")
                 total_count += 1
         
         # 전체 발행 완료 요약
-        logger.info(f"🏁 전체 자동발행 완료: {success_count}/{total_count} 사이트 성공")
+        logger.info(f"[COMPLETE] 전체 자동발행 완료: {success_count}/{total_count} 사이트 성공")
         
         # 시스템 로그에 요약 기록
         try:
@@ -159,7 +159,7 @@ class DailyAutoPublisher:
     
     def auto_publish_for_site(self, site: str) -> bool:
         """특정 사이트의 자동발행 실행"""
-        logger.info(f"🚀 {site.upper()} 자동발행 시작")
+        logger.info(f"[AUTO_PUBLISH] {site.upper()} 자동발행 시작")
         
         try:
             # 오늘 날짜로 스케줄된 주제 조회
@@ -167,7 +167,7 @@ class DailyAutoPublisher:
             topics = self.get_today_topics(site, today.year, today.month, today.day)
             
             if not topics:
-                logger.warning(f"❌ {site.upper()}: 오늘({today.date()}) 예정된 주제가 없습니다")
+                logger.warning(f"[NO_TOPIC] {site.upper()}: 오늘({today.date()}) 예정된 주제가 없습니다")
                 return False
             
             # 각 주제별로 발행 실행
@@ -178,15 +178,15 @@ class DailyAutoPublisher:
                 if success:
                     # 스케줄 상태를 'completed'로 업데이트
                     self.mark_schedule_completed(topic_data['id'])
-                    logger.info(f"✅ {site.upper()}: '{topic_data['specific_topic']}' 발행 완료")
+                    logger.info(f"[SUCCESS] {site.upper()}: '{topic_data['specific_topic']}' 발행 완료")
                 else:
-                    logger.error(f"❌ {site.upper()}: '{topic_data['specific_topic']}' 발행 실패")
+                    logger.error(f"[FAILED] {site.upper()}: '{topic_data['specific_topic']}' 발행 실패")
                     all_success = False
             
             return all_success
         
         except Exception as e:
-            logger.error(f"💥 {site.upper()} 자동발행 중 오류: {e}")
+            logger.error(f"[ERROR] {site.upper()} 자동발행 중 오류: {e}")
             
             # 오류를 시스템 로그에 기록
             try:
@@ -204,18 +204,15 @@ class DailyAutoPublisher:
     def get_today_topics(self, site: str, year: int, month: int, day: int) -> list:
         """오늘 발행 예정인 주제 조회"""
         try:
-            # 날짜 형식을 YYYY-MM-DD로 변경
-            scheduled_date = f"{year:04d}-{month:02d}-{day:02d}"
-            
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
                 cursor.execute(f"""
                     SELECT id, topic_category, specific_topic, keywords
-                    FROM {self.db.schema}.publishing_schedule
-                    WHERE site = %s AND scheduled_date = %s
+                    FROM {self.db.schema}.monthly_publishing_schedule
+                    WHERE site = %s AND year = %s AND month = %s AND day = %s
                     AND status = 'pending'
                     ORDER BY id
-                """, (site, scheduled_date))
+                """, (site, year, month, day))
                 
                 results = cursor.fetchall()
                 topics = []
@@ -228,7 +225,7 @@ class DailyAutoPublisher:
                         'keywords': row[3] or []
                     })
                 
-                logger.info(f"📋 {site.upper()}: {scheduled_date} 예정 주제 {len(topics)}개 조회")
+                logger.info(f"[TOPICS] {site.upper()}: {year}-{month:02d}-{day:02d} 예정 주제 {len(topics)}개 조회")
                 return topics
                 
         except Exception as e:
@@ -241,13 +238,13 @@ class DailyAutoPublisher:
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
                 cursor.execute(f"""
-                    UPDATE {self.db.schema}.publishing_schedule
+                    UPDATE {self.db.schema}.monthly_publishing_schedule
                     SET status = 'completed', updated_at = %s
                     WHERE id = %s
                 """, (datetime.now(), schedule_id))
                 
                 conn.commit()
-                logger.info(f"✅ 스케줄 ID {schedule_id} 완료 처리됨")
+                logger.info(f"[COMPLETED] 스케줄 ID {schedule_id} 완료 처리됨")
                 
         except Exception as e:
             logger.error(f"스케줄 완료 처리 오류: {e}")
@@ -255,33 +252,37 @@ class DailyAutoPublisher:
     def create_and_publish_content(self, site: str, topic_data: dict) -> bool:
         """콘텐츠 생성 및 발행"""
         try:
-            logger.info(f"📝 {site.upper()}: 콘텐츠 생성 시작 - '{topic_data['specific_topic']}'")
+            logger.info(f"[CONTENT] {site.upper()}: 콘텐츠 생성 시작 - '{topic_data['specific_topic']}'")
             
             # 사이트별 설정
             site_configs = {
                 'unpre': {
                     'primary_category': '프로그래밍',
-                    'site_name': 'UNPRE',
+                    'name': 'UNPRE',
                     'tone': 'technical',
-                    'target_audience': 'developers'
+                    'target_audience': 'developers',
+                    'content_style': '기술적이고 실용적인 개발자 가이드'
                 },
                 'untab': {
                     'primary_category': '투자',
-                    'site_name': 'UNTAB', 
+                    'name': 'UNTAB', 
                     'tone': 'professional',
-                    'target_audience': 'investors'
+                    'target_audience': 'investors',
+                    'content_style': '전문적이고 신뢰할 수 있는 투자 정보'
                 },
                 'skewese': {
                     'primary_category': '역사',
-                    'site_name': 'SKEWESE',
+                    'name': 'SKEWESE',
                     'tone': 'educational', 
-                    'target_audience': 'general'
+                    'target_audience': 'general',
+                    'content_style': '교육적이고 흥미로운 역사 이야기'
                 },
                 'tistory': {
                     'primary_category': '트렌드',
-                    'site_name': 'TISTORY',
+                    'name': 'TISTORY',
                     'tone': 'casual',
-                    'target_audience': 'general'
+                    'target_audience': 'general',
+                    'content_style': '친근하고 트렌디한 일상 정보'
                 }
             }
             
@@ -291,9 +292,11 @@ class DailyAutoPublisher:
             content = self.content_generator.generate_content(
                 site_config=site_config,
                 topic=topic_data['specific_topic'],
-                category=topic_data['category'],
-                keywords=topic_data['keywords']
+                category=topic_data['category']
             )
+            
+            # 유니코드 특수 문자 안전 처리
+            content = self._sanitize_content_for_encoding(content)
             
             # 이미지 생성 (임시로 비활성화)
             images = []
@@ -311,7 +314,7 @@ class DailyAutoPublisher:
             # 사이트별 발행 처리
             if site == 'tistory':
                 # tistory는 콘텐츠만 저장하고 자동 발행하지 않음 - 목록에 표시됨
-                logger.info(f"✅ {site.upper()}: 콘텐츠 생성 완료 (목록에 표시됨)")
+                logger.info(f"[CONTENT_READY] {site.upper()}: 콘텐츠 생성 완료 (목록에 표시됨)")
                 
                 # 상태를 published로 설정하여 목록에 표시되도록 함
                 conn = self.db.get_connection()
@@ -353,12 +356,12 @@ class DailyAutoPublisher:
                         'site': site
                     })
                     
-                    logger.info(f"✅ {site.upper()}: 발행 성공 - {result}")
+                    logger.info(f"[PUBLISHED] {site.upper()}: 발행 성공 - {result}")
                     return True
                 else:
                     # 발행 실패 시 기록
                     self.record_publish_history(site, content_id, 'failed', str(result), None)
-                    logger.error(f"❌ {site.upper()}: 발행 실패 - {result}")
+                    logger.error(f"[PUBLISH_FAILED] {site.upper()}: 발행 실패 - {result}")
                     return False
                     
         except Exception as e:
@@ -407,7 +410,7 @@ class DailyAutoPublisher:
                 content_id = cursor.fetchone()[0]
                 conn.commit()
                 
-                logger.info(f"✅ {site.upper()}: 콘텐츠 파일 저장 완료 - ID: {content_id}, Path: {filepath}")
+                logger.info(f"[SAVED] {site.upper()}: 콘텐츠 파일 저장 완료 - ID: {content_id}, Path: {filepath}")
                 return content_id
                 
         except Exception as e:
@@ -442,37 +445,87 @@ class DailyAutoPublisher:
     
     def start(self):
         """스케줄러 시작"""
-        logger.info("🚀 PostgreSQL 기반 자동발행 스케줄러 시작")
+        logger.info("[START] PostgreSQL 기반 자동발행 스케줄러 시작")
         
         # 스케줄 설정
         self.setup_daily_schedules()
         
         # 등록된 작업 목록 출력
         jobs = self.scheduler.get_jobs()
-        logger.info(f"📋 등록된 자동발행 스케줄 ({len(jobs)}개):")
+        logger.info(f"[SCHEDULE] 등록된 자동발행 스케줄 ({len(jobs)}개):")
         for job in jobs:
-            logger.info(f"  - {job.id}: {job.next_run_time}")
+            try:
+                next_run = getattr(job, 'next_run_time', '스케줄러 시작 후 결정')
+                logger.info(f"  - {job.id}: {next_run}")
+            except Exception as e:
+                logger.info(f"  - {job.id}: 스케줄 정보 확인 중 오류 ({e})")
         
         try:
             # 스케줄러 실행
-            logger.info("⏰ 스케줄러 실행 대기 중...")
+            logger.info("[WAITING] 스케줄러 실행 대기 중...")
             self.scheduler.start()
         except KeyboardInterrupt:
-            logger.info("👋 사용자에 의해 스케줄러 종료")
+            logger.info("[EXIT] 사용자에 의해 스케줄러 종료")
         except Exception as e:
-            logger.error(f"💥 스케줄러 오류: {e}")
+            logger.error(f"[ERROR] 스케줄러 오류: {e}")
         finally:
             self.scheduler.shutdown()
-            logger.info("🔚 스케줄러 종료 완료")
+            logger.info("[END] 스케줄러 종료 완료")
     
     def run_now(self, site: str = None):
         """즉시 실행 (테스트용)"""
         if site:
-            logger.info(f"🧪 {site.upper()} 테스트 실행")
+            logger.info(f"[TEST] {site.upper()} 테스트 실행")
             return self.auto_publish_for_site(site)
         else:
-            logger.info("🧪 모든 사이트 테스트 실행")
+            logger.info("[TEST] 모든 사이트 테스트 실행")
             self.auto_publish_all_sites()
+    
+    def _sanitize_content_for_encoding(self, content: dict) -> dict:
+        """콘텐츠에서 인코딩 문제를 일으킬 수 있는 특수 문자 제거/변환"""
+        import re
+        
+        def clean_text(text: str) -> str:
+            if not isinstance(text, str):
+                return text
+            
+            # 문제가 되는 유니코드 이모지 및 특수 문자를 안전한 텍스트로 변환
+            replacements = {
+                '⚠️': '[주의]',
+                '✅': '[확인]',
+                '❌': '[오류]',
+                '⭐': '[중요]',
+                '🔥': '[핫]',
+                '💡': '[팁]',
+                '📌': '[포인트]',
+                '🚀': '[시작]',
+                '⏰': '[시간]',
+                '💰': '[가격]',
+                '📈': '[상승]',
+                '📉': '[하락]'
+            }
+            
+            for emoji, replacement in replacements.items():
+                text = text.replace(emoji, replacement)
+            
+            # 기타 특수 유니코드 문자 제거 (ASCII 범위 외, 한글 제외)
+            text = re.sub(r'[^\x00-\x7F가-힣ㄱ-ㅎㅏ-ㅣ]', '', text)
+            
+            return text
+        
+        # 콘텐츠 딕셔너리의 모든 텍스트 필드 정리
+        if isinstance(content, dict):
+            cleaned_content = {}
+            for key, value in content.items():
+                if isinstance(value, str):
+                    cleaned_content[key] = clean_text(value)
+                elif isinstance(value, list):
+                    cleaned_content[key] = [clean_text(item) if isinstance(item, str) else item for item in value]
+                else:
+                    cleaned_content[key] = value
+            return cleaned_content
+        
+        return content
 
 if __name__ == "__main__":
     import argparse
