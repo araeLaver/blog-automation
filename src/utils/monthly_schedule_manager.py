@@ -37,7 +37,7 @@ class MonthlyScheduleManager:
             
             # monthly_publishing_schedule 테이블에서만 조회 (정확한 계획표)
             # 스키마 이름 직접 지정
-            schema_name = 'unble'
+            schema_name = 'blog_automation'
             
             cursor.execute(f"""
                 SELECT topic_category, specific_topic, keywords
@@ -102,7 +102,7 @@ class MonthlyScheduleManager:
             
             if site:
                 # 스키마 이름 직접 지정
-                schema_name = 'unble'
+                schema_name = 'blog_automation'
                 
                 cursor.execute(f"""
                     SELECT site, topic_category, specific_topic, keywords, status
@@ -156,7 +156,7 @@ class MonthlyScheduleManager:
             
             # 먼저 monthly_publishing_schedule 테이블 조회
             # 스키마 이름 직접 지정 (환경변수 문제 해결까지)
-            schema_name = 'unble'
+            schema_name = 'blog_automation'
             
             cursor.execute(f"""
                 SELECT day, site, topic_category, specific_topic, keywords, status
@@ -220,7 +220,7 @@ class MonthlyScheduleManager:
             cursor = conn.cursor()
             
             # 스키마 이름 직접 지정
-            schema_name = 'unble'
+            schema_name = 'blog_automation'
             
             cursor.execute(f"""
                 UPDATE {schema_name}.monthly_publishing_schedule

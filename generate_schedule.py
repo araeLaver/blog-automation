@@ -11,19 +11,19 @@ def generate_monthly_schedule():
     
     # 사이트별 카테고리 순환 계획
     site_categories = {
-        'SKEWESE': {
+        'skewese': {
             'primary': ['건강/웰니스', '요리/레시피', '여행/관광', '스포츠/운동'],
             'secondary': ['역사/문화', '과학/기술', '환경/지속가능성', '심리/자기계발']
         },
-        'TISTORY': {
+        'tistory': {
             'primary': ['엔터테인먼트', '게임/오락', '음악/공연', '영화/드라마'],
             'secondary': ['트렌드/이슈', '사회/정치', '경제/비즈니스', '미디어/콘텐츠']
         },
-        'UNPRE': {
+        'unpre': {
             'primary': ['교육/자기계발', '커리어/취업', '창업/부업', '리더십/관리'],
             'secondary': ['기술/디지털', '프로그래밍/개발', 'AI/머신러닝', '데이터/분석']
         },
-        'UNTAB': {
+        'untab': {
             'primary': ['라이프스타일', '패션/뷰티', '인테리어/디자인', '육아/가족'],
             'secondary': ['재정/투자', '부동산/자산', '보험/금융', '절약/소비']
         }
@@ -79,7 +79,7 @@ def generate_monthly_schedule():
         days_in_month = 31 if month == 8 else 30
         
         for day in range(1, days_in_month + 1):
-            for site in ['SKEWESE', 'TISTORY', 'UNPRE', 'UNTAB']:
+            for site in ['skewese', 'tistory', 'unpre', 'untab']:
                 # 날짜 기반으로 카테고리 순환 (Primary)
                 primary_idx = (day - 1) % len(site_categories[site]['primary'])
                 primary_cat = site_categories[site]['primary'][primary_idx]
