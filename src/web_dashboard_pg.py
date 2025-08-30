@@ -2397,150 +2397,19 @@ def quick_publish():
                             'category': 'primary'
                         })
 
-                    # Secondary 카테고리 발행 (alert 주제 사용시 스킵)
+                    # Secondary 카테고리 발행 (alert 주제 사용시 스킵) - 임시 비활성화
                     if secondary_topic:
-                        try:
-                            logger.info(f"{site} Secondary 카테고리 발행 시작: {secondary_topic['topic']}")
-
-                        # DB에 처리중 상태로 추가
-                        secondary_file_id = db.add_content_file(
-                            site=site,
-                            title=f"[Secondary 생성중] {secondary_topic['topic']}",
-                            file_path="processing",
-                            file_type="wordpress" if site != 'tistory' else 'tistory',
-                            metadata={
-                                'status': 'processing',
-                                'category': secondary_topic['category'],
-                                'category_type': 'secondary'
-                            }
-                        )
-
-                        # 콘텐츠 생성 (Primary와 유사한 로직)
-                        if site == 'tistory':
-                            generator = ContentGenerator()
-                            exporter = TistoryContentExporter()
-
-                            site_config = {
-                                'name': 'Tistory 블로그',
-                                'categories': [secondary_topic['category']],
-                                'content_style': '친근하고 실용적인 톤',
-                                'target_audience': get_target_audience_by_category(secondary_topic['category']),
-                                'keywords_focus': secondary_topic.get('keywords', [])
-                            }
-
-                            content_data = generator.generate_content(
-                                site_config,
-                                secondary_topic['topic'],
-                                secondary_topic['category'],
-                                'medium'
-                            )
-
-                            if content_data:
-                                filepath = exporter.export_content(content_data)
-
-                                # DB 업데이트
-                                db.delete_content_file(secondary_file_id)
-                                final_secondary_file_id = db.add_content_file(
-                                    site=site,
-                                    title=content_data['title'],
-                                    file_path=filepath,
-                                    file_type='tistory',
-                                    metadata={
-                                        'category': secondary_topic['category'],
-                                        'category_type': 'secondary',
-                                        'tags': content_data.get('tags', [])
-                                    }
-                                )
-                                
-                                # 발행 완료 시간 업데이트
-                                db.update_file_status(final_secondary_file_id, 'published', datetime.now())
-
-                                # Tistory는 수동 발행만 지원 (자동 발행 제거)
-                                logger.info(f"Tistory Secondary 콘텐츠 생성 완료 (수동 발행): {secondary_topic['topic']}")
-                                publish_status_global['results'].append({
-                                    'site': site,
-                                    'status': 'success',
-                                    'message': f'Secondary 콘텐츠 생성 완료 (수동 발행 필요): {secondary_topic["topic"]}',
-                                    'category': 'secondary',
-                                    'topic': secondary_topic['topic']
-                                })
-
-                                logger.info(f"{site} Secondary 발행 성공: {secondary_topic['topic']}")
-                            else:
-                                raise Exception("콘텐츠 생성 실패")
-                        else:
-                            # WordPress 사이트 처리
-                            generator = ContentGenerator()
-                            exporter = WordPressContentExporter()
-
-                            site_config = {
-                                'name': site,
-                                'categories': [secondary_topic['category']],
-                                'content_style': '전문적이고 신뢰할 수 있는 톤',
-                                'target_audience': get_target_audience_by_category(secondary_topic['category']),
-                                'keywords_focus': secondary_topic.get('keywords', [])
-                            }
-
-                            content_data = generator.generate_content(
-                                site_config,
-                                secondary_topic['topic'],
-                                secondary_topic['category'],
-                                'medium'
-                            )
-
-                            if content_data:
-                                filepath = exporter.export_content(site, content_data)
-
-                                # DB 업데이트
-                                db.delete_content_file(secondary_file_id)
-                                final_file_id = db.add_content_file(
-                                    site=site,
-                                    title=content_data['title'],
-                                    file_path=filepath,
-                                    file_type='wordpress',
-                                    metadata={
-                                        'category': secondary_topic['category'],
-                                        'category_type': 'secondary',
-                                        'tags': content_data.get('tags', [])
-                                    }
-                                )
-                                
-                                # 발행 완료 시간 업데이트
-                                db.update_file_status(final_file_id, 'published', datetime.now())
-
-                                # WordPress 업로드 완전 스킵 - 콘텐츠 생성만 하고 목록에 표시
-                                logger.info(f"WordPress Secondary 콘텐츠 생성만 완료 (업로드 스킵): {secondary_topic['topic']}")
-                                publish_status_global['results'].append({
-                                    'site': site,
-                                    'status': 'success',
-                                    'message': f'Secondary 콘텐츠 생성 완료 (목록에 표시됨): {secondary_topic["topic"]}',
-                                    'category': 'secondary',
-                                    'topic': secondary_topic['topic']
-                                })
-
-                                logger.info(f"{site} Secondary 발행 성공: {secondary_topic['topic']}")
-                            else:
-                                raise Exception("콘텐츠 생성 실패")
-
-                            completed_posts += 1
-                            publish_status_global['completed_sites'] = completed_posts
-                            publish_status_global['progress'] = int((completed_posts / total_posts) * 100)
-
-                        except Exception as e:
-                            logger.error(f"{site} Secondary 발행 실패: {e}")
-                            # 처리중 항목 삭제
-                            try:
-                                db.delete_content_file(secondary_file_id)
-                            except:
-                                pass
-                            publish_status_global['results'].append({
-                                'site': site,
-                                'status': 'failed',
-                                'message': f'Secondary 발행 실패: {str(e)}',
-                                'category': 'secondary'
-                            })
-                    else:
-                        logger.info(f"{site} alert 주제 사용으로 Secondary 발행 스킵")
+                        pass  # 임시로 비활성화
+                
+                # 전체 사이트 완료 후 처리
+                except Exception as e:
+                    logger.error(f"{site} 전체 처리 실패: {e}")
+                    publish_status_global['results'].append({
+                        'site': site,
+                        'status': 'failed',
+                        'message': f'발행 실패: {str(e)}',
+                        'category': 'error'
+                    })
 
                     # 사이트 완료 결과 추가
                     secondary_msg = secondary_topic['topic'] if secondary_topic else '(스킵됨)'
