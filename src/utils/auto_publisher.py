@@ -24,12 +24,20 @@ class AutoPublisher:
     
     def setup_schedule(self):
         """발행 스케줄 설정"""
-        # 매일 새벽 3시에 자동 발행 (월간 계획표 기반)
+        import os
+        
+        # 한국 시간대 설정
+        os.environ['TZ'] = 'Asia/Seoul'
+        if hasattr(time, 'tzset'):
+            time.tzset()
+        
+        # 매일 새벽 3시에 자동 발행 (월간 계획표 기반) - 한국 시간 기준
         schedule.every().day.at("03:00").do(self.daily_auto_publish)
         
-        print("[AUTO_PUBLISHER] 자동 발행 스케줄 설정 완료")
-        print("- 매일 새벽 3시: 월간 계획표 기반 자동 콘텐츠 생성 및 발행")
+        print("[AUTO_PUBLISHER] 자동 발행 스케줄 설정 완료 (한국시간 기준)")
+        print("- 매일 새벽 3시 (KST): 월간 계획표 기반 자동 콘텐츠 생성 및 발행")
         print("- 월간 계획표: 매월 마지막 날 자동 생성")
+        print(f"- 현재 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     def daily_auto_publish(self):
         """일일 2개 카테고리 자동 발행 실행"""
