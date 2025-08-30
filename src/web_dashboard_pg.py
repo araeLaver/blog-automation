@@ -3441,15 +3441,14 @@ def create_dual_category_schedule():
 @app.route('/api/get_all_dual_topics', methods=['GET'])
 def get_all_dual_topics():
     try:
-        from src.utils.schedule_manager import ScheduleManager
+        from src.utils.monthly_schedule_manager import monthly_schedule_manager
         
-        schedule_manager = ScheduleManager()
         sites = ['unpre', 'untab', 'skewese', 'tistory']
         all_topics = {}
         
         for site in sites:
             try:
-                primary_topic, secondary_topic = schedule_manager.get_today_dual_topics_for_manual(site)
+                primary_topic, secondary_topic = monthly_schedule_manager.get_today_dual_topics_for_manual(site)
                 all_topics[site] = {
                     'primary': {'category': primary_topic['category'], 'topic': primary_topic['topic']},
                     'secondary': {'category': secondary_topic['category'], 'topic': secondary_topic['topic']}
