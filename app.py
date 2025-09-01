@@ -1362,6 +1362,79 @@ def generate_tistory():
             'error': str(e)
         }), 500
 
+@app.route('/api/preview_content/<int:file_id>')
+def preview_content(file_id):
+    """콘텐츠 미리보기"""
+    try:
+        database = get_database()
+        
+        if database.is_connected:
+            # DB에서 파일 정보 조회
+            files = database.get_content_files(limit=1000)  # 전체 조회
+            target_file = None
+            
+            for f in files:
+                if f.get('id') == file_id:
+                    target_file = f
+                    break
+            
+            if target_file:
+                # content 필드에서 직접 콘텐츠 읽기 (수동발행 후 저장된 HTML)
+                content = target_file.get('content')
+                
+                # content가 없으면 file_path에서 읽기 시도 (기존 방식)
+                if not content:
+                    file_path = target_file.get('file_path')
+                    if file_path and os.path.exists(file_path):
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                            logger.info(f"파일에서 콘텐츠 읽기 성공: {file_path}")
+                        except Exception as e:
+                            logger.warning(f"파일 읽기 실패: {e}")
+                            content = None
+                
+                # 콘텐츠가 없는 경우 기본 콘텐츠 생성
+                if not content:
+                    content = f"""<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{target_file.get('title', '제목 없음')}</title>
+    <style>
+        body {{ font-family: 'Segoe UI', sans-serif; margin: 40px; line-height: 1.6; }}
+        h1 {{ color: #333; border-bottom: 3px solid #007bff; padding-bottom: 10px; }}
+        .meta {{ color: #666; margin-bottom: 20px; }}
+        .content {{ margin-top: 30px; }}
+    </style>
+</head>
+<body>
+    <h1>{target_file.get('title', '제목 없음')}</h1>
+    <div class="meta">
+        <p><strong>사이트:</strong> {target_file.get('site', 'N/A')}</p>
+        <p><strong>생성일:</strong> {target_file.get('created_at', 'N/A')}</p>
+        <p><strong>상태:</strong> {target_file.get('status', 'draft')}</p>
+        <p><strong>카테고리:</strong> {target_file.get('categories', ['기본'])[0] if target_file.get('categories') else '기본'}</p>
+    </div>
+    <div class="content">
+        <p>콘텐츠를 불러올 수 없습니다.</p>
+    </div>
+</body>
+</html>"""
+                
+                # HTML 응답 반환
+                response = make_response(content)
+                response.headers['Content-Type'] = 'text/html; charset=utf-8'
+                return response
+        
+        # 파일을 찾을 수 없는 경우
+        return "파일을 찾을 수 없습니다.", 404
+        
+    except Exception as e:
+        logger.error(f"미리보기 오류: {e}")
+        return f"미리보기 오류: {str(e)}", 500
+
 @app.route('/api/download_content/<int:file_id>')
 def download_content(file_id):
     """콘텐츠 파일 다운로드"""
@@ -1379,22 +1452,20 @@ def download_content(file_id):
                     break
             
             if target_file:
-                # file_path 필드에 저장된 실제 콘텐츠 읽기
-                content = target_file.get('file_path')
+                # content 필드에서 직접 콘텐츠 읽기 (수동발행 후 저장된 HTML)
+                content = target_file.get('content')
                 
-                # 콘텐츠가 HTML이 아닌 경우 (파일 경로인 경우) 파일 읽기 시도
-                if content and not content.strip().startswith('<'):
-                    if os.path.exists(content):
+                # content가 없으면 file_path에서 읽기 시도 (기존 방식)
+                if not content:
+                    file_path = target_file.get('file_path')
+                    if file_path and os.path.exists(file_path):
                         try:
-                            with open(content, 'r', encoding='utf-8') as f:
+                            with open(file_path, 'r', encoding='utf-8') as f:
                                 content = f.read()
-                            logger.info(f"실제 파일 읽기 성공: {content}")
+                            logger.info(f"파일에서 콘텐츠 읽기 성공: {file_path}")
                         except Exception as e:
                             logger.warning(f"파일 읽기 실패: {e}")
                             content = None
-                    else:
-                        logger.warning(f"파일이 존재하지 않음: {content}")
-                        content = None
                 
                 # 콘텐츠가 없거나 읽기 실패시 기본 콘텐츠 생성
                 if not content:
