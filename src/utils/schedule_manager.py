@@ -612,6 +612,8 @@ class ScheduleManager:
             # 이번 주 월요일 계산 (정확한 계산)
             week_start = today - timedelta(days=weekday)
             
+            print(f"[SCHEDULE] {site} 자동발행 - 오늘: {today} ({weekday}요일), 주시작: {week_start}")
+            
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
                 cursor.execute("""
@@ -619,16 +621,23 @@ class ScheduleManager:
                     FROM publishing_schedule 
                     WHERE week_start_date = %s AND day_of_week = %s AND site = %s
                     AND status = 'planned'
+                    ORDER BY id DESC
+                    LIMIT 1
                 """, (week_start, weekday, site))
                 
                 result = cursor.fetchone()
                 if result:
-                    print(f"[SCHEDULE] {site} 오늘의 주제 찾음: {result[0][:50]}...")
+                    topic, category, keywords_array, length = result
+                    print(f"[SCHEDULE] {site} DB에서 스케줄 찾음: {topic} ({category})")
+                    
+                    # keywords가 배열로 저장되어 있으면 처리
+                    keywords = keywords_array if isinstance(keywords_array, list) else []
+                    
                     return {
-                        'topic': result[0],
-                        'category': result[1],
-                        'keywords': result[2] or [],
-                        'length': result[3] or 'medium'
+                        'topic': topic,
+                        'category': category,
+                        'keywords': keywords,
+                        'length': length or 'medium'
                     }
                 else:
                     print(f"[SCHEDULE] {site}에 대한 오늘({week_start} 주의 {weekday}일)의 계획된 주제가 없습니다")
