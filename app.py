@@ -2496,6 +2496,12 @@ def quick_publish():
             'error': f'발행 시작 실패: {str(e)}'
         }), 500
 
+@app.route('/api/manual-publish', methods=['POST'])
+def manual_publish():
+    """수동 발행 (대시보드용)"""
+    # quick_publish와 동일한 로직을 사용
+    return quick_publish()
+
 @app.route('/api/schedule/auto_publish', methods=['POST'])
 def manual_auto_publish():
     """수동으로 자동 발행 실행"""
