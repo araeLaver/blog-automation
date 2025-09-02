@@ -637,8 +637,8 @@
                     
                     <div class="schedule-overview-controls mb-3">
                         <div class="btn-group" role="group">
-                            <button class="btn btn-outline-primary active" onclick="showScheduleMonth(8)">8월</button>
-                            <button class="btn btn-outline-primary" onclick="showScheduleMonth(9)">9월</button>
+                            <button class="btn btn-outline-primary" onclick="showScheduleMonth(8)">8월</button>
+                            <button class="btn btn-outline-primary active" onclick="showScheduleMonth(9)">9월</button>
                             <button class="btn btn-outline-primary" onclick="showScheduleMonth(10)">10월</button>
                         </div>
                     </div>
@@ -2624,8 +2624,8 @@
             const modal = new bootstrap.Modal(document.getElementById('scheduleOverviewModal'));
             modal.show();
             
-            // 모달이 열리면 현재 주 스케줄 로드
-            showScheduleMonth(8); // 8월부터 시작
+            // 모달이 열리면 현재 월 스케줄 로드
+            showScheduleMonth(9); // 9월부터 시작
             calculateNextRunTime();
         }
 
@@ -3100,8 +3100,9 @@
                 
                 const year = 2025; // 현재는 2025년 고정
                 
-                // 월별 스케줄 API 호출
-                const response = await fetch(`/api/schedule/monthly?year=${year}&month=${month}`);
+                // 월별 스케줄 API 호출 (새 API 형식 사용)
+                const monthParam = `${year}-${month.toString().padStart(2, '0')}`;
+                const response = await fetch(`/api/schedule/monthly?month=${monthParam}`);
                 if (!response.ok) {
                     throw new Error('월별 스케줄을 가져올 수 없습니다.');
                 }
@@ -3124,119 +3125,93 @@
             
             console.log('📊 월별 스케줄 데이터:', scheduleData);
             
-            // scheduleData가 response 객체인 경우
             if (scheduleData && scheduleData.schedule) {
-                const monthSchedule = scheduleData.schedule;
+                const monthSchedule = scheduleData.schedule; // 배열 형태
                 
                 // 달력 표시
                 let html = `
                     <div class="schedule-header mb-4">
                         <h6 class="text-primary">
-                            📅 ${year}년 ${month}월 2개 카테고리 발행 계획표 (하루 8개 포스팅)
+                            📅 ${scheduleData.month_name} 전체 발행 계획표 (하루 8개 포스팅)
                         </h6>
-                        <div class="text-muted small">각 사이트별 Primary/Secondary 카테고리 주제</div>
+                        <div class="text-muted small">🔥 실시간 트렌드가 적용된 주제 포함</div>
                     </div>
-                    <div class="monthly-calendar">
+                    <div class="row">
                 `;
                 
-                // 해당 월의 일수 계산
-                const daysInMonth = new Date(year, month, 0).getDate();
-                const firstDayOfMonth = new Date(year, month - 1, 1).getDay(); // 0 = 일요일
-                
-                // 달력 그리드로 표시 (7일씩 한 줄)
-                let currentWeek = [];
-                
-                // 첫 주의 빈 칸 채우기
-                for (let i = 0; i < firstDayOfMonth; i++) {
-                    currentWeek.push('<div class="calendar-day col empty-day"></div>');
-                }
-                
-                for (let day = 1; day <= daysInMonth; day++) {
-                    const dayData = monthSchedule[day];
-                    const hasSchedule = dayData && Object.keys(dayData).length > 0;
+                // 각 날짜별로 카드 표시
+                monthSchedule.forEach(dayInfo => {
+                    const { date, day_name, sites } = dayInfo;
+                    const dayNum = new Date(date).getDate();
+                    const hasSchedule = sites && Object.keys(sites).length > 0;
                     
                     let dayContent = '';
                     if (hasSchedule) {
-                        // 사이트별로 2개 카테고리 표시
-                        Object.entries(dayData).forEach(([site, categories]) => {
-                            if (categories.primary || categories.secondary) {
+                        // 각 사이트별 주제 표시
+                        Object.entries(sites).forEach(([siteName, siteTopics]) => {
+                            if (siteTopics && siteTopics.length > 0) {
                                 dayContent += `
-                                    <div class="schedule-item site-${site}" 
-                                         onclick="showDayDetailModal('${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}', ${JSON.stringify(dayData).replace(/"/g, '&quot;')})"
-                                         style="cursor: pointer;">
+                                    <div class="site-schedule mb-2">
                                         <div class="site-header">
-                                            <strong class="site-name">${site.toUpperCase()}</strong>
+                                            <strong class="site-name text-primary">${siteName.toUpperCase()}</strong>
                                         </div>
-                                        ${categories.primary ? `
-                                            <div class="topic-item primary">
-                                                <span class="badge bg-primary">P</span>
-                                                <div class="topic-content">
-                                                    <small class="category-name">${categories.primary.category}</small>
-                                                    <div class="topic-title">${categories.primary.topic}</div>
-                                                </div>
-                                            </div>
-                                        ` : ''}
-                                        ${categories.secondary ? `
-                                            <div class="topic-item secondary">
-                                                <span class="badge bg-secondary">S</span>
-                                                <div class="topic-content">
-                                                    <small class="category-name">${categories.secondary.category}</small>
-                                                    <div class="topic-title">${categories.secondary.topic}</div>
-                                                </div>
-                                            </div>
-                                        ` : ''}
-                                    </div>
                                 `;
+                                
+                                siteTopics.forEach((topicInfo, index) => {
+                                    const badgeClass = index === 0 ? 'bg-primary' : 'bg-secondary';
+                                    const badgeText = index === 0 ? '1' : '2';
+                                    dayContent += `
+                                        <div class="topic-item mb-1">
+                                            <span class="badge ${badgeClass} me-1">${badgeText}</span>
+                                            <small class="category-name text-muted">[${topicInfo.category}]</small>
+                                            <div class="topic-title small">${topicInfo.topic}</div>
+                                        </div>
+                                    `;
+                                });
+                                
+                                dayContent += `</div>`;
                             }
                         });
                     }
                     
-                    currentWeek.push(`
-                        <div class="calendar-day col ${hasSchedule ? 'has-schedule' : ''}">
-                            <div class="day-header">
-                                <strong>${day}</strong>
-                                ${hasSchedule ? '<span class="badge bg-success ms-1">8</span>' : ''}
-                            </div>
-                            <div class="day-content">
-                                ${dayContent}
+                    html += `
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card ${hasSchedule ? 'border-primary' : 'border-light'}">
+                                <div class="card-header bg-light d-flex justify-content-between">
+                                    <strong>${dayNum}일 (${day_name})</strong>
+                                    ${hasSchedule ? '<span class="badge bg-success">8개 포스팅</span>' : '<span class="badge bg-light text-muted">휴일</span>'}
+                                </div>
+                                <div class="card-body p-2">
+                                    ${dayContent || '<div class="text-muted small">스케줄 없음</div>'}
+                                </div>
                             </div>
                         </div>
-                    `);
-                    
-                    // 7일마다 또는 마지막 날에 한 줄 완성
-                    if ((firstDayOfMonth + day) % 7 === 0 || day === daysInMonth) {
-                        // 마지막 주의 빈 칸 채우기
-                        while (currentWeek.length < 7) {
-                            currentWeek.push('<div class="calendar-day col empty-day"></div>');
-                        }
-                        
-                        html += `<div class="calendar-week row mb-2">${currentWeek.join('')}</div>`;
-                        currentWeek = [];
-                    }
-                }
+                    `;
+                });
                 
                 html += `
                     </div>
                     <style>
-                        .monthly-calendar .calendar-day {
-                            border: 1px solid #dee2e6;
-                            min-height: 180px;
-                            padding: 3px;
-                            background: #fff;
-                            position: relative;
-                            overflow-y: auto;
+                        .site-schedule {
+                            margin-bottom: 8px;
                         }
-                        .monthly-calendar .calendar-day.empty-day {
-                            background: #f8f9fa;
+                        .site-name {
+                            font-size: 0.8rem;
+                            color: #0d6efd !important;
                         }
-                        .monthly-calendar .calendar-day.has-schedule {
-                            background: #f0f9ff;
+                        .topic-item {
+                            display: flex;
+                            align-items: start;
+                            margin-bottom: 4px;
                         }
-                        .monthly-calendar .day-header {
-                            text-align: center;
-                            margin-bottom: 3px;
-                            color: #495057;
-                            font-size: 0.9rem;
+                        .topic-title {
+                            font-size: 0.75rem;
+                            line-height: 1.2;
+                            margin-top: 1px;
+                        }
+                        .category-name {
+                            font-size: 0.65rem;
+                            margin-right: 4px;
                         }
                         .monthly-calendar .day-header .badge {
                             font-size: 0.65rem;
