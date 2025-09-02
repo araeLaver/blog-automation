@@ -2019,9 +2019,56 @@ def get_schedule():
     except Exception as e:
         return jsonify([]), 500
 
+@app.route('/api/today-topics')
+def get_today_topics():
+    """오늘의 발행 주제 조회"""
+    try:
+        from src.utils.schedule_manager import schedule_manager
+        from datetime import date
+        
+        today = date.today()
+        weekday = today.weekday()
+        week_start = today - timedelta(days=weekday)
+        
+        sites = ['unpre', 'untab', 'skewese', 'tistory']
+        topics_data = {}
+        
+        conn = schedule_manager.db.get_connection()
+        if conn:
+            with conn.cursor() as cursor:
+                for site in sites:
+                    cursor.execute("""
+                        SELECT topic_category, specific_topic, keywords, target_length, status
+                        FROM publishing_schedule 
+                        WHERE week_start_date = %s AND day_of_week = %s AND site = %s
+                        AND status = 'planned'
+                        ORDER BY topic_category
+                    """, (week_start, weekday, site))
+                    
+                    results = cursor.fetchall()
+                    topics_data[site] = []
+                    
+                    for row in results:
+                        category, topic, keywords, length, status = row
+                        topics_data[site].append({
+                            'category': category,
+                            'topic': topic,
+                            'keywords': keywords if keywords else [],
+                            'length': length or 'medium',
+                            'status': status
+                        })
+        
+        add_system_log('INFO', f'오늘의 주제 조회 완료: {sum(len(v) for v in topics_data.values())}개', 'API')
+        return jsonify(topics_data)
+        
+    except Exception as e:
+        logger.error(f"Today topics error: {e}")
+        add_system_log('ERROR', f'오늘의 주제 조회 오류: {e}', 'API')
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/schedule/monthly')
 def get_monthly_schedule():
-    """당월 전체 계획표 조회"""
+    """당월 전체 계획표 조회 - 대시보드 호환 형식"""
     try:
         # 월 파라미터 (기본값: 현재 월)
         month = request.args.get('month')
