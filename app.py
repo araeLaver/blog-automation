@@ -234,8 +234,8 @@ def get_mock_data():
 
 @app.route('/')
 def dashboard():
-    """새 대시보드 페이지"""
-    response = make_response(render_template('dashboard_new_v2.html'))
+    """메인 대시보드 페이지 (새로 개편됨)"""
+    response = make_response(render_template('dashboard.html'))
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
@@ -243,8 +243,8 @@ def dashboard():
 
 @app.route('/old')
 def old_dashboard():
-    """기존 대시보드 페이지 (백업용)"""
-    response = make_response(render_template('dashboard.html'))
+    """기존 복잡한 대시보드 (백업용)"""
+    response = make_response(render_template('dashboard_backup.html'))
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
