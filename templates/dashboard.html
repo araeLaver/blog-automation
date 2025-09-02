@@ -627,13 +627,16 @@
             modal.show();
             
             try {
-                // 오늘의 주제 가져오기
-                const response = await fetch('/api/today-topics');
+                // 계획표에서 오늘의 주제 가져오기
+                const response = await fetch('/api/schedule/monthly');
                 const data = await response.json();
+                
+                const today = new Date();
+                const todayStr = today.getDate().toString();
                 
                 let html = `
                     <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> 오늘 발행될 주제들입니다. 확인 후 발행 시작 버튼을 눌러주세요.
+                        <i class="bi bi-info-circle"></i> 오늘(${today.getMonth() + 1}월 ${today.getDate()}일) 발행될 주제들입니다. 확인 후 발행 시작 버튼을 눌러주세요.
                     </div>
                     <div class="row">
                 `;
@@ -646,8 +649,13 @@
                     'tistory': 'TISTORY (시사/트렌드)'
                 };
                 
+                // 오늘 데이터 찾기
+                let todayData = null;
+                if (data.schedule && data.schedule[todayStr]) {
+                    todayData = data.schedule[todayStr];
+                }
+                
                 for (const site of sites) {
-                    const topics = data[site] || [];
                     html += `
                         <div class="col-md-6 mb-3">
                             <div class="card">
@@ -657,17 +665,33 @@
                                 <div class="card-body">
                     `;
                     
-                    if (topics.length > 0) {
-                        topics.forEach((topic, idx) => {
+                    if (todayData && todayData[site]) {
+                        const siteData = todayData[site];
+                        let topicCount = 0;
+                        
+                        // primary/secondary 구조 처리
+                        if (siteData.primary) {
+                            topicCount++;
                             html += `
                                 <div class="mb-2">
-                                    <span class="badge bg-secondary">${topic.category || '일반'}</span>
-                                    <div class="mt-1">${idx + 1}. ${topic.topic || '주제 없음'}</div>
-                                    ${topic.keywords && topic.keywords.length > 0 ? 
-                                        `<small class="text-muted">키워드: ${topic.keywords.slice(0, 3).join(', ')}</small>` : ''}
+                                    <span class="badge bg-secondary">${siteData.primary.category || '일반'}</span>
+                                    <div class="mt-1">${topicCount}. ${siteData.primary.topic}</div>
                                 </div>
                             `;
-                        });
+                        }
+                        if (siteData.secondary) {
+                            topicCount++;
+                            html += `
+                                <div class="mb-2">
+                                    <span class="badge bg-secondary">${siteData.secondary.category || '일반'}</span>
+                                    <div class="mt-1">${topicCount}. ${siteData.secondary.topic}</div>
+                                </div>
+                            `;
+                        }
+                        
+                        if (topicCount === 0) {
+                            html += '<p class="text-muted">오늘의 주제가 설정되지 않았습니다.</p>';
+                        }
                     } else {
                         html += '<p class="text-muted">오늘의 주제가 설정되지 않았습니다.</p>';
                     }
