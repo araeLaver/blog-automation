@@ -718,7 +718,6 @@ class ScheduleManager:
                     WHERE week_start_date = %s 
                     AND day_of_week = %s 
                     AND site = %s
-                    AND status = 'planned'
                     ORDER BY id DESC
                     LIMIT 1
                 """, (week_start, weekday, site))
@@ -861,7 +860,7 @@ class ScheduleManager:
             with conn.cursor() as cursor:
                 cursor.execute("""
                     SELECT day_of_week, site, topic_category, specific_topic, 
-                           keywords, target_length, status, published_url
+                           keywords, target_length, status, published_url, updated_at
                     FROM publishing_schedule 
                     WHERE week_start_date = %s
                     ORDER BY day_of_week, site
@@ -878,7 +877,7 @@ class ScheduleManager:
                     }
                 
                 for row in cursor.fetchall():
-                    day_of_week, site, category, topic, keywords, length, status, url = row
+                    day_of_week, site, category, topic, keywords, length, status, url, updated_at = row
                     
                     schedule[day_of_week]['sites'][site] = {
                         'category': category,
@@ -886,7 +885,8 @@ class ScheduleManager:
                         'keywords': keywords,
                         'length': length,
                         'status': status,
-                        'url': url
+                        'url': url,
+                        'updated_at': updated_at
                     }
                 
                 return {

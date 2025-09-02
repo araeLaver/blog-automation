@@ -956,77 +956,72 @@ def get_weekly_schedule():
             start_date = today - timedelta(days=days_since_sunday)
             add_system_log('DEBUG', f'계산된 날짜: {start_date} (오늘: {today})', 'SCHEDULE')
         
-        # 항상 동적 생성 (주차별 고유 주제 보장)
-        add_system_log('INFO', f'동적 스케줄 생성 시작: {start_date}', 'SCHEDULE')
-        schedule_data = generate_dynamic_schedule(start_date)
-        add_system_log('INFO', f'동적 스케줄 생성 완료: week_start={schedule_data.get("week_start")}', 'SCHEDULE')
+        # DB에서 실제 스케줄 데이터 조회
+        from src.utils.schedule_manager import schedule_manager
+        add_system_log('INFO', f'DB 스케줄 조회 시작: {start_date}', 'SCHEDULE')
+        schedule_data = schedule_manager.get_weekly_schedule(start_date)
+        add_system_log('INFO', f'DB 스케줄 조회 완료: week_start={schedule_data.get("week_start")}', 'SCHEDULE')
         
-        # 대시보드용 포맷으로 변환
+        # 대시보드용 간단한 포맷 변환
         formatted_schedule = {}
         
-        for day_idx, day_info in schedule_data['schedule'].items():
-            if not isinstance(day_info, dict) or 'date' not in day_info:
-                continue
+        if schedule_data and 'schedule' in schedule_data:
+            for day_idx, day_info in schedule_data['schedule'].items():
+                if not isinstance(day_info, dict) or 'date' not in day_info:
+                    continue
+                    
+                date_str = day_info['date'].strftime('%Y-%m-%d')
+                formatted_schedule[date_str] = {}
                 
-            date_str = day_info['date'].strftime('%Y-%m-%d')
-            formatted_schedule[date_str] = {}
-            
-            sites_data = day_info.get('sites', {})
-            
-            # 모든 사이트 (WordPress + 티스토리) 포함
-            all_sites = ['unpre', 'untab', 'skewese', 'tistory']
-            
-            for site in all_sites:
-                site_info = sites_data.get(site, {})
-                
-                # 단일 주제로 표시
-                if site_info and isinstance(site_info, dict):
-                    topic = site_info.get('topic', f'{site} 시스템 자동 생성 주제')
-                else:
-                    # 티스토리나 데이터가 없는 경우 기본 주제 생성
-                    if site == 'tistory':
-                        import random
-                        trending_topics = [
-                            "AI 기술 트렌드와 미래 전망",
-                            "MZ세대 투자 패턴 분석", 
-                            "K-문화 글로벌 확산 현황",
-                            "경제 불확실성 대응 전략",
-                            "환경 이슈와 탄소중립",
-                            "사회 갈등과 통합 방안"
-                        ]
-                        topic = random.choice(trending_topics)
-                    else:
-                        topic = f'{site} 시스템 자동 생성 주제'
-                
-                # 상태 결정
+                sites_data = day_info.get('sites', {})
                 current_date = datetime.now(KST).date()
                 target_date = day_info['date']
                 
-                if target_date < current_date:
-                    if site == 'tistory':
-                        status = 'generated'  # 티스토리는 생성만
-                    else:
-                        status = 'published'
-                elif target_date == current_date:
-                    current_time = datetime.now(KST).time()
-                    if current_time >= datetime.strptime('03:00', '%H:%M').time():
+                # DB에서 가져온 사이트 데이터 그대로 사용
+                for site, site_info in sites_data.items():
+                    if site_info and isinstance(site_info, dict):
+                        topic = site_info.get('topic', f'{site} 주제 없음')
+                        
+                        # 티스토리의 경우 실시간 트렌드 마커 확인
                         if site == 'tistory':
-                            status = 'generated'
+                            # 오늘 이후 날짜면서 최근 업데이트된 경우 트렌드 마크
+                            updated_at = site_info.get('updated_at')
+                            if target_date >= current_date and updated_at:
+                                # 최근 24시간 내 업데이트된 경우
+                                from datetime import datetime, timezone
+                                now = datetime.now(timezone.utc)
+                                if isinstance(updated_at, str):
+                                    updated_time = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+                                else:
+                                    updated_time = updated_at
+                                
+                                if (now - updated_time).total_seconds() < 86400:  # 24시간
+                                    topic = f"🔥 {topic}"
+                        
+                        # 상태 결정
+                        if target_date < current_date:
+                            status = 'published' if site != 'tistory' else 'generated'
+                        elif target_date == current_date:
+                            current_time = datetime.now(KST).time()
+                            if current_time >= datetime.strptime('03:00', '%H:%M').time():
+                                status = 'published' if site != 'tistory' else 'generated'
+                            else:
+                                status = 'scheduled'
                         else:
-                            status = 'published'
-                    else:
-                        status = 'scheduled'
-                else:
-                    status = 'scheduled'
-                
-                # 티스토리는 다른 시간표 (콘텐츠 생성만)
-                if site == 'tistory':
-                    formatted_schedule[date_str][site] = {
-                        'time': '03:00',
-                        'topic': topic,
-                        'status': status,
-                        'note': '콘텐츠 생성만 (수동 발행)'
-                    }
+                            status = 'scheduled'
+                        
+                        formatted_schedule[date_str][site] = {
+                            'topic': topic,
+                            'status': status,
+                            'time': '03:00'
+                        }
+                        
+                        if site == 'tistory':
+                            formatted_schedule[date_str][site]['note'] = '콘텐츠 생성만 (수동 발행)'
+                            # 실시간 트렌드 마커 추가
+                            if target_date >= current_date:  # 오늘 이후 날짜
+                                formatted_schedule[date_str][site]['trending'] = True
+                                formatted_schedule[date_str][site]['topic'] = f"🔥 {topic}"
                 else:
                     formatted_schedule[date_str][site] = {
                         'time': '03:00',
@@ -3268,10 +3263,9 @@ def auto_publish_task():
         
         add_system_log('INFO', f'발행 대상 날짜: {today} (주차: {week_start}, 요일: {day_of_week})', 'SCHEDULER')
         
-<<<<<<< HEAD
         # WordPress 사이트들 자동 발행 (스케줄러를 통해 계획된 주제 사용)
         wordpress_sites = ['unpre', 'untab', 'skewese']
-=======
+        
         # 스케줄 데이터 로드
         from src.utils.schedule_manager import schedule_manager
         schedule_data = schedule_manager.get_weekly_schedule(week_start)
@@ -3382,87 +3376,20 @@ def auto_publish_task():
         
         # 모든 사이트 발행 (WordPress + Tistory)
         sites_to_publish = ['unpre', 'untab', 'skewese', 'tistory']
->>>>>>> b06631e06f3ba37acce7d6df22431527ed35b065
         success_count = 0
         
         for site in sites_to_publish:
             try:
                 add_system_log('INFO', f'{site.upper()} 발행 시작...', 'SCHEDULER')
-<<<<<<< HEAD
                 # 스케줄러의 create_and_publish_post는 스케줄 매니저를 통해 오늘 주제를 가져옴
                 success = blog_scheduler.create_and_publish_post(site)
                 if success:
                     success_count += 1
                     add_system_log('SUCCESS', f'✅ {site.upper()} 자동 발행 성공', 'SCHEDULER')
                     logger.info(f"✅ {site.upper()} 자동 발행 성공")
-=======
-                
-                # 사이트별 기본값
-                site_defaults = {
-                    'unpre': {'topic': 'Python 프로그래밍 가이드', 'category': 'programming'},
-                    'untab': {'topic': '부동산 투자 가이드', 'category': 'realestate'}, 
-                    'skewese': {'topic': '한국사 역사 이야기', 'category': 'koreanhistory'},
-                    'tistory': {'topic': '2025년 IT 트렌드 분석', 'category': 'current'}
-                }
-                
-                default = site_defaults.get(site, {'topic': f'{site} 가이드', 'category': 'programming'})
-                topic = default['topic']
-                keywords = [site, '가이드']
-                category = default['category']
-                
-                # 스케줄에서 주제 가져오기
-                if schedule_data and day_of_week in schedule_data['schedule']:
-                    day_schedule = schedule_data['schedule'][day_of_week]
-                    site_plan = day_schedule.get('sites', {}).get(site, {})
-                    if site_plan:
-                        topic = site_plan.get('topic', topic)
-                        keywords = site_plan.get('keywords', keywords)
-                        category = site_plan.get('category', category)
-                        add_system_log('INFO', f'{site} 스케줄 주제 사용: {topic}', 'SCHEDULER')
-                    else:
-                        add_system_log('WARNING', f'{site} 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULER')
->>>>>>> b06631e06f3ba37acce7d6df22431527ed35b065
                 else:
-                    add_system_log('WARNING', f'오늘({day_of_week}) 스케줄 없음, 기본값 사용: {topic}', 'SCHEDULER')
-                
-                # 콘텐츠 생성 및 발행
-                import requests
-                generate_payload = {
-                    'site': site,
-                    'topic': topic,
-                    'keywords': keywords,
-                    'category': category
-                }
-                
-                if site == 'tistory':
-                    # 티스토리는 콘텐츠 생성만
-                    generate_url = 'http://localhost:8000/api/generate_tistory'
-                    response = requests.post(generate_url, json=generate_payload, timeout=300)
-                    
-                    if response.status_code == 200:
-                        result = response.json()
-                        if result.get('success'):
-                            success_count += 1
-                            add_system_log('SUCCESS', f'✅ {site.upper()} 콘텐츠 생성 완료', 'SCHEDULER')
-                        else:
-                            add_system_log('WARNING', f'⚠️ {site.upper()} 콘텐츠 생성 실패: {result.get("error")}', 'SCHEDULER')
-                    else:
-                        add_system_log('WARNING', f'⚠️ {site.upper()} API 호출 실패: {response.status_code}', 'SCHEDULER')
-                        
-                else:
-                    # WordPress 사이트들은 생성 + 발행
-                    generate_url = 'http://localhost:8000/api/generate_wordpress'
-                    response = requests.post(generate_url, json=generate_payload, timeout=300)
-                    
-                    if response.status_code == 200:
-                        result = response.json()
-                        if result.get('success'):
-                            success_count += 1
-                            add_system_log('SUCCESS', f'✅ {site.upper()} 자동 발행 성공', 'SCHEDULER')
-                        else:
-                            add_system_log('WARNING', f'⚠️ {site.upper()} 자동 발행 실패: {result.get("error")}', 'SCHEDULER')
-                    else:
-                        add_system_log('WARNING', f'⚠️ {site.upper()} API 호출 실패: {response.status_code}', 'SCHEDULER')
+                    add_system_log('WARNING', f'⚠️ {site.upper()} 자동 발행 실패', 'SCHEDULER')
+                    logger.warning(f"⚠️ {site.upper()} 자동 발행 실패")
                         
             except Exception as e:
                 add_system_log('ERROR', f'❌ {site.upper()} 발행 오류: {str(e)}', 'SCHEDULER')
