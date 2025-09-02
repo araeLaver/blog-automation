@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>블로그 자동화 대시보드</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #0dcaf0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .navbar {
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,.075);
+            border: 1px solid rgba(0,0,0,.125);
+            border-radius: 0.375rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        .content-card {
+            transition: transform 0.2s ease-in-out;
+            cursor: pointer;
+        }
+
+        .content-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .btn-group-actions {
+            gap: 5px;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .content-preview {
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1050;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-robot"></i> 블로그 자동화 시스템
+            </span>
+            <div class="navbar-nav ms-auto">
+                <div class="nav-item">
+                    <span class="navbar-text" id="current-time"></span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Control Panel -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-calendar-week"></i> 계획표
+                    </div>
+                    <div class="card-body text-center">
+                        <button class="btn btn-primary btn-lg w-100" onclick="showSchedule()">
+                            <i class="bi bi-eye"></i> 전체 계획 보기
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-gear"></i> 시스템 상태
+                    </div>
+                    <div class="card-body text-center">
+                        <button class="btn btn-info btn-lg w-100" onclick="showSystemStatus()">
+                            <i class="bi bi-activity"></i> 상태 확인
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-lightning"></i> 수동 발행
+                    </div>
+                    <div class="card-body text-center">
+                        <button class="btn btn-warning btn-lg w-100" onclick="triggerManualPublish()">
+                            <i class="bi bi-play-fill"></i> 즉시 발행
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-clock"></i> 자동 발행
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="small text-muted">매일 새벽 3시</div>
+                        <div class="fw-bold text-success">활성화됨</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content List -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="bi bi-file-earmark-text"></i> 생성된 콘텐츠 목록
+                        </div>
+                        <button class="btn btn-light btn-sm" onclick="refreshContent()">
+                            <i class="bi bi-arrow-clockwise"></i> 새로고침
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="content-list">
+                            <!-- 콘텐츠 목록이 여기에 표시됩니다 -->
+                            <div class="loading">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">로딩 중...</span>
+                                </div>
+                                <div class="mt-2">콘텐츠를 불러오는 중...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Modal -->
+    <div class="modal fade" id="scheduleModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">📅 당월 전체 계획표</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="schedule-content">
+                    <!-- 스케줄 내용 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Preview Modal -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">📄 콘텐츠 미리보기</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <strong>제목:</strong> <span id="preview-title"></span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>카테고리:</strong> <span id="preview-category"></span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>키워드:</strong> <span id="preview-keywords"></span>
+                    </div>
+                    <div class="content-preview" id="preview-content">
+                        <!-- 콘텐츠 내용 -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                    <button type="button" class="btn btn-success" onclick="copyHtml()">
+                        <i class="bi bi-clipboard"></i> HTML 복사
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Status Modal -->
+    <div class="modal fade" id="systemModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">🔧 시스템 상태</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="system-status">
+                    <!-- 시스템 상태 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentPreviewData = null;
+
+        // 페이지 로드 시 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000);
+            loadContent();
+        });
+
+        // 현재 시간 업데이트
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('current-time').textContent = timeStr;
+        }
+
+        // 콘텐츠 목록 로드
+        async function loadContent() {
+            try {
+                // 여러 사이트의 콘텐츠를 병렬로 로드
+                const sites = ['skewese', 'tistory', 'unpre', 'untab'];
+                const promises = sites.map(site => 
+                    fetch(`/api/content/${site}`).then(res => res.json()).catch(() => [])
+                );
+                
+                const results = await Promise.all(promises);
+                
+                let allContent = [];
+                sites.forEach((site, index) => {
+                    if (results[index] && Array.isArray(results[index])) {
+                        results[index].forEach(content => {
+                            allContent.push({
+                                ...content,
+                                site: site
+                            });
+                        });
+                    }
+                });
+
+                // 최신순으로 정렬
+                allContent.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                displayContent(allContent);
+            } catch (error) {
+                console.error('콘텐츠 로드 오류:', error);
+                document.getElementById('content-list').innerHTML = 
+                    '<div class="text-center text-danger">콘텐츠를 불러올 수 없습니다.</div>';
+            }
+        }
+
+        // 콘텐츠 목록 표시
+        function displayContent(contentList) {
+            const container = document.getElementById('content-list');
+            
+            if (!contentList.length) {
+                container.innerHTML = '<div class="text-center text-muted">생성된 콘텐츠가 없습니다.</div>';
+                return;
+            }
+
+            let html = '';
+            contentList.forEach(content => {
+                const statusClass = content.status === 'published' ? 'success' : 'secondary';
+                const siteClass = getSiteClass(content.site);
+                
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card content-card h-100">
+                            <div class="card-header ${siteClass} d-flex justify-content-between">
+                                <span class="fw-bold">${content.site.toUpperCase()}</span>
+                                <span class="badge status-badge bg-${statusClass}">${content.status}</span>
+                            </div>
+                            <div class="card-body">
+                                <h6 class="card-title" title="${content.title}">${truncateText(content.title, 50)}</h6>
+                                <p class="card-text small text-muted">
+                                    <i class="bi bi-calendar"></i> ${formatDate(content.created_at)}<br>
+                                    <i class="bi bi-file-text"></i> ${content.word_count || 0}자
+                                    <i class="bi bi-clock ms-2"></i> ${content.estimated_reading_time || 0}분
+                                </p>
+                                <div class="btn-group-actions d-flex flex-wrap">
+                                    <button class="btn btn-primary btn-sm" onclick="previewContent('${content.site}', '${content.file_path}')">
+                                        <i class="bi bi-eye"></i> 미리보기
+                                    </button>
+                                    <button class="btn btn-success btn-sm" onclick="downloadContent('${content.site}', '${content.file_path}')">
+                                        <i class="bi bi-download"></i> 다운로드
+                                    </button>
+                                    <button class="btn btn-info btn-sm" onclick="quickCopyHtml('${content.site}', '${content.file_path}')">
+                                        <i class="bi bi-clipboard"></i> HTML복사
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 사이트별 카드 헤더 색상
+        function getSiteClass(site) {
+            const classes = {
+                'skewese': 'bg-primary',
+                'tistory': 'bg-success', 
+                'unpre': 'bg-warning',
+                'untab': 'bg-info'
+            };
+            return classes[site] || 'bg-secondary';
+        }
+
+        // 텍스트 자르기
+        function truncateText(text, maxLength) {
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+
+        // 날짜 포맷
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('ko-KR') + ' ' + date.toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'});
+        }
+
+        // 콘텐츠 미리보기
+        async function previewContent(site, filePath) {
+            try {
+                const response = await fetch(`/api/content/${site}/preview?file=${encodeURIComponent(filePath)}`);
+                const data = await response.json();
+                
+                currentPreviewData = data;
+                
+                document.getElementById('preview-title').textContent = data.title || '제목 없음';
+                document.getElementById('preview-category').textContent = data.categories?.join(', ') || data.tags?.join(', ') || '카테고리 없음';
+                document.getElementById('preview-keywords').textContent = data.keywords?.join(', ') || '키워드 없음';
+                document.getElementById('preview-content').innerHTML = data.content || '내용 없음';
+                
+                new bootstrap.Modal(document.getElementById('previewModal')).show();
+            } catch (error) {
+                showToast('미리보기 로드 실패', 'danger');
+            }
+        }
+
+        // 콘텐츠 다운로드
+        function downloadContent(site, filePath) {
+            const link = document.createElement('a');
+            link.href = `/api/content/${site}/download?file=${encodeURIComponent(filePath)}`;
+            link.download = filePath.split('/').pop();
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('다운로드 시작됨', 'success');
+        }
+
+        // HTML 빠른 복사
+        async function quickCopyHtml(site, filePath) {
+            try {
+                const response = await fetch(`/api/content/${site}/preview?file=${encodeURIComponent(filePath)}`);
+                const data = await response.json();
+                await navigator.clipboard.writeText(data.content || '');
+                showToast('HTML이 클립보드에 복사됨', 'success');
+            } catch (error) {
+                showToast('복사 실패', 'danger');
+            }
+        }
+
+        // 모달에서 HTML 복사
+        async function copyHtml() {
+            if (currentPreviewData && currentPreviewData.content) {
+                try {
+                    await navigator.clipboard.writeText(currentPreviewData.content);
+                    showToast('HTML이 클립보드에 복사됨', 'success');
+                } catch (error) {
+                    showToast('복사 실패', 'danger');
+                }
+            }
+        }
+
+        // 스케줄 보기
+        async function showSchedule() {
+            try {
+                const response = await fetch('/api/schedule/monthly');
+                const data = await response.json();
+                
+                let html = `
+                    <div class="mb-3 text-center">
+                        <h5 class="text-primary">${data.month_name} 전체 발행 계획</h5>
+                        <p class="text-muted">총 ${data.total_days}일, 하루 8개 포스팅</p>
+                    </div>
+                    <div class="row">
+                `;
+                
+                data.schedule.forEach(dayInfo => {
+                    const { date, day_name, sites } = dayInfo;
+                    const dayNum = new Date(date).getDate();
+                    const hasSchedule = sites && Object.keys(sites).length > 0;
+                    
+                    let dayContent = '';
+                    if (hasSchedule) {
+                        Object.entries(sites).forEach(([siteName, siteTopics]) => {
+                            if (siteTopics && siteTopics.length > 0) {
+                                dayContent += `<div class="mb-2"><strong class="text-primary">${siteName.toUpperCase()}</strong>`;
+                                siteTopics.forEach((topic, i) => {
+                                    dayContent += `<div class="small">${i+1}. ${topic.topic}</div>`;
+                                });
+                                dayContent += `</div>`;
+                            }
+                        });
+                    }
+                    
+                    html += `
+                        <div class="col-md-4 mb-3">
+                            <div class="card ${hasSchedule ? 'border-primary' : ''}">
+                                <div class="card-header bg-light">
+                                    <strong>${dayNum}일 (${day_name})</strong>
+                                    ${hasSchedule ? '<span class="badge bg-success ms-2">8개</span>' : ''}
+                                </div>
+                                <div class="card-body p-2 small">
+                                    ${dayContent || '<div class="text-muted">휴일</div>'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                document.getElementById('schedule-content').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('scheduleModal')).show();
+            } catch (error) {
+                showToast('스케줄 로드 실패', 'danger');
+            }
+        }
+
+        // 시스템 상태 확인
+        async function showSystemStatus() {
+            try {
+                const response = await fetch('/api/system/status');
+                const data = await response.json();
+                
+                let html = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>📊 시스템 정보</h6>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>서버 상태</span>
+                                    <span class="badge bg-success">정상</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>자동 스케줄러</span>
+                                    <span class="badge bg-success">활성화</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>다음 자동발행</span>
+                                    <span>내일 새벽 3시</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>📈 발행 통계</h6>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>오늘 발행</span>
+                                    <span class="badge bg-info">0</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>이번 주</span>
+                                    <span class="badge bg-info">0</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>총 콘텐츠</span>
+                                    <span class="badge bg-primary">0</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('system-status').innerHTML = html;
+                new bootstrap.Modal(document.getElementById('systemModal')).show();
+            } catch (error) {
+                document.getElementById('system-status').innerHTML = '<div class="text-center text-danger">시스템 상태를 불러올 수 없습니다.</div>';
+                new bootstrap.Modal(document.getElementById('systemModal')).show();
+            }
+        }
+
+        // 수동 발행
+        async function triggerManualPublish() {
+            if (confirm('수동 발행을 시작하시겠습니까?')) {
+                try {
+                    const response = await fetch('/api/manual-publish', { method: 'POST' });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showToast('수동 발행이 시작되었습니다', 'success');
+                        setTimeout(loadContent, 3000); // 3초 후 콘텐츠 새로고침
+                    } else {
+                        showToast(data.message || '수동 발행 실패', 'danger');
+                    }
+                } catch (error) {
+                    showToast('수동 발행 요청 실패', 'danger');
+                }
+            }
+        }
+
+        // 콘텐츠 새로고침
+        function refreshContent() {
+            document.getElementById('content-list').innerHTML = `
+                <div class="loading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">로딩 중...</span>
+                    </div>
+                    <div class="mt-2">콘텐츠를 새로고침하는 중...</div>
+                </div>
+            `;
+            loadContent();
+        }
+
+        // 토스트 메시지
+        function showToast(message, type = 'info') {
+            const toastContainer = document.querySelector('.toast-container');
+            const toastId = 'toast-' + Date.now();
+            
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type} border-0`;
+            toast.id = toastId;
+            toast.setAttribute('role', 'alert');
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            toast.addEventListener('hidden.bs.toast', () => {
+                toastContainer.removeChild(toast);
+            });
+        }
+    </script>
+</body>
+</html>

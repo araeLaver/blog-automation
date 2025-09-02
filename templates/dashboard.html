@@ -635,12 +635,9 @@
                         </div>
                     </div>
                     
-                    <div class="schedule-overview-controls mb-3">
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-outline-primary" onclick="showScheduleMonth(8)">8월</button>
-                            <button class="btn btn-outline-primary active" onclick="showScheduleMonth(9)">9월</button>
-                            <button class="btn btn-outline-primary" onclick="showScheduleMonth(10)">10월</button>
-                        </div>
+                    <div class="schedule-overview-controls mb-3 text-center">
+                        <h5 class="text-primary">📅 당월 전체 계획표</h5>
+                        <p class="text-muted small">실시간 트렌드가 반영된 9월 전체 스케줄</p>
                     </div>
                     
                     <div id="schedule-overview-content">
@@ -2624,8 +2621,8 @@
             const modal = new bootstrap.Modal(document.getElementById('scheduleOverviewModal'));
             modal.show();
             
-            // 모달이 열리면 현재 월 스케줄 로드
-            showScheduleMonth(9); // 9월부터 시작
+            // 모달이 열리면 현재 월 스케줄 로드 (당월만)
+            showCurrentMonth(); // 당월만 표시
             calculateNextRunTime();
         }
 
@@ -3088,6 +3085,28 @@
         }
         
         // 월별 스케줄 표시
+        // 당월 스케줄만 표시
+        async function showCurrentMonth() {
+            try {
+                // 현재 월별 스케줄 API 호출
+                const response = await fetch('/api/schedule/monthly');
+                if (!response.ok) {
+                    throw new Error('월별 스케줄을 가져올 수 없습니다.');
+                }
+                
+                const monthlyData = await response.json();
+                console.log('당월 스케줄 데이터:', monthlyData);
+                
+                displayMonthlySchedule(monthlyData);
+                
+            } catch (error) {
+                console.error('당월 스케줄 로드 오류:', error);
+                const container = document.getElementById('schedule-overview-content');
+                container.innerHTML = '<div class="text-center text-danger">당월 스케줄을 불러올 수 없습니다.</div>';
+            }
+        }
+
+        // 기존 함수 (사용 안 함)
         async function showScheduleMonth(month) {
             try {
                 // 버튼 활성화 상태 변경
@@ -3120,7 +3139,7 @@
         }
         
         // 월별 스케줄 달력 표시
-        function displayMonthlySchedule(scheduleData, year, month) {
+        function displayMonthlySchedule(scheduleData) {
             const container = document.getElementById('schedule-overview-content');
             
             console.log('📊 월별 스케줄 데이터:', scheduleData);

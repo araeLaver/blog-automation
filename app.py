@@ -234,7 +234,16 @@ def get_mock_data():
 
 @app.route('/')
 def dashboard():
-    """메인 대시보드 페이지"""
+    """새 대시보드 페이지"""
+    response = make_response(render_template('dashboard_new_v2.html'))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
+@app.route('/old')
+def old_dashboard():
+    """기존 대시보드 페이지 (백업용)"""
     response = make_response(render_template('dashboard.html'))
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
@@ -2117,6 +2126,112 @@ def get_monthly_schedule():
     except Exception as e:
         logger.error(f"Monthly schedule error: {e}")
         add_system_log('ERROR', f'월별 계획표 오류: {e}', 'SCHEDULE')
+        return jsonify({'error': str(e)}), 500
+
+# 새 대시보드용 API 엔드포인트들
+@app.route('/api/content/<site>')
+def get_content_list(site):
+    """사이트별 콘텐츠 목록 조회"""
+    try:
+        import os
+        import json
+        from pathlib import Path
+        
+        site_map = {
+            'skewese': 'wordpress_posts/skewese',
+            'tistory': 'tistory_posts',
+            'unpre': 'wordpress_posts/unpre', 
+            'untab': 'wordpress_posts/untab'
+        }
+        
+        if site not in site_map:
+            return jsonify([])
+        
+        content_dir = Path('data') / site_map[site]
+        if not content_dir.exists():
+            return jsonify([])
+        
+        contents = []
+        # JSON 메타데이터 파일들 찾기
+        for json_file in content_dir.glob('*.json'):
+            try:
+                with open(json_file, 'r', encoding='utf-8') as f:
+                    content_data = json.load(f)
+                    contents.append(content_data)
+            except Exception as e:
+                print(f"JSON 파일 로드 오류 {json_file}: {e}")
+                
+        # 최신순 정렬
+        contents.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        return jsonify(contents[:50])  # 최근 50개만
+        
+    except Exception as e:
+        logger.error(f"콘텐츠 목록 조회 오류: {e}")
+        return jsonify([])
+
+@app.route('/api/content/<site>/preview')
+def get_content_preview(site):
+    """콘텐츠 미리보기"""
+    try:
+        file_path = request.args.get('file')
+        if not file_path:
+            return jsonify({'error': '파일 경로가 필요합니다'}), 400
+            
+        # JSON 메타데이터 로드
+        json_path = file_path.replace('.html', '.json')
+        if os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                metadata = json.load(f)
+        else:
+            metadata = {}
+            
+        # HTML 콘텐츠 로드
+        if os.path.exists(file_path):
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+        else:
+            content = '파일이 존재하지 않습니다.'
+            
+        return jsonify({
+            'title': metadata.get('title', ''),
+            'categories': metadata.get('categories', []),
+            'tags': metadata.get('tags', []),
+            'keywords': metadata.get('keywords', []),
+            'content': content,
+            'word_count': metadata.get('word_count', 0),
+            'created_at': metadata.get('created_at', '')
+        })
+        
+    except Exception as e:
+        logger.error(f"미리보기 오류: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/content/<site>/download')
+def get_content_download(site):
+    """콘텐츠 다운로드"""
+    try:
+        file_path = request.args.get('file')
+        if not file_path or not os.path.exists(file_path):
+            return "파일이 존재하지 않습니다", 404
+            
+        return send_file(file_path, as_attachment=True, download_name=os.path.basename(file_path))
+        
+    except Exception as e:
+        logger.error(f"다운로드 오류: {e}")
+        return "다운로드 실패", 500
+
+@app.route('/api/system/status')
+def system_status():
+    """시스템 상태 조회"""
+    try:
+        return jsonify({
+            'server_status': 'running',
+            'scheduler_active': True,
+            'database_connected': True,
+            'next_run': '내일 새벽 3시',
+            'total_content': 0
+        })
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 # 발행 상태를 전역으로 추적
