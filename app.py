@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from flask import Flask, render_template, jsonify, request, send_file, make_response
 from flask_cors import CORS
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import pytz
 import json
 import logging
@@ -2009,6 +2009,115 @@ def get_schedule():
         return jsonify(schedule)
     except Exception as e:
         return jsonify([]), 500
+
+@app.route('/api/schedule/monthly')
+def get_monthly_schedule():
+    """당월 전체 계획표 조회"""
+    try:
+        # 월 파라미터 (기본값: 현재 월)
+        month = request.args.get('month')
+        if month:
+            year, month = map(int, month.split('-'))
+            target_date = date(year, month, 1)
+        else:
+            today = date.today()
+            target_date = date(today.year, today.month, 1)
+        
+        # 해당 월의 첫째 날과 마지막 날
+        if target_date.month == 12:
+            next_month = target_date.replace(year=target_date.year + 1, month=1)
+        else:
+            next_month = target_date.replace(month=target_date.month + 1)
+        
+        last_day = (next_month - timedelta(days=1)).day
+        
+        add_system_log('INFO', f'월별 계획표 조회: {target_date.year}-{target_date.month:02d}', 'SCHEDULE')
+        
+        # DB에서 해당 월 전체 스케줄 조회
+        from src.utils.schedule_manager import schedule_manager
+        
+        conn = schedule_manager.db.get_connection()
+        monthly_schedule = {}
+        
+        if conn:
+            with conn.cursor() as cursor:
+                # 해당 월의 모든 스케줄 조회
+                cursor.execute("""
+                    SELECT week_start_date, day_of_week, site, topic_category, 
+                           specific_topic, keywords, target_length, status, updated_at
+                    FROM publishing_schedule 
+                    WHERE week_start_date + (day_of_week * INTERVAL '1 day') >= %s
+                    AND week_start_date + (day_of_week * INTERVAL '1 day') < %s
+                    ORDER BY week_start_date, day_of_week, site, topic_category
+                """, (target_date, next_month))
+                
+                results = cursor.fetchall()
+                
+                # 날짜별로 그룹화
+                for row in results:
+                    week_start, day_of_week, site, category, topic, keywords, length, status, updated_at = row
+                    
+                    # 실제 날짜 계산
+                    actual_date = week_start + timedelta(days=day_of_week)
+                    date_str = actual_date.strftime('%Y-%m-%d')
+                    
+                    if date_str not in monthly_schedule:
+                        monthly_schedule[date_str] = {
+                            'date': date_str,
+                            'day_name': ['월', '화', '수', '목', '금', '토', '일'][actual_date.weekday()],
+                            'sites': {}
+                        }
+                    
+                    if site not in monthly_schedule[date_str]['sites']:
+                        monthly_schedule[date_str]['sites'][site] = []
+                    
+                    # 티스토리 실시간 트렌드 마커
+                    if site == 'tistory' and updated_at:
+                        from datetime import datetime, timezone
+                        now = datetime.now(timezone.utc)
+                        if isinstance(updated_at, str):
+                            updated_time = datetime.fromisoformat(updated_at.replace('Z', '+00:00'))
+                        else:
+                            updated_time = updated_at.replace(tzinfo=timezone.utc) if updated_at.tzinfo is None else updated_at
+                        
+                        # 최근 24시간 내 업데이트면 트렌드 마크
+                        if (now - updated_time).total_seconds() < 86400:
+                            topic = f"🔥 {topic}"
+                    
+                    monthly_schedule[date_str]['sites'][site].append({
+                        'category': category,
+                        'topic': topic,
+                        'keywords': keywords,
+                        'length': length,
+                        'status': status
+                    })
+        
+        # 날짜순 정렬된 리스트로 변환
+        sorted_schedule = []
+        for day in range(1, last_day + 1):
+            date_str = f"{target_date.year}-{target_date.month:02d}-{day:02d}"
+            day_data = monthly_schedule.get(date_str, {
+                'date': date_str,
+                'day_name': ['월', '화', '수', '목', '금', '토', '일'][date(target_date.year, target_date.month, day).weekday()],
+                'sites': {}
+            })
+            sorted_schedule.append(day_data)
+        
+        response_data = {
+            'year': target_date.year,
+            'month': target_date.month,
+            'month_name': f"{target_date.year}년 {target_date.month}월",
+            'total_days': last_day,
+            'schedule': sorted_schedule
+        }
+        
+        add_system_log('INFO', f'월별 계획표 응답: {len(sorted_schedule)}일', 'SCHEDULE')
+        return jsonify(response_data)
+        
+    except Exception as e:
+        logger.error(f"Monthly schedule error: {e}")
+        add_system_log('ERROR', f'월별 계획표 오류: {e}', 'SCHEDULE')
+        return jsonify({'error': str(e)}), 500
 
 # 발행 상태를 전역으로 추적
 publish_status = {
