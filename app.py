@@ -3525,8 +3525,12 @@ def auto_publish_task():
         # 시간 기록
         from datetime import datetime, timedelta
         import pytz
+        from src.scheduler import BlogAutomationScheduler
         kst = pytz.timezone('Asia/Seoul')
         start_time = datetime.now(kst)
+        
+        # BlogAutomationScheduler 초기화
+        blog_scheduler = BlogAutomationScheduler()
         
         # 오늘 날짜 기반 스케줄 계산 (수동 발행과 동일한 로직)
         today = start_time.date()
