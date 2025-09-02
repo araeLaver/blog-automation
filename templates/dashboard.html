@@ -721,17 +721,25 @@
                 bootstrap.Modal.getInstance(document.getElementById('manualPublishModal')).hide();
                 
                 showToast('수동 발행 시작됨', 'info');
-                const response = await fetch('/api/manual-publish', { method: 'POST' });
+                const response = await fetch('/api/quick_publish', { 
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sites: ['unpre', 'untab', 'skewese', 'tistory']
+                    })
+                });
                 const data = await response.json();
                 
                 if (data.success) {
                     showToast('수동 발행이 시작되었습니다', 'success');
                     setTimeout(refreshContent, 3000);
                 } else {
-                    showToast(data.message || '수동 발행 실패', 'danger');
+                    showToast(data.error || data.message || '수동 발행 실패', 'danger');
                 }
             } catch (error) {
-                showToast('수동 발행 요청 실패', 'danger');
+                showToast('수동 발행 요청 실패: ' + error.message, 'danger');
             }
         }
 
