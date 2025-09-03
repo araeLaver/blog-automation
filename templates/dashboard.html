@@ -849,18 +849,60 @@
 
         // 발행 완료 처리
         async function showPublishComplete(finalStatus) {
+            console.log('Final status:', finalStatus); // 디버깅용
+            
             // UI 전환: 진행 상황 -> 완료 결과
             document.getElementById('publish-progress').classList.add('d-none');
             document.getElementById('publish-complete').classList.remove('d-none');
             
-            // 완료 요약
-            const successCount = finalStatus.results ? finalStatus.results.filter(r => r.success).length : 0;
-            const totalCount = finalStatus.total_sites || 0;
+            // 완료 요약 - 안전한 파싱
+            let successCount = 0;
+            let totalCount = 0;
+            let completedTopics = [];
             
-            document.getElementById('completion-summary').innerHTML = `
-                <strong>${successCount}/${totalCount} 사이트 발행 완료</strong><br>
-                <small class="text-muted">${finalStatus.message || '수동 발행이 완료되었습니다.'}</small>
+            if (finalStatus.results && Array.isArray(finalStatus.results)) {
+                totalCount = finalStatus.results.length;
+                successCount = finalStatus.results.filter(r => r.success).length;
+                completedTopics = finalStatus.results.filter(r => r.success).map(r => ({
+                    site: r.site,
+                    topic: r.topic || r.message || '주제 없음'
+                }));
+            } else if (finalStatus.total_sites) {
+                totalCount = finalStatus.total_sites;
+            }
+            
+            const summaryHtml = `
+                <div class="alert ${successCount > 0 ? 'alert-success' : 'alert-warning'}">
+                    <h6><i class="bi bi-${successCount > 0 ? 'check-circle' : 'exclamation-triangle'}"></i> 
+                        ${successCount}/${totalCount} 사이트 발행 완료</h6>
+                    <small class="text-muted">${finalStatus.message || '수동 발행이 완료되었습니다.'}</small>
+                </div>
             `;
+            
+            document.getElementById('completion-summary').innerHTML = summaryHtml;
+            
+            // 발행 성공한 사이트들 표시
+            if (completedTopics.length > 0) {
+                let topicsHtml = '<div class="mt-2"><h6><i class="bi bi-list-check"></i> 완료된 발행</h6>';
+                completedTopics.forEach(item => {
+                    const siteColors = {
+                        'unpre': 'primary',
+                        'untab': 'success', 
+                        'skewese': 'warning',
+                        'tistory': 'info'
+                    };
+                    const badgeColor = siteColors[item.site] || 'secondary';
+                    
+                    topicsHtml += `
+                        <div class="d-flex align-items-center mb-1">
+                            <span class="badge bg-${badgeColor} me-2">${item.site.toUpperCase()}</span>
+                            <small class="text-muted">${item.topic}</small>
+                        </div>
+                    `;
+                });
+                topicsHtml += '</div>';
+                document.getElementById('completion-summary').innerHTML += topicsHtml;
+            }
             
             // 생성된 콘텐츠 목록 로드
             await loadGeneratedContent();
@@ -874,26 +916,38 @@
         async function loadGeneratedContent() {
             const generatedContentDiv = document.getElementById('generated-content');
             
+            generatedContentDiv.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm me-2"></div>콘텐츠 로드 중...</div>';
+            
             try {
                 // 최신 콘텐츠 다시 로드
                 const sites = ['unpre', 'skewese', 'tistory', 'untab'];
                 const promises = sites.map(site => 
-                    fetch(`/api/content/${site}`).then(res => res.json()).catch(() => [])
+                    fetch(`/api/content/${site}`)
+                        .then(res => res.json())
+                        .then(data => ({ site, data: Array.isArray(data) ? data : [] }))
+                        .catch(err => {
+                            console.warn(`Failed to load ${site} content:`, err);
+                            return { site, data: [] };
+                        })
                 );
                 
                 const results = await Promise.all(promises);
                 
                 let recentContent = [];
+                let allContent = [];
                 const now = new Date();
-                const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+                const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+                const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
                 
-                sites.forEach((site, index) => {
-                    if (results[index] && Array.isArray(results[index])) {
-                        results[index].forEach(content => {
+                results.forEach(result => {
+                    if (result.data.length > 0) {
+                        result.data.forEach(content => {
+                            const contentWithSite = { ...content, site: result.site };
+                            allContent.push(contentWithSite);
+                            
                             const createdAt = new Date(content.created_at);
-                            // 1시간 이내에 생성된 콘텐츠만 표시
-                            if (createdAt > oneHourAgo) {
-                                recentContent.push({...content, site: site});
+                            if (createdAt > thirtyMinutesAgo) {
+                                recentContent.push(contentWithSite);
                             }
                         });
                     }
@@ -901,41 +955,94 @@
                 
                 // 최신순 정렬
                 recentContent.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                allContent.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                 
                 if (recentContent.length > 0) {
-                    let html = '<h6><i class="bi bi-file-earmark-text"></i> 방금 생성된 콘텐츠</h6>';
+                    // 30분 이내 콘텐츠 있음
+                    displayContentList(recentContent.slice(0, 6), '방금 생성된 콘텐츠 (30분 이내)');
+                } else if (allContent.length > 0) {
+                    // 최신 콘텐츠 몇 개 보여주기
+                    const latestContent = allContent.slice(0, 4);
+                    const oldestTime = new Date(latestContent[latestContent.length - 1].created_at);
+                    const timeDiff = Math.round((now - oldestTime) / (60 * 60 * 1000));
                     
-                    recentContent.slice(0, 4).forEach(content => {
-                        const siteColors = {
-                            'unpre': 'primary',
-                            'untab': 'success', 
-                            'skewese': 'warning',
-                            'tistory': 'info'
-                        };
-                        const badgeColor = siteColors[content.site] || 'secondary';
-                        
-                        html += `
-                            <div class="border rounded p-2 mb-2">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <h6 class="mb-1">${content.title}</h6>
-                                        <small class="text-muted">${new Date(content.created_at).toLocaleString('ko-KR')}</small>
-                                    </div>
-                                    <span class="badge bg-${badgeColor}">${content.site.toUpperCase()}</span>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    generatedContentDiv.innerHTML = html;
+                    displayContentList(latestContent, `최신 콘텐츠 (${timeDiff < 24 ? timeDiff + '시간 전' : Math.round(timeDiff/24) + '일 전'})`);
                 } else {
-                    generatedContentDiv.innerHTML = '<p class="text-muted">생성된 콘텐츠를 찾을 수 없습니다.</p>';
+                    generatedContentDiv.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i> 
+                            아직 생성된 콘텐츠가 없습니다.<br>
+                            <small class="text-muted">발행이 완료되면 여기에 새로운 콘텐츠가 표시됩니다.</small>
+                        </div>
+                    `;
                 }
                 
             } catch (error) {
-                generatedContentDiv.innerHTML = '<p class="text-danger">콘텐츠 로드 실패</p>';
+                generatedContentDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i> 콘텐츠 로드 실패<br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
                 console.error('Load generated content error:', error);
             }
+        }
+
+        // 콘텐츠 목록 표시 헬퍼
+        function displayContentList(contentList, title) {
+            const generatedContentDiv = document.getElementById('generated-content');
+            
+            let html = `<h6><i class="bi bi-file-earmark-text"></i> ${title}</h6>`;
+            
+            contentList.forEach(content => {
+                const siteColors = {
+                    'unpre': 'primary',
+                    'untab': 'success', 
+                    'skewese': 'warning',
+                    'tistory': 'info'
+                };
+                const badgeColor = siteColors[content.site] || 'secondary';
+                
+                const createdAt = new Date(content.created_at);
+                const timeAgo = getTimeAgo(createdAt);
+                
+                html += `
+                    <div class="border rounded p-3 mb-2 bg-light">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 text-primary">${content.title}</h6>
+                                <div class="mb-2">
+                                    ${content.tags && content.tags.length > 0 ? 
+                                        content.tags.slice(0, 3).map(tag => 
+                                            `<small class="badge bg-secondary me-1">${tag}</small>`
+                                        ).join('') : ''}
+                                </div>
+                                <small class="text-muted">
+                                    <i class="bi bi-clock"></i> ${timeAgo} | 
+                                    <i class="bi bi-file-text"></i> ${content.word_count || 0} 단어
+                                </small>
+                            </div>
+                            <span class="badge bg-${badgeColor} fs-6">${content.site.toUpperCase()}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            generatedContentDiv.innerHTML = html;
+        }
+
+        // 시간차 계산 헬퍼
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diff = now - date;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+            
+            if (minutes < 1) return '방금 전';
+            if (minutes < 60) return `${minutes}분 전`;
+            if (hours < 24) return `${hours}시간 전`;
+            return `${days}일 전`;
         }
 
         // 발행 오류 처리
