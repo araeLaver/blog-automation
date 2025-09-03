@@ -454,6 +454,61 @@ def get_content_files():
         return jsonify({'wordpress': [], 'tistory': []})
 
 
+@app.route('/api/content/<site>')
+def get_content_by_site(site):
+    """사이트별 최신 콘텐츠 목록 조회"""
+    try:
+        db = get_database()
+        conn = db.get_connection()
+        
+        # 사이트 매핑
+        site_map = {
+            'unpre': 'unpre',
+            'skewese': 'skewese', 
+            'untab': 'untab',
+            'tistory': 'tistory'
+        }
+        
+        if site not in site_map:
+            return jsonify([])
+            
+        # 최신 콘텐츠 조회 (최근 24시간)
+        with conn.cursor() as cursor:
+            cursor.execute(f"""
+                SELECT id, title, created_at, status, publish_url, file_path,
+                       categories, tags, meta_description, published_at
+                FROM {db.schema}.content_files
+                WHERE site = %s
+                  AND created_at >= NOW() - INTERVAL '24 hours'
+                ORDER BY created_at DESC
+                LIMIT 10
+            """, (site,))
+            
+            results = cursor.fetchall()
+            
+        # JSON 형태로 변환
+        content_list = []
+        for row in results:
+            content_list.append({
+                'id': row[0],
+                'title': row[1],
+                'created_at': row[2].isoformat() if row[2] else None,
+                'status': row[3],
+                'publish_url': row[4],
+                'file_path': row[5],
+                'categories': row[6] or [],
+                'tags': row[7] or [],
+                'meta_description': row[8],
+                'published_at': row[9].isoformat() if row[9] else None
+            })
+        
+        return jsonify(content_list)
+        
+    except Exception as e:
+        logger.error(f"Content by site error: {e}")
+        return jsonify([])
+
+
 @app.route('/api/system_status')
 def get_system_status():
     """시스템 상태 확인 - 모든 상태 정상으로 강제 설정"""
@@ -1136,10 +1191,28 @@ def publish_to_wordpress():
                 'progress': 50
             })
             
-            # 실제 WordPress 업로드 완전 스킵 - 고속 모드
-            success = True
-            result = f"https://{site}.co.kr/?p=MOCK_ID_{file_id}"
-            print("[FAST_MODE] WordPress 업로드 완전 스킵 - 고속 발행 완료")
+            # 실제 WordPress 업로드 시도
+            try:
+                from src.publishers.wordpress_publisher import WordPressPublisher
+                wp_publisher = WordPressPublisher(site)
+                
+                # 실제 WordPress에 발행
+                success, result = wp_publisher.publish_html_content(
+                    title=content_data['title'],
+                    html_content=html_content,
+                    categories=content_data.get('categories', []),
+                    tags=content_data.get('tags', []),
+                    meta_description=content_data.get('meta_description', '')
+                )
+                
+                if success:
+                    print(f"[SUCCESS] WordPress 발행 성공: {result}")
+                else:
+                    print(f"[ERROR] WordPress 발행 실패: {result}")
+            except Exception as wp_error:
+                logger.error(f"WordPress 발행 오류: {wp_error}")
+                success = False
+                result = f"WordPress 발행 실패: {str(wp_error)}"
             
             # 고속 발행 모드: 모든 처리 생략하고 즉시 완료
             
