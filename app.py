@@ -2178,11 +2178,13 @@ def get_monthly_schedule():
 # 새 대시보드용 API 엔드포인트들
 @app.route('/api/content/<site>')
 def get_content_list(site):
-    """사이트별 콘텐츠 목록 조회"""
+    """사이트별 콘텐츠 목록 조회 - 운영환경 안정화"""
     try:
         import os
         import json
-        from pathlib import Path
+        
+        # 로깅으로 디버깅 정보 추가
+        logger.info(f"콘텐츠 목록 조회 요청: {site}")
         
         site_map = {
             'skewese': 'wordpress_posts/skewese',
@@ -2192,29 +2194,45 @@ def get_content_list(site):
         }
         
         if site not in site_map:
+            logger.warning(f"지원하지 않는 사이트: {site}")
             return jsonify([])
         
-        content_dir = Path('data') / site_map[site]
-        if not content_dir.exists():
+        # 절대 경로로 변경하여 운영환경 호환성 향상
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        content_dir = os.path.join(current_dir, 'data', site_map[site])
+        
+        logger.info(f"콘텐츠 디렉토리 경로: {content_dir}")
+        
+        if not os.path.exists(content_dir):
+            logger.info(f"콘텐츠 디렉토리 없음: {content_dir}")
             return jsonify([])
         
         contents = []
-        # JSON 메타데이터 파일들 찾기
-        for json_file in content_dir.glob('*.json'):
-            try:
-                with open(json_file, 'r', encoding='utf-8') as f:
-                    content_data = json.load(f)
-                    contents.append(content_data)
-            except Exception as e:
-                print(f"JSON 파일 로드 오류 {json_file}: {e}")
+        
+        # 안전한 파일 검색
+        try:
+            for filename in os.listdir(content_dir):
+                if filename.endswith('.json'):
+                    json_file_path = os.path.join(content_dir, filename)
+                    try:
+                        with open(json_file_path, 'r', encoding='utf-8') as f:
+                            content_data = json.load(f)
+                            contents.append(content_data)
+                            logger.debug(f"JSON 파일 로드 성공: {filename}")
+                    except Exception as e:
+                        logger.warning(f"JSON 파일 로드 오류 {filename}: {e}")
+        except Exception as e:
+            logger.error(f"디렉토리 읽기 오류 {content_dir}: {e}")
+            return jsonify([])
                 
         # 최신순 정렬
         contents.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        logger.info(f"{site} 콘텐츠 {len(contents)}개 조회 완료")
         return jsonify(contents[:50])  # 최근 50개만
         
     except Exception as e:
-        logger.error(f"콘텐츠 목록 조회 오류: {e}")
-        return jsonify([])
+        logger.error(f"콘텐츠 목록 조회 오류 {site}: {e}")
+        return jsonify({'error': f'콘텐츠 조회 실패: {str(e)}'}), 500
 
 @app.route('/api/content/<site>/preview')
 def get_content_preview(site):
