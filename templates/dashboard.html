@@ -288,23 +288,56 @@
     </div>
 
     <!-- Manual Publish Modal -->
-    <div class="modal fade" id="manualPublishModal" tabindex="-1">
+    <div class="modal fade" id="manualPublishModal" tabindex="-1" data-bs-backdrop="static">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-lightning"></i> 수동 발행 - 오늘의 주제</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title"><i class="bi bi-lightning"></i> 수동 발행</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" id="closePublishModal"></button>
                 </div>
-                <div class="modal-body" id="today-topics">
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        <div>오늘의 주제를 불러오는 중...</div>
+                <div class="modal-body">
+                    <!-- 주제 선택 단계 -->
+                    <div id="topic-selection" class="publish-step">
+                        <h6><i class="bi bi-list-ul"></i> 오늘의 주제</h6>
+                        <div id="today-topics">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <div>오늘의 주제를 불러오는 중...</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 발행 진행 단계 -->
+                    <div id="publish-progress" class="publish-step d-none">
+                        <h6><i class="bi bi-gear"></i> 발행 진행 상황</h6>
+                        <div class="progress mb-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" style="width: 0%" id="publish-progress-bar">0%</div>
+                        </div>
+                        <div id="current-site" class="mb-2 text-muted">준비 중...</div>
+                        <div id="publish-results">
+                            <!-- 각 사이트별 발행 결과 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 완료 결과 단계 -->
+                    <div id="publish-complete" class="publish-step d-none">
+                        <h6><i class="bi bi-check-circle"></i> 발행 완료</h6>
+                        <div class="alert alert-success">
+                            <div id="completion-summary"></div>
+                        </div>
+                        <div id="generated-content">
+                            <!-- 생성된 콘텐츠 목록 -->
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                    <button type="button" class="btn btn-primary" onclick="confirmManualPublish()">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="cancelPublishBtn">취소</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmManualPublish()" id="startPublishBtn">
                         <i class="bi bi-send"></i> 발행 시작
+                    </button>
+                    <button type="button" class="btn btn-success d-none" onclick="refreshAndClose()" id="finishPublishBtn">
+                        <i class="bi bi-arrow-clockwise"></i> 새로고침 후 닫기
                     </button>
                 </div>
             </div>
@@ -717,10 +750,14 @@
         
         async function confirmManualPublish() {
             try {
-                // 모달 닫기
-                bootstrap.Modal.getInstance(document.getElementById('manualPublishModal')).hide();
+                // UI 전환: 주제 선택 -> 진행 상황
+                document.getElementById('topic-selection').classList.add('d-none');
+                document.getElementById('publish-progress').classList.remove('d-none');
+                document.getElementById('startPublishBtn').classList.add('d-none');
+                document.getElementById('cancelPublishBtn').disabled = true;
+                document.getElementById('closePublishModal').disabled = true;
                 
-                showToast('수동 발행 시작됨', 'info');
+                // 발행 시작 API 호출
                 const response = await fetch('/api/quick_publish', { 
                     method: 'POST',
                     headers: {
@@ -733,14 +770,205 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showToast('수동 발행이 시작되었습니다', 'success');
-                    setTimeout(refreshContent, 3000);
+                    // 실시간 진행 상황 모니터링 시작
+                    startProgressMonitoring();
                 } else {
-                    showToast(data.error || data.message || '수동 발행 실패', 'danger');
+                    showPublishError(data.error || data.message || '수동 발행 시작 실패');
                 }
             } catch (error) {
-                showToast('수동 발행 요청 실패: ' + error.message, 'danger');
+                showPublishError('수동 발행 요청 실패: ' + error.message);
             }
+        }
+
+        // 실시간 진행 상황 모니터링
+        let progressInterval;
+        async function startProgressMonitoring() {
+            const progressBar = document.getElementById('publish-progress-bar');
+            const currentSiteDiv = document.getElementById('current-site');
+            const resultsDiv = document.getElementById('publish-results');
+            
+            progressInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/publish_status');
+                    const status = await response.json();
+                    
+                    // 진행률 업데이트
+                    const progress = status.progress || 0;
+                    progressBar.style.width = progress + '%';
+                    progressBar.textContent = progress + '%';
+                    
+                    // 현재 작업 사이트 표시
+                    if (status.in_progress) {
+                        if (status.current_site) {
+                            currentSiteDiv.innerHTML = `<i class="bi bi-gear-fill"></i> ${status.current_site} 발행 중...`;
+                        } else {
+                            currentSiteDiv.innerHTML = `<i class="bi bi-hourglass-split"></i> ${status.message || '발행 준비 중...'}`;
+                        }
+                    } else {
+                        // 발행 완료
+                        clearInterval(progressInterval);
+                        showPublishComplete(status);
+                    }
+                    
+                    // 각 사이트별 결과 표시
+                    if (status.results && status.results.length > 0) {
+                        displayPublishResults(status.results);
+                    }
+                    
+                } catch (error) {
+                    console.error('Progress monitoring error:', error);
+                }
+            }, 2000); // 2초마다 확인
+        }
+
+        // 발행 결과 표시
+        function displayPublishResults(results) {
+            const resultsDiv = document.getElementById('publish-results');
+            let html = '';
+            
+            results.forEach(result => {
+                const icon = result.success ? 
+                    '<i class="bi bi-check-circle-fill text-success"></i>' : 
+                    '<i class="bi bi-x-circle-fill text-danger"></i>';
+                const badgeClass = result.success ? 'success' : 'danger';
+                
+                html += `
+                    <div class="d-flex align-items-center mb-2">
+                        ${icon}
+                        <div class="ms-2 flex-grow-1">
+                            <strong>${result.site.toUpperCase()}</strong>
+                            <small class="text-muted d-block">${result.topic || ''}</small>
+                        </div>
+                        <span class="badge bg-${badgeClass}">${result.success ? '성공' : '실패'}</span>
+                    </div>
+                `;
+            });
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        // 발행 완료 처리
+        async function showPublishComplete(finalStatus) {
+            // UI 전환: 진행 상황 -> 완료 결과
+            document.getElementById('publish-progress').classList.add('d-none');
+            document.getElementById('publish-complete').classList.remove('d-none');
+            
+            // 완료 요약
+            const successCount = finalStatus.results ? finalStatus.results.filter(r => r.success).length : 0;
+            const totalCount = finalStatus.total_sites || 0;
+            
+            document.getElementById('completion-summary').innerHTML = `
+                <strong>${successCount}/${totalCount} 사이트 발행 완료</strong><br>
+                <small class="text-muted">${finalStatus.message || '수동 발행이 완료되었습니다.'}</small>
+            `;
+            
+            // 생성된 콘텐츠 목록 로드
+            await loadGeneratedContent();
+            
+            // 버튼 상태 변경
+            document.getElementById('finishPublishBtn').classList.remove('d-none');
+            document.getElementById('closePublishModal').disabled = false;
+        }
+
+        // 생성된 콘텐츠 목록 로드
+        async function loadGeneratedContent() {
+            const generatedContentDiv = document.getElementById('generated-content');
+            
+            try {
+                // 최신 콘텐츠 다시 로드
+                const sites = ['unpre', 'skewese', 'tistory', 'untab'];
+                const promises = sites.map(site => 
+                    fetch(`/api/content/${site}`).then(res => res.json()).catch(() => [])
+                );
+                
+                const results = await Promise.all(promises);
+                
+                let recentContent = [];
+                const now = new Date();
+                const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+                
+                sites.forEach((site, index) => {
+                    if (results[index] && Array.isArray(results[index])) {
+                        results[index].forEach(content => {
+                            const createdAt = new Date(content.created_at);
+                            // 1시간 이내에 생성된 콘텐츠만 표시
+                            if (createdAt > oneHourAgo) {
+                                recentContent.push({...content, site: site});
+                            }
+                        });
+                    }
+                });
+                
+                // 최신순 정렬
+                recentContent.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                
+                if (recentContent.length > 0) {
+                    let html = '<h6><i class="bi bi-file-earmark-text"></i> 방금 생성된 콘텐츠</h6>';
+                    
+                    recentContent.slice(0, 4).forEach(content => {
+                        const siteColors = {
+                            'unpre': 'primary',
+                            'untab': 'success', 
+                            'skewese': 'warning',
+                            'tistory': 'info'
+                        };
+                        const badgeColor = siteColors[content.site] || 'secondary';
+                        
+                        html += `
+                            <div class="border rounded p-2 mb-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">${content.title}</h6>
+                                        <small class="text-muted">${new Date(content.created_at).toLocaleString('ko-KR')}</small>
+                                    </div>
+                                    <span class="badge bg-${badgeColor}">${content.site.toUpperCase()}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    generatedContentDiv.innerHTML = html;
+                } else {
+                    generatedContentDiv.innerHTML = '<p class="text-muted">생성된 콘텐츠를 찾을 수 없습니다.</p>';
+                }
+                
+            } catch (error) {
+                generatedContentDiv.innerHTML = '<p class="text-danger">콘텐츠 로드 실패</p>';
+                console.error('Load generated content error:', error);
+            }
+        }
+
+        // 발행 오류 처리
+        function showPublishError(message) {
+            clearInterval(progressInterval);
+            
+            document.getElementById('publish-progress').classList.add('d-none');
+            document.getElementById('publish-complete').classList.remove('d-none');
+            
+            document.getElementById('completion-summary').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i> 발행 실패: ${message}
+                </div>
+            `;
+            
+            document.getElementById('finishPublishBtn').classList.remove('d-none');
+            document.getElementById('closePublishModal').disabled = false;
+        }
+
+        // 새로고침 후 모달 닫기
+        function refreshAndClose() {
+            // 모달 초기 상태로 리셋
+            document.getElementById('topic-selection').classList.remove('d-none');
+            document.getElementById('publish-progress').classList.add('d-none');
+            document.getElementById('publish-complete').classList.add('d-none');
+            document.getElementById('startPublishBtn').classList.remove('d-none');
+            document.getElementById('finishPublishBtn').classList.add('d-none');
+            document.getElementById('cancelPublishBtn').disabled = false;
+            document.getElementById('closePublishModal').disabled = false;
+            
+            // 모달 닫고 콘텐츠 새로고침
+            bootstrap.Modal.getInstance(document.getElementById('manualPublishModal')).hide();
+            loadContent();
         }
 
         // 새로고침
