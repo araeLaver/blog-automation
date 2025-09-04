@@ -473,16 +473,16 @@ def get_content_by_site(site):
         if site not in site_map:
             return jsonify([])
             
-        # 최신 콘텐츠 조회 (최근 24시간)
+        # 최신 콘텐츠 조회 (최근 7일)
         with conn.cursor() as cursor:
             cursor.execute(f"""
                 SELECT id, title, created_at, status, publish_url, file_path,
-                       categories, tags, meta_description, published_at
+                       categories, tags, meta_description, published_at, metadata
                 FROM {db.schema}.content_files
                 WHERE site = %s
-                  AND created_at >= NOW() - INTERVAL '24 hours'
+                  AND created_at >= NOW() - INTERVAL '7 days'
                 ORDER BY created_at DESC
-                LIMIT 10
+                LIMIT 20
             """, (site,))
             
             results = cursor.fetchall()
@@ -490,6 +490,7 @@ def get_content_by_site(site):
         # JSON 형태로 변환
         content_list = []
         for row in results:
+            metadata = row[10] if row[10] else {}
             content_list.append({
                 'id': row[0],
                 'title': row[1],
@@ -500,7 +501,10 @@ def get_content_by_site(site):
                 'categories': row[6] or [],
                 'tags': row[7] or [],
                 'meta_description': row[8],
-                'published_at': row[9].isoformat() if row[9] else None
+                'published_at': row[9].isoformat() if row[9] else None,
+                'word_count': metadata.get('word_count', 0),
+                'reading_time': metadata.get('reading_time', 1),
+                'file_size': metadata.get('file_size', 0)
             })
         
         return jsonify(content_list)
@@ -560,7 +564,8 @@ def generate_wordpress():
             site_config=site_config,
             topic=topic,
             category=category,
-            content_length=content_length
+            content_length=content_length,
+            site_key=site
         )
         
         # 파일로 저장
@@ -662,7 +667,8 @@ def generate_tistory():
             site_config=site_config,
             topic=topic,
             category=category,
-            content_length=content_length
+            content_length=content_length,
+            site_key='tistory'
         )
         
         try:
@@ -2388,7 +2394,8 @@ def quick_publish():
                                 primary_topic['topic'],
                                 primary_topic['category'],
                                 None,  # existing_posts
-                                'medium'  # content_length
+                                'medium',  # content_length
+                                site  # site_key for API tracking
                             )
 
                             if content_data:
@@ -2454,7 +2461,8 @@ def quick_publish():
                                 primary_topic['topic'],
                                 primary_topic['category'],
                                 None,  # existing_posts
-                                'medium'  # content_length
+                                'medium',  # content_length
+                                site  # site_key for API tracking
                             )
 
                             if content_data:
@@ -2557,7 +2565,8 @@ def quick_publish():
                                     secondary_topic['topic'],
                                     secondary_topic['category'],
                                     None,  # existing_posts
-                                    'medium'  # content_length
+                                    'medium',  # content_length
+                                    site  # site_key for API tracking
                                 )
 
                                 if content_data:
@@ -2600,7 +2609,8 @@ def quick_publish():
                                     secondary_topic['topic'],
                                     secondary_topic['category'],
                                     None,  # existing_posts
-                                    'medium'  # content_length
+                                    'medium',  # content_length
+                                    site  # site_key for API tracking
                                 )
 
                                 if content_data:
