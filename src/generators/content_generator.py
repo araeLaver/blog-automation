@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 from datetime import datetime
 import anthropic
 from dotenv import load_dotenv
+from src.utils.api_tracker import api_tracker
 
 load_dotenv()
 
@@ -52,14 +53,14 @@ class ContentGenerator:
                 os.environ[var] = value
     
     def generate_content(self, site_config: Dict, topic: str, 
-                        category: str, existing_posts: List[str] = None, content_length: str = 'medium') -> Dict:
+                        category: str, existing_posts: List[str] = None, content_length: str = 'medium', site_key: str = None) -> Dict:
         """메인 콘텐츠 생성 함수"""
         
         # 프롬프트 생성
         prompt = self._create_prompt(site_config, topic, category, existing_posts, content_length)
         
-        # Claude API로 콘텐츠 생성
-        content = self._generate_with_claude(prompt)
+        # Claude API로 콘텐츠 생성 (사이트 정보 전달)
+        content = self._generate_with_claude(prompt, site_key)
         
         # 콘텐츠 파싱 및 구조화
         structured_content = self._parse_content(content)
@@ -219,7 +220,7 @@ Category: {category}
         
         return prompt
     
-    def _generate_with_claude(self, prompt: str) -> str:
+    def _generate_with_claude(self, prompt: str, site_key: str = None) -> str:
         """Claude API로 콘텐츠 생성"""
         try:
             # 시스템 메시지 - 고품질 콘텐츠 생성을 위한 상세 가이드
@@ -260,6 +261,10 @@ Category: {category}
 ❌ 빈약한 내용이나 짧은 설명 금지
 ❌ 목록을 한 줄에 나열하는 것 절대 금지 (- 항목1 - 항목2 형태 금지)"""
             
+            # 입력 토큰 추정 (시스템 메시지 + 사용자 메시지)
+            input_text = system_message + prompt
+            estimated_input_tokens = len(input_text) // 3  # 대략적 추정
+            
             response = self.anthropic_client.messages.create(
                 model="claude-3-5-sonnet-20241022",
                 max_tokens=8000,  # 더 긴 고품질 콘텐츠를 위해 증가
@@ -271,6 +276,22 @@ Category: {category}
             )
             
             result = response.content[0].text
+            
+            # 실제 토큰 사용량 (Claude API 응답에서 가져오기)
+            actual_input_tokens = response.usage.input_tokens
+            actual_output_tokens = response.usage.output_tokens
+            
+            # API 사용량 추적
+            api_tracker.log_api_call(
+                service="claude",
+                model="claude-3-5-sonnet-20241022",
+                input_tokens=actual_input_tokens,
+                output_tokens=actual_output_tokens,
+                site=site_key,
+                purpose="content_generation",
+                success=True,
+                endpoint="messages"
+            )
             
             # 디버깅: API 응답 로그
             print(f"Claude API Response Length: {len(result)}")
@@ -287,6 +308,11 @@ Category: {category}
                 블로그 글 제목과 내용을 JSON으로 작성하세요.
                 
                 다시 한번 요청: {prompt}"""
+                
+                # 재시도 입력 토큰 추정
+                retry_input_text = system_message + retry_prompt
+                retry_estimated_input_tokens = len(retry_input_text) // 3
+                
                 response = self.anthropic_client.messages.create(
                     model="claude-3-5-sonnet-20241022",
                     max_tokens=4000,
@@ -297,10 +323,35 @@ Category: {category}
                     ]
                 )
                 result = response.content[0].text
+                
+                # 재시도 API 사용량 추적
+                api_tracker.log_api_call(
+                    service="claude",
+                    model="claude-3-5-sonnet-20241022",
+                    input_tokens=response.usage.input_tokens,
+                    output_tokens=response.usage.output_tokens,
+                    site=site_key,
+                    purpose="content_generation_retry",
+                    success=True,
+                    endpoint="messages"
+                )
+                
                 print(f"Retry Response starts with: {result[:100]}...")
             
             return result
         except Exception as e:
+            # 실패한 API 호출 추적
+            api_tracker.log_api_call(
+                service="claude",
+                model="claude-3-5-sonnet-20241022",
+                input_tokens=estimated_input_tokens if 'estimated_input_tokens' in locals() else 0,
+                output_tokens=0,
+                site=site_key,
+                purpose="content_generation",
+                success=False,
+                error_message=str(e),
+                endpoint="messages"
+            )
             print(f"Claude API 오류: {e}")
             raise
     

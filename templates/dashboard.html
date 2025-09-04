@@ -199,6 +199,10 @@
                             <i class="bi bi-clock"></i>
                             <span>자동 발행</span>
                         </button>
+                        <button class="control-btn" style="background: linear-gradient(135deg, #ff9a9e, #fecfef);" onclick="showApiUsage()">
+                            <i class="bi bi-currency-dollar"></i>
+                            <span>API 사용량</span>
+                        </button>
                     </div>
 
                     <div class="text-center">
@@ -338,6 +342,70 @@
                     </button>
                     <button type="button" class="btn btn-success d-none" onclick="refreshAndClose()" id="finishPublishBtn">
                         <i class="bi bi-arrow-clockwise"></i> 새로고침 후 닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Usage Modal -->
+    <div class="modal fade" id="apiUsageModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-currency-dollar"></i> API 사용량 현황</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- 오늘의 사용량 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="bi bi-calendar-day"></i> 오늘의 사용량</h6>
+                                </div>
+                                <div class="card-body" id="today-usage">
+                                    <div class="loading">
+                                        <div class="spinner"></div>
+                                        <div>데이터를 불러오는 중...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="bi bi-calendar-month"></i> 이번 달 사용량</h6>
+                                </div>
+                                <div class="card-body" id="monthly-usage">
+                                    <div class="loading">
+                                        <div class="spinner"></div>
+                                        <div>데이터를 불러오는 중...</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 최근 API 호출 내역 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="bi bi-clock-history"></i> 최근 API 호출 내역</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="recent-calls">
+                                <div class="loading">
+                                    <div class="spinner"></div>
+                                    <div>데이터를 불러오는 중...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                    <button type="button" class="btn btn-primary" onclick="refreshApiUsage()">
+                        <i class="bi bi-arrow-clockwise"></i> 새로고침
                     </button>
                 </div>
             </div>
@@ -1087,6 +1155,147 @@
                 </div>
             `;
             loadContent();
+        }
+
+        // API 사용량 모달 표시
+        function showApiUsage() {
+            const modal = new bootstrap.Modal(document.getElementById('apiUsageModal'));
+            modal.show();
+            loadApiUsage();
+        }
+
+        // API 사용량 데이터 로드
+        async function loadApiUsage() {
+            try {
+                // 병렬로 모든 API 호출
+                const [todayResponse, monthlyResponse, recentResponse] = await Promise.all([
+                    fetch('/api/api_usage/today'),
+                    fetch('/api/api_usage/monthly'),
+                    fetch('/api/api_usage/recent?limit=20')
+                ]);
+
+                const todayData = await todayResponse.json();
+                const monthlyData = await monthlyResponse.json();
+                const recentData = await recentResponse.json();
+
+                displayTodayUsage(todayData.data);
+                displayMonthlyUsage(monthlyData.data);
+                displayRecentCalls(recentData.data);
+
+            } catch (error) {
+                console.error('API 사용량 로드 오류:', error);
+                showToast('API 사용량 데이터를 불러올 수 없습니다.', 'danger');
+            }
+        }
+
+        // 오늘의 사용량 표시
+        function displayTodayUsage(data) {
+            const container = document.getElementById('today-usage');
+            
+            let html = `
+                <div class="row text-center">
+                    <div class="col-4">
+                        <h4 class="text-primary mb-0">${data.total_requests}</h4>
+                        <small class="text-muted">요청 수</small>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="text-info mb-0">${data.total_tokens.toLocaleString()}</h4>
+                        <small class="text-muted">토큰 수</small>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="text-danger mb-0">$${data.total_cost_usd.toFixed(4)}</h4>
+                        <small class="text-muted">비용 (USD)</small>
+                    </div>
+                </div>
+            `;
+
+            if (Object.keys(data.by_site).length > 0) {
+                html += '<hr><h6 class="text-muted mb-2">사이트별</h6>';
+                for (const [site, usage] of Object.entries(data.by_site)) {
+                    html += `
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-primary">${site.toUpperCase()}</span>
+                            <span class="text-muted">${usage.requests}회 | $${usage.cost.toFixed(4)}</span>
+                        </div>
+                    `;
+                }
+            }
+
+            container.innerHTML = html;
+        }
+
+        // 월별 사용량 표시
+        function displayMonthlyUsage(data) {
+            const container = document.getElementById('monthly-usage');
+            
+            let html = `
+                <div class="row text-center mb-3">
+                    <div class="col-3">
+                        <h4 class="text-success mb-0">${data.total_requests}</h4>
+                        <small class="text-muted">총 요청</small>
+                    </div>
+                    <div class="col-3">
+                        <h4 class="text-info mb-0">${data.total_tokens.toLocaleString()}</h4>
+                        <small class="text-muted">총 토큰</small>
+                    </div>
+                    <div class="col-3">
+                        <h4 class="text-danger mb-0">$${data.total_cost_usd.toFixed(2)}</h4>
+                        <small class="text-muted">총 비용</small>
+                    </div>
+                    <div class="col-3">
+                        <h4 class="text-warning mb-0">$${data.avg_daily_cost.toFixed(2)}</h4>
+                        <small class="text-muted">일평균</small>
+                    </div>
+                </div>
+                <div class="text-center">
+                    <small class="text-muted">
+                        ${data.month} (${data.days_in_month}일 활동)
+                    </small>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        // 최근 API 호출 표시
+        function displayRecentCalls(calls) {
+            const container = document.getElementById('recent-calls');
+            
+            if (!calls || calls.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted">최근 API 호출 내역이 없습니다.</div>';
+                return;
+            }
+
+            let html = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>시간</th><th>서비스</th><th>사이트</th><th>용도</th><th>토큰</th><th>비용</th><th>상태</th></tr></thead><tbody>';
+            
+            calls.forEach(call => {
+                const date = new Date(call.timestamp);
+                const timeStr = date.toLocaleDateString('ko-KR') + ' ' + date.toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'});
+                const statusBadge = call.success ? '<span class="badge bg-success">성공</span>' : '<span class="badge bg-danger">실패</span>';
+                
+                html += `
+                    <tr>
+                        <td><small>${timeStr}</small></td>
+                        <td><span class="badge bg-info">${call.service}</span></td>
+                        <td>${call.site ? `<span class="badge bg-primary">${call.site.toUpperCase()}</span>` : '-'}</td>
+                        <td><small>${call.purpose || '-'}</small></td>
+                        <td><small>${(call.input_tokens + call.output_tokens).toLocaleString()}</small></td>
+                        <td><small>$${call.cost_usd.toFixed(4)}</small></td>
+                        <td>${statusBadge}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table></div>';
+            container.innerHTML = html;
+        }
+
+        // API 사용량 새로고침
+        function refreshApiUsage() {
+            document.getElementById('today-usage').innerHTML = '<div class="loading"><div class="spinner"></div><div>데이터를 불러오는 중...</div></div>';
+            document.getElementById('monthly-usage').innerHTML = '<div class="loading"><div class="spinner"></div><div>데이터를 불러오는 중...</div></div>';
+            document.getElementById('recent-calls').innerHTML = '<div class="loading"><div class="spinner"></div><div>데이터를 불러오는 중...</div></div>';
+            loadApiUsage();
         }
 
         // 토스트 알림

@@ -159,7 +159,8 @@ class BlogAutomationScheduler:
                 site_config=site_config,
                 topic=topic,
                 category=category,
-                existing_posts=existing_titles
+                existing_posts=existing_titles,
+                site_key=site_key
             )
             
             # 6. 이미지 생성

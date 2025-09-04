@@ -21,6 +21,7 @@ sys.path.append(str(Path(__file__).parent.parent))
 from src.utils.postgresql_database import PostgreSQLDatabase
 from src.utils.trending_topics import trending_manager
 from src.utils.trending_topic_manager import TrendingTopicManager
+from src.utils.api_tracker import api_tracker
 
 # 스케줄러 서비스 import - 안전한 import 처리
 scheduler_available = False
@@ -3905,6 +3906,76 @@ def get_site_trending_topics(site):
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/api_usage/today')
+def get_today_api_usage():
+    """오늘의 API 사용량 조회"""
+    try:
+        usage = api_tracker.get_today_usage()
+        return jsonify({
+            'success': True,
+            'data': usage
+        })
+    except Exception as e:
+        logger.error(f"Today API usage error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'data': {
+                'date': datetime.now().date().isoformat(),
+                'total_requests': 0,
+                'total_tokens': 0,
+                'total_cost_usd': 0,
+                'by_service': {},
+                'by_site': {}
+            }
+        })
+
+
+@app.route('/api/api_usage/monthly')
+def get_monthly_api_usage():
+    """이번 달 API 사용량 조회"""
+    try:
+        usage = api_tracker.get_monthly_usage()
+        return jsonify({
+            'success': True,
+            'data': usage
+        })
+    except Exception as e:
+        logger.error(f"Monthly API usage error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'data': {
+                'month': datetime.now().strftime("%Y-%m"),
+                'total_requests': 0,
+                'total_tokens': 0,
+                'total_cost_usd': 0,
+                'daily_trend': [],
+                'days_in_month': 0,
+                'avg_daily_cost': 0
+            }
+        })
+
+
+@app.route('/api/api_usage/recent')
+def get_recent_api_calls():
+    """최근 API 호출 내역"""
+    try:
+        limit = int(request.args.get('limit', 20))
+        calls = api_tracker.get_recent_calls(limit)
+        return jsonify({
+            'success': True,
+            'data': calls
+        })
+    except Exception as e:
+        logger.error(f"Recent API calls error: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'data': []
+        })
 
 
 if __name__ == '__main__':
