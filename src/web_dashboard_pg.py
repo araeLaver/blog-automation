@@ -2256,63 +2256,60 @@ def quick_publish():
                     
                     logger.info(f"🎯 {site} 사이트 듀얼 카테고리 발행 시작 ({site_idx}/{len(sites)})")
 
-                    # alert으로 받은 주제가 있으면 사용, 없으면 스케줄에서 가져오기
-                    if manual_topic:
-                        # alert에서 받은 주제 사용 (단일 주제)
-                        primary_topic = {
-                            'topic': manual_topic,
-                            'category': manual_category or '일반',
-                            'keywords': [manual_topic.split()[0]] if manual_topic else []
-                        }
-                        secondary_topic = None  # 수동은 하나의 주제만
-                        logger.info(f"✅ {site} alert 주제 사용: {manual_topic}")
+                    # 항상 스케줄에서 듀얼 카테고리 주제 가져오기 (수동발행도 8개 생성)
+                    try:
+                        primary_topic, secondary_topic = monthly_schedule_manager.get_today_dual_topics_for_manual(site)
+                        logger.info(f"✅ {site} 스케줄 주제 조회 성공")
                         
-                    else:
-                        # 스케줄에서 듀얼 카테고리 주제 가져오기
-                        try:
-                            primary_topic, secondary_topic = monthly_schedule_manager.get_today_dual_topics_for_manual(site)
-                            logger.info(f"✅ {site} 스케줄 주제 조회 성공")
-                            
-                        except Exception as e:
-                            error_msg = f"{site} 주제 조회 오류: {str(e)}"
-                            logger.error(f"❌ {error_msg}")
-                            
-                            publish_status_global['errors'].append({
-                                'timestamp': datetime.now().isoformat(),
-                                'site': site,
-                                'type': 'topic_loading',
-                                'message': error_msg,
-                                'details': str(e)
-                            })
-                            
-                            publish_status_global['results'].append({
-                                'site': site,
-                                'status': 'failed',
-                                'message': f'주제 조회 실패: {str(e)}',
-                                'category': 'system',
-                                'error_details': str(e)
-                            })
-                            continue
+                        # manual_topic이 있으면 primary로 덮어쓰기
+                        if manual_topic:
+                            primary_topic = {
+                                'topic': manual_topic,
+                                'category': manual_category or primary_topic.get('category', '일반'),
+                                'keywords': [manual_topic.split()[0]] if manual_topic else primary_topic.get('keywords', [])
+                            }
+                            logger.info(f"✅ {site} Primary 주제를 수동 주제로 변경: {manual_topic}")
+                        
+                    except Exception as e:
+                        error_msg = f"{site} 주제 조회 오류: {str(e)}"
+                        logger.error(f"❌ {error_msg}")
+                        
+                        publish_status_global['errors'].append({
+                            'timestamp': datetime.now().isoformat(),
+                            'site': site,
+                            'type': 'topic_loading',
+                            'message': error_msg,
+                            'details': str(e)
+                        })
+                        
+                        publish_status_global['results'].append({
+                            'site': site,
+                            'status': 'failed',
+                            'message': f'주제 조회 실패: {str(e)}',
+                            'category': 'system',
+                            'error_details': str(e)
+                        })
+                        continue
 
-                        if not primary_topic or not secondary_topic:
-                            error_msg = f"{site}의 듀얼 카테고리 주제를 찾을 수 없습니다"
-                            logger.error(f"❌ {error_msg}")
-                            
-                            publish_status_global['errors'].append({
-                                'timestamp': datetime.now().isoformat(),
-                                'site': site,
-                                'type': 'missing_topics',
-                                'message': error_msg,
-                                'details': f'Primary: {primary_topic}, Secondary: {secondary_topic}'
-                            })
-                            
-                            publish_status_global['results'].append({
-                                'site': site,
-                                'status': 'failed',
-                                'message': '주제를 찾을 수 없음 - DB 스케줄 확인 필요',
-                                'category': 'system'
-                            })
-                            continue
+                    if not primary_topic or not secondary_topic:
+                        error_msg = f"{site}의 듀얼 카테고리 주제를 찾을 수 없습니다"
+                        logger.error(f"❌ {error_msg}")
+                        
+                        publish_status_global['errors'].append({
+                            'timestamp': datetime.now().isoformat(),
+                            'site': site,
+                            'type': 'missing_topics',
+                            'message': error_msg,
+                            'details': f'Primary: {primary_topic}, Secondary: {secondary_topic}'
+                        })
+                        
+                        publish_status_global['results'].append({
+                            'site': site,
+                            'status': 'failed',
+                            'message': '주제를 찾을 수 없음 - DB 스케줄 확인 필요',
+                            'category': 'system'
+                        })
+                        continue
 
                     if secondary_topic:
                         logger.info(f"🎯 {site} 듀얼 주제 확인 - Primary: {primary_topic['topic']}, Secondary: {secondary_topic['topic']}")
@@ -2430,6 +2427,13 @@ def quick_publish():
                                 except Exception as meta_error:
                                     logger.warning(f"메타데이터 업데이트 실패: {meta_error}")
 
+                                # 진행상황 업데이트
+                                completed_posts += 1
+                                publish_status_global.update({
+                                    'completed_posts': completed_posts,
+                                    'progress': int((completed_posts / total_posts) * 100)
+                                })
+
                                 # Tistory는 수동 발행만 지원 (자동 발행 제거)
                                 logger.info(f"Tistory Primary 콘텐츠 생성 완료 (수동 발행): {primary_topic['topic']}")
                                 publish_status_global['results'].append({
@@ -2496,6 +2500,13 @@ def quick_publish():
                                     })
                                 except Exception as meta_error:
                                     logger.warning(f"메타데이터 업데이트 실패: {meta_error}")
+
+                                # 진행상황 업데이트
+                                completed_posts += 1
+                                publish_status_global.update({
+                                    'completed_posts': completed_posts,
+                                    'progress': int((completed_posts / total_posts) * 100)
+                                })
 
                                 # WordPress 업로드 완전 스킵 - 콘텐츠 생성만 하고 목록에 표시
                                 logger.info(f"WordPress Primary 콘텐츠 생성만 완료 (업로드 스킵): {primary_topic['topic']}")

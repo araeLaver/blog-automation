@@ -92,11 +92,26 @@
             border-radius: 10px;
             padding: 1rem;
             transition: all 0.2s ease;
+            position: relative;
         }
 
         .content-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .content-card.selected {
+            background-color: #f0f8ff;
+            border-color: #4facfe;
+        }
+        
+        .content-checkbox {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
         }
 
         .site-badge {
@@ -214,7 +229,20 @@
 
                 <!-- Content List -->
                 <div class="content-section">
-                    <h5><i class="bi bi-file-earmark-text"></i> 생성된 콘텐츠</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> 생성된 콘텐츠</h5>
+                        <div id="content-actions" class="d-none">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="selectAllContent()">
+                                <i class="bi bi-check-square"></i> 전체 선택
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteSelectedContent()">
+                                <i class="bi bi-trash"></i> 선택 삭제 (<span id="selected-count">0</span>)
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteAllContent()">
+                                <i class="bi bi-trash-fill"></i> 전체 삭제
+                            </button>
+                        </div>
+                    </div>
                     <div id="content-list">
                         <div class="loading">
                             <div class="spinner"></div>
@@ -460,20 +488,25 @@
             
             if (!contentList.length) {
                 container.innerHTML = '<div class="text-center text-muted">생성된 콘텐츠가 없습니다.</div>';
+                document.getElementById('content-actions').classList.add('d-none');
                 return;
             }
+
+            // 선택 버튼 표시
+            document.getElementById('content-actions').classList.remove('d-none');
 
             let html = '<div class="content-grid">';
             contentList.forEach(content => {
                 const statusClass = content.status === 'published' ? 'success' : 'secondary';
                 
                 html += `
-                    <div class="content-card">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="content-card" data-content-id="${content.id}">
+                        <input type="checkbox" class="content-checkbox" onchange="updateSelectedCount()">
+                        <div class="d-flex justify-content-between align-items-start mb-2" style="padding-left: 30px;">
                             <span class="site-badge site-${content.site}">${content.site.toUpperCase()}</span>
                             <span class="badge bg-${statusClass}">${content.status}</span>
                         </div>
-                        <h6 class="mb-2" title="${content.title}">${truncateText(content.title, 60)}</h6>
+                        <h6 class="mb-2" style="padding-left: 30px;" title="${content.title}">${truncateText(content.title, 60)}</h6>
                         <p class="text-muted small mb-3">
                             📅 ${formatDate(content.created_at)} • 
                             📄 ${content.word_count || 0}자 • 
@@ -860,25 +893,53 @@
                     const response = await fetch('/api/publish_status');
                     const status = await response.json();
                     
-                    // 진행률 업데이트
+                    // 진행률 업데이트 (8개 콘텐츠 기준)
                     const progress = status.progress || 0;
                     progressBar.style.width = progress + '%';
                     progressBar.textContent = progress + '%';
                     
-                    // 현재 작업 사이트 표시
+                    // 현재 작업 상태 상세 표시
                     if (status.in_progress) {
+                        let statusMessage = '';
+                        
                         if (status.current_site) {
-                            currentSiteDiv.innerHTML = `<i class="bi bi-gear-fill"></i> ${status.current_site} 발행 중...`;
+                            statusMessage = `
+                                <div class="mb-2">
+                                    <strong><i class="bi bi-gear-fill text-primary"></i> ${status.current_site.toUpperCase()}</strong>
+                                    ${status.current_task ? `<br><small class="text-muted">${status.current_task}</small>` : ''}
+                                </div>
+                            `;
+                            
+                            // 진행 단계별 상세 정보
+                            if (status.current_step) {
+                                statusMessage += `
+                                    <div class="small">
+                                        <span class="badge bg-info">${status.current_step}</span>
+                                        ${status.step_details ? `<br><small>${status.step_details}</small>` : ''}
+                                    </div>
+                                `;
+                            }
+                            
+                            // 진행 통계
+                            if (status.completed_posts !== undefined) {
+                                statusMessage += `
+                                    <div class="mt-2 text-center">
+                                        <strong>${status.completed_posts || 0} / ${status.total_posts || 8}</strong> 콘텐츠 완료
+                                    </div>
+                                `;
+                            }
                         } else {
-                            currentSiteDiv.innerHTML = `<i class="bi bi-hourglass-split"></i> ${status.message || '발행 준비 중...'}`;
+                            statusMessage = `<i class="bi bi-hourglass-split"></i> ${status.message || '발행 준비 중...'}`;
                         }
+                        
+                        currentSiteDiv.innerHTML = statusMessage;
                     } else {
                         // 발행 완료
                         clearInterval(progressInterval);
                         showPublishComplete(status);
                     }
                     
-                    // 각 사이트별 결과 표시
+                    // 각 사이트별 결과 실시간 표시
                     if (status.results && status.results.length > 0) {
                         displayPublishResults(status.results);
                     }
@@ -886,7 +947,7 @@
                 } catch (error) {
                     console.error('Progress monitoring error:', error);
                 }
-            }, 2000); // 2초마다 확인
+            }, 1500); // 1.5초마다 확인
         }
 
         // 발행 결과 표시
@@ -1296,6 +1357,108 @@
             document.getElementById('monthly-usage').innerHTML = '<div class="loading"><div class="spinner"></div><div>데이터를 불러오는 중...</div></div>';
             document.getElementById('recent-calls').innerHTML = '<div class="loading"><div class="spinner"></div><div>데이터를 불러오는 중...</div></div>';
             loadApiUsage();
+        }
+
+        // 선택된 콘텐츠 개수 업데이트
+        function updateSelectedCount() {
+            const checkboxes = document.querySelectorAll('.content-checkbox:checked');
+            document.getElementById('selected-count').textContent = checkboxes.length;
+            
+            // 선택된 카드 하이라이트
+            document.querySelectorAll('.content-card').forEach(card => {
+                const checkbox = card.querySelector('.content-checkbox');
+                if (checkbox && checkbox.checked) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+        }
+
+        // 전체 선택
+        function selectAllContent() {
+            const checkboxes = document.querySelectorAll('.content-checkbox');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = !allChecked;
+            });
+            
+            updateSelectedCount();
+        }
+
+        // 선택된 콘텐츠 삭제
+        async function deleteSelectedContent() {
+            const selectedCards = document.querySelectorAll('.content-card.selected');
+            const contentIds = Array.from(selectedCards).map(card => card.dataset.contentId);
+            
+            if (contentIds.length === 0) {
+                showToast('삭제할 콘텐츠를 선택해주세요.', 'warning');
+                return;
+            }
+            
+            if (!confirm(`선택한 ${contentIds.length}개의 콘텐츠를 삭제하시겠습니까?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/bulk_delete_files', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ file_ids: contentIds })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(`${result.deleted_count}개 콘텐츠가 삭제되었습니다.`, 'success');
+                    loadContent(); // 새로고침
+                } else {
+                    showToast('삭제 중 오류가 발생했습니다.', 'danger');
+                }
+            } catch (error) {
+                console.error('Delete error:', error);
+                showToast('삭제 요청 실패', 'danger');
+            }
+        }
+
+        // 전체 삭제
+        async function deleteAllContent() {
+            const allCards = document.querySelectorAll('.content-card');
+            const contentIds = Array.from(allCards).map(card => card.dataset.contentId);
+            
+            if (contentIds.length === 0) {
+                showToast('삭제할 콘텐츠가 없습니다.', 'warning');
+                return;
+            }
+            
+            if (!confirm(`정말로 모든 콘텐츠(${contentIds.length}개)를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/bulk_delete_files', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ file_ids: contentIds })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(`모든 콘텐츠(${result.deleted_count}개)가 삭제되었습니다.`, 'success');
+                    loadContent(); // 새로고침
+                } else {
+                    showToast('삭제 중 오류가 발생했습니다.', 'danger');
+                }
+            } catch (error) {
+                console.error('Delete all error:', error);
+                showToast('전체 삭제 요청 실패', 'danger');
+            }
         }
 
         // 토스트 알림
