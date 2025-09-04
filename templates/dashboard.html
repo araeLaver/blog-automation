@@ -513,13 +513,13 @@
                             ⏱️ ${content.estimated_reading_time || 0}분
                         </p>
                         <div class="action-buttons">
-                            <button class="action-btn btn btn-primary btn-sm" onclick="previewContent('${content.site}', '${content.file_path}')">
+                            <button class="action-btn btn btn-primary btn-sm" onclick="previewContent(${content.id})">
                                 <i class="bi bi-eye"></i> 미리보기
                             </button>
-                            <button class="action-btn btn btn-success btn-sm" onclick="downloadContent('${content.site}', '${content.file_path}')">
+                            <button class="action-btn btn btn-success btn-sm" onclick="downloadContent(${content.id})">
                                 <i class="bi bi-download"></i> 다운로드
                             </button>
-                            <button class="action-btn btn btn-info btn-sm" onclick="quickCopyHtml('${content.site}', '${content.file_path}')">
+                            <button class="action-btn btn btn-info btn-sm" onclick="quickCopyHtml(${content.id})">
                                 <i class="bi bi-clipboard"></i> HTML
                             </button>
                         </div>
@@ -542,28 +542,20 @@
         }
 
         // 콘텐츠 미리보기
-        async function previewContent(site, filePath) {
+        function previewContent(fileId) {
             try {
-                const response = await fetch(`/api/content/${site}/preview?file=${encodeURIComponent(filePath)}`);
-                const data = await response.json();
-                
-                currentPreviewData = data;
-                
-                document.getElementById('preview-title').textContent = data.title || '제목 없음';
-                document.getElementById('preview-keywords').textContent = data.keywords?.join(', ') || '키워드 없음';
-                document.getElementById('preview-content').innerHTML = data.content || '내용 없음';
-                
-                new bootstrap.Modal(document.getElementById('previewModal')).show();
+                // 새 탭에서 미리보기 열기
+                window.open(`/api/preview_content/${fileId}`, '_blank');
             } catch (error) {
-                showToast('미리보기 로드 실패', 'danger');
+                showToast('미리보기 열기 실패', 'danger');
             }
         }
 
         // 다운로드
-        function downloadContent(site, filePath) {
+        function downloadContent(fileId) {
             const link = document.createElement('a');
-            link.href = `/api/content/${site}/download?file=${encodeURIComponent(filePath)}`;
-            link.download = filePath.split('/').pop();
+            link.href = `/api/download_content/${fileId}`;
+            link.target = '_blank';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -571,11 +563,11 @@
         }
 
         // HTML 복사
-        async function quickCopyHtml(site, filePath) {
+        async function quickCopyHtml(fileId) {
             try {
-                const response = await fetch(`/api/content/${site}/preview?file=${encodeURIComponent(filePath)}`);
-                const data = await response.json();
-                await navigator.clipboard.writeText(data.content || '');
+                const response = await fetch(`/api/preview_content/${fileId}`);
+                const htmlContent = await response.text();
+                await navigator.clipboard.writeText(htmlContent);
                 showToast('HTML 복사 완료', 'success');
             } catch (error) {
                 showToast('복사 실패', 'danger');
