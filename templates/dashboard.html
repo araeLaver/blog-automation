@@ -948,19 +948,20 @@
             let html = '';
             
             results.forEach(result => {
-                const icon = result.success ? 
+                const isSuccess = result.status === 'success' || result.success === true;
+                const icon = isSuccess ? 
                     '<i class="bi bi-check-circle-fill text-success"></i>' : 
                     '<i class="bi bi-x-circle-fill text-danger"></i>';
-                const badgeClass = result.success ? 'success' : 'danger';
+                const badgeClass = isSuccess ? 'success' : 'danger';
                 
                 html += `
                     <div class="d-flex align-items-center mb-2">
                         ${icon}
                         <div class="ms-2 flex-grow-1">
                             <strong>${result.site.toUpperCase()}</strong>
-                            <small class="text-muted d-block">${result.topic || ''}</small>
+                            <small class="text-muted d-block">${result.topic || result.message || ''}</small>
                         </div>
-                        <span class="badge bg-${badgeClass}">${result.success ? '성공' : '실패'}</span>
+                        <span class="badge bg-${badgeClass}">${isSuccess ? '성공' : '실패'}</span>
                     </div>
                 `;
             });
@@ -983,8 +984,8 @@
             
             if (finalStatus.results && Array.isArray(finalStatus.results)) {
                 totalCount = finalStatus.results.length;
-                successCount = finalStatus.results.filter(r => r.success).length;
-                completedTopics = finalStatus.results.filter(r => r.success).map(r => ({
+                successCount = finalStatus.results.filter(r => r.status === 'success' || r.success === true).length;
+                completedTopics = finalStatus.results.filter(r => r.status === 'success' || r.success === true).map(r => ({
                     site: r.site,
                     topic: r.topic || r.message || '주제 없음'
                 }));

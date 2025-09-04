@@ -2176,10 +2176,12 @@ def quick_publish():
             from src.generators.tistory_content_exporter import TistoryContentExporter
             from src.generators.wordpress_content_exporter import WordPressContentExporter
 
-            from datetime import datetime
+            from datetime import datetime, timezone, timedelta
             import time
             
-            start_time = datetime.now()
+            # KST 타임존 설정
+            KST = timezone(timedelta(hours=9))
+            start_time = datetime.now(KST)
             logger.info("듀얼 카테고리 수동 발행 시작")
             
             # 상세 상태 초기화
@@ -2760,14 +2762,18 @@ def publish_status():
     """발행 상태 조회 API - 실시간 백그라운드 처리 상태 (상세 로깅 포함)"""
     global publish_status_global
     try:
-        from datetime import datetime
+        from datetime import datetime, timezone, timedelta
         
-        # 진행률 계산 (포스트 기준)
+        # KST 타임존 설정
+        KST = timezone(timedelta(hours=9))
+        current_time = datetime.now(KST)
+        
+        # 진행률 계산 (포스트 기준) - 최대 100%로 제한
         post_progress = 0
         if publish_status_global.get('total_posts', 0) > 0:
             completed = publish_status_global.get('completed_posts', 0)
             total = publish_status_global.get('total_posts', 1)
-            post_progress = int((completed / total) * 100)
+            post_progress = min(100, int((completed / total) * 100))
         
         # 사이트 진행률 계산
         site_progress = 0
@@ -2782,15 +2788,22 @@ def publish_status():
         else:
             status = 'idle'
         
-        # 실행 시간 계산
+        # 실행 시간 계산 (KST 기준)
         elapsed_time = None
         if publish_status_global.get('start_time'):
             try:
-                start = datetime.fromisoformat(publish_status_global['start_time'])
-                elapsed = datetime.now() - start
-                elapsed_time = f"{elapsed.seconds // 60}분 {elapsed.seconds % 60}초"
-            except:
-                pass
+                # ISO 형식의 시작 시간을 KST로 변환
+                start = datetime.fromisoformat(publish_status_global['start_time'].replace('Z', '+00:00'))
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=KST)
+                elif start.tzinfo != KST:
+                    start = start.astimezone(KST)
+                
+                elapsed = current_time - start
+                total_seconds = int(elapsed.total_seconds())
+                elapsed_time = f"{total_seconds // 60}분 {total_seconds % 60}초"
+            except Exception as e:
+                elapsed_time = "계산 실패"
         
         # 응답 데이터 구성
         response = {
