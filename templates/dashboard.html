@@ -23,6 +23,41 @@
             margin-bottom: 3rem;
         }
 
+        .nav-menu {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.7rem 1.2rem;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            font-weight: 600;
+        }
+
         .control-panel {
             max-width: 800px;
             margin: 0 auto;
@@ -192,6 +227,14 @@
             <div class="header">
                 <h1><i class="bi bi-robot"></i> 블로그 자동화 시스템</h1>
                 <p class="mb-0">간편하고 강력한 콘텐츠 관리</p>
+                
+                <!-- 네비게이션 메뉴 -->
+                <div class="nav-menu mt-3">
+                    <a href="/" class="nav-link active"><i class="bi bi-house"></i> 대시보드</a>
+                    <a href="/keywords" class="nav-link"><i class="bi bi-search"></i> 키워드 연구</a>
+                    <a href="/weekly-planner" class="nav-link"><i class="bi bi-calendar-week"></i> 주간 계획</a>
+                    <a href="/trending" class="nav-link"><i class="bi bi-graph-up"></i> 트렌드</a>
+                </div>
             </div>
 
             <!-- Control Panel -->
@@ -200,7 +243,7 @@
                     <div class="control-buttons">
                         <button class="control-btn btn-schedule" onclick="showSchedule()">
                             <i class="bi bi-calendar-week"></i>
-                            <span>계획표</span>
+                            <span>주간계획표</span>
                         </button>
                         <button class="control-btn btn-system" onclick="showSystemStatus()">
                             <i class="bi bi-gear"></i>
@@ -259,7 +302,7 @@
         <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-calendar-week"></i> 이번 달 전체 계획표</h5>
+                    <h5 class="modal-title"><i class="bi bi-calendar-week"></i> 이번 주 발행 계획표</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="schedule-content">
@@ -597,7 +640,7 @@
             new bootstrap.Modal(document.getElementById('scheduleModal')).show();
             
             try {
-                const response = await fetch('/api/schedule/monthly');
+                const response = await fetch('/api/weekly-plan/current');
                 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -611,14 +654,55 @@
                 
                 let html = `
                     <div class="text-center mb-4">
-                        <h5 class="text-primary">${data.month_name || '2025년 9월'} 전체 발행 계획</h5>
+                        <h5 class="text-primary">이번 주 발행 계획 (${data.week_start || ''} ~ ${data.week_end || ''})</h5>
                         <p class="text-muted">🔥 실시간 트렌드가 반영된 스케줄</p>
                     </div>
                     <div class="row">
                 `;
                 
-                // 두 가지 API 응답 형식 모두 지원 (로컬/운영)
-                if (data.schedule) {
+                // 주간 계획 데이터 형식 처리
+                if (data.plan && data.plan.days) {
+                    // 주간 계획 데이터: {plan: {days: [...]}}
+                    const weeklyDays = data.plan.days;
+                    
+                    weeklyDays.forEach(dayInfo => {
+                        try {
+                            const dayNum = new Date(dayInfo.date).getDate();
+                            const hasSchedule = dayInfo.title && dayInfo.keyword;
+                            
+                            let dayContent = '';
+                            if (hasSchedule) {
+                                dayContent = `
+                                    <div class="mb-2">
+                                        <strong>키워드:</strong> ${dayInfo.keyword}
+                                    </div>
+                                    <div class="mb-2">
+                                        <strong>제목:</strong> ${dayInfo.title}
+                                    </div>
+                                    <div class="small text-success">
+                                        예상 수익: ${dayInfo.estimated_revenue}
+                                    </div>
+                                `;
+                            }
+                            
+                            html += `
+                                <div class="col-md-4 col-lg-3 mb-3">
+                                    <div class="card ${hasSchedule ? 'border-primary' : 'border-light'}">
+                                        <div class="card-header bg-light d-flex justify-content-between">
+                                            <strong>${dayNum}일 (${dayInfo.day})</strong>
+                                            ${hasSchedule ? '<span class="badge bg-success">주간계획</span>' : '<span class="badge bg-light text-muted">휴일</span>'}
+                                        </div>
+                                        <div class="card-body p-2 small">
+                                            ${dayContent || '<div class="text-muted">스케줄 없음</div>'}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        } catch (dayError) {
+                            console.error('Day processing error:', dayError, dayInfo);
+                        }
+                    });
+                } else if (data.schedule) {
                     let scheduleData;
                     
                     // 운영 환경: {1: {site: {primary: ..., secondary: ...}}, 2: {...}}
@@ -753,80 +837,83 @@
             modal.show();
             
             try {
-                // 계획표에서 오늘의 주제 가져오기
-                const response = await fetch('/api/schedule/monthly');
+                // 새로운 미리보기 API 사용
+                const response = await fetch('/api/manual-publish/preview');
                 const data = await response.json();
                 
                 const today = new Date();
                 const todayStr = today.getDate().toString();
                 
+                if (!data.success || !data.preview) {
+                    throw new Error('주제를 불러올 수 없습니다');
+                }
+                
+                const preview = data.preview;
                 let html = `
                     <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> 오늘(${today.getMonth() + 1}월 ${today.getDate()}일) 발행될 주제들입니다. 확인 후 발행 시작 버튼을 눌러주세요.
+                        <i class="bi bi-info-circle"></i> ${preview.message || `오늘 수동발행 시 생성될 ${preview.total_posts}개 포스트 주제`}
                     </div>
                     <div class="row">
                 `;
                 
-                const sites = ['unpre', 'untab', 'skewese', 'tistory'];
                 const siteNames = {
-                    'unpre': 'UNPRE (개발/IT)',
-                    'untab': 'UNTAB (부동산/투자)',
-                    'skewese': 'SKEWESE (역사/문화)',
-                    'tistory': 'TISTORY (시사/트렌드)'
+                    'UNPRE': 'UNPRE',
+                    'UNTAB': 'UNTAB',
+                    'SKEWESE': 'SKEWESE',
+                    'TISTORY': 'TISTORY'
                 };
                 
-                // 오늘 데이터 찾기
-                let todayData = null;
-                if (data.schedule && data.schedule[todayStr]) {
-                    todayData = data.schedule[todayStr];
-                }
-                
-                for (const site of sites) {
-                    html += `
-                        <div class="col-md-6 mb-3">
-                            <div class="card">
-                                <div class="card-header bg-primary text-white">
-                                    <strong>${siteNames[site]}</strong>
-                                </div>
-                                <div class="card-body">
-                    `;
-                    
-                    if (todayData && todayData[site]) {
-                        const siteData = todayData[site];
-                        let topicCount = 0;
-                        
-                        // primary/secondary 구조 처리
-                        if (siteData.primary) {
-                            topicCount++;
+                // 새로운 미리보기 API 형식으로 표시
+                if (preview.sites && preview.sites.length > 0) {
+                    for (const siteData of preview.sites) {
+                        if (siteData.error) {
                             html += `
-                                <div class="mb-2">
-                                    <span class="badge bg-secondary">${siteData.primary.category || '일반'}</span>
-                                    <div class="mt-1">${topicCount}. ${siteData.primary.topic}</div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border-danger">
+                                        <div class="card-header bg-danger text-white">
+                                            <strong>${siteData.site}</strong>
+                                        </div>
+                                        <div class="card-body text-danger">
+                                            <i class="bi bi-exclamation-triangle"></i> 오류: ${siteData.error}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            html += `
+                                <div class="col-md-6 mb-3">
+                                    <div class="card">
+                                        <div class="card-header bg-primary text-white">
+                                            <strong><i class="bi bi-globe"></i> ${siteData.site}</strong>
+                                        </div>
+                                        <div class="card-body">
+                            `;
+                            
+                            // 각 주제 표시 (Primary, Secondary)
+                            for (const topic of siteData.topics) {
+                                const badgeColor = topic.type === 'Primary' ? 'bg-success' : 'bg-info';
+                                html += `
+                                    <div class="mb-3 p-2 border-start border-3 border-primary">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="badge ${badgeColor}">${topic.type}</span>
+                                            <small class="text-muted">${topic.category}</small>
+                                        </div>
+                                        <div class="fw-bold">
+                                            ${topic.topic}
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                            
+                            html += `
+                                        </div>
+                                    </div>
                                 </div>
                             `;
                         }
-                        if (siteData.secondary) {
-                            topicCount++;
-                            html += `
-                                <div class="mb-2">
-                                    <span class="badge bg-secondary">${siteData.secondary.category || '일반'}</span>
-                                    <div class="mt-1">${topicCount}. ${siteData.secondary.topic}</div>
-                                </div>
-                            `;
-                        }
-                        
-                        if (topicCount === 0) {
-                            html += '<p class="text-muted">오늘의 주제가 설정되지 않았습니다.</p>';
-                        }
-                    } else {
-                        html += '<p class="text-muted">오늘의 주제가 설정되지 않았습니다.</p>';
                     }
-                    
-                    html += `
-                                </div>
-                            </div>
-                        </div>
-                    `;
+                } else {
+                    html += '<div class="col-12"><div class="alert alert-warning">주제 정보를 불러올 수 없습니다.</div></div>';
                 }
                 
                 html += '</div>';
