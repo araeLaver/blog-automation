@@ -33,11 +33,12 @@ class BlogAutomationScheduler:
         self.database = ContentDatabase()
         self.schedule_manager = ScheduleManager()
         
-        # 발행자들 (Tistory API 종료로 WordPress만 사용)
+        # 발행자들 (WordPress + Tistory)
         self.publishers = {
             "unpre": WordPressPublisher("unpre"),
             "untab": WordPressPublisher("untab"), 
-            "skewese": WordPressPublisher("skewese")
+            "skewese": WordPressPublisher("skewese"),
+            "tistory": TistoryPublisher()
         }
         
         # APScheduler 설정
@@ -154,26 +155,31 @@ class BlogAutomationScheduler:
             recent_posts = self.database.get_recent_posts(site_key, 10)
             existing_titles = [post["title"] for post in recent_posts]
             
-            # 5. 콘텐츠 생성
+            # 5. 콘텐츠 생성 (자동발행은 긴 콘텐츠로 고품질 생성)
             content = self.content_generator.generate_content(
                 site_config=site_config,
                 topic=topic,
                 category=category,
                 existing_posts=existing_titles,
+                content_length='long',  # 긴 콘텐츠로 품질 향상
                 site_key=site_key
             )
             
-            # 6. 이미지 생성
-            images = self.image_generator.generate_images_for_post(
-                site=site_key,
-                title=content["title"],
-                content=content,
-                count=3
-            )
+            # 6. 이미지 생성 스킵 (콘텐츠 퀄리티 우선)
+            blog_logger.info(f"[{site_key.upper()}] 이미지 생성 스킵 - 콘텐츠 퀄리티 우선")
+            images = []
             
-            # 7. 발행
-            publisher = self.publishers[site_key]
-            success, result = publisher.publish_post(content, images)
+            # 7. 로컬 파일 저장 (생성 콘텐츠 목록에 추가)
+            self._save_content_locally(site_key, content)
+            
+            # 8. 사이트 발행 (tistory는 로컬 저장만, WordPress는 실제 발행)
+            if site_key == 'tistory':
+                blog_logger.info(f"[{site_key.upper()}] tistory는 로컬 저장만 완료 (수동 발행 필요)")
+                success = True
+                result = "tistory_local_saved"
+            else:
+                publisher = self.publishers[site_key]
+                success, result = publisher.publish_post(content, images)
             
             if success:
                 # 8. 데이터베이스에 기록
@@ -338,6 +344,71 @@ class BlogAutomationScheduler:
         text_parts.append(content.get("conclusion", ""))
         
         return "\n\n".join(part for part in text_parts if part)
+    
+    def _save_content_locally(self, site_key: str, content: Dict):
+        """생성된 콘텐츠를 로컬 파일로 저장 (data/wordpress_posts/{site}/ 폴더에)"""
+        try:
+            from datetime import datetime
+            import json
+            import os
+            
+            # 타임스탬프 생성
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # 파일명 생성 (제목을 파일명으로 사용)
+            title = content.get("title", "untitled")
+            safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            if len(safe_title) > 100:
+                safe_title = safe_title[:100]
+            
+            filename_base = f"{timestamp}_{safe_title}"
+            
+            # 저장 경로 설정
+            save_dir = f"data/wordpress_posts/{site_key}"
+            os.makedirs(save_dir, exist_ok=True)
+            
+            # HTML 파일 생성
+            html_content = self._generate_html_content(content)
+            html_file = os.path.join(save_dir, f"{filename_base}.html")
+            with open(html_file, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+            
+            # JSON 메타데이터 파일 생성
+            metadata = {
+                "title": content.get("title", ""),
+                "category": content.get("category", ""),
+                "keywords": content.get("keywords", []),
+                "timestamp": timestamp,
+                "site": site_key,
+                "auto_published": True,
+                "content_quality_priority": True,
+                "images_skipped": True
+            }
+            json_file = os.path.join(save_dir, f"{filename_base}.json")
+            with open(json_file, 'w', encoding='utf-8') as f:
+                json.dump(metadata, f, ensure_ascii=False, indent=2)
+            
+            blog_logger.info(f"[{site_key.upper()}] 로컬 파일 저장 완료: {filename_base}")
+            
+        except Exception as e:
+            blog_logger.error(f"로컬 파일 저장 실패 ({site_key}): {e}")
+    
+    def _generate_html_content(self, content: Dict) -> str:
+        """콘텐츠 딕셔너리를 HTML로 변환"""
+        html_parts = []
+        html_parts.append(f"<h1>{content.get('title', '')}</h1>\n")
+        
+        if content.get('introduction'):
+            html_parts.append(f"<div class='introduction'>\n{content['introduction']}\n</div>\n")
+        
+        for i, section in enumerate(content.get('sections', []), 1):
+            html_parts.append(f"<h2>{section.get('title', f'섹션 {i}')}</h2>\n")
+            html_parts.append(f"<div class='section-content'>\n{section.get('content', '')}\n</div>\n")
+        
+        if content.get('conclusion'):
+            html_parts.append(f"<div class='conclusion'>\n{content['conclusion']}\n</div>\n")
+        
+        return "".join(html_parts)
     
     @timing
     def generate_daily_report(self):

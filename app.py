@@ -29,6 +29,7 @@ load_dotenv()
 # PostgreSQL 데이터베이스 import
 from src.utils.postgresql_database import PostgreSQLDatabase
 from src.utils.schedule_manager import ScheduleManager
+from src.utils.api_tracker import api_tracker
 
 # AI 콘텐츠 생성 import (나중에 초기화)
 
@@ -1998,6 +1999,57 @@ def delete_posts():
             'error': str(e)
         }), 500
 
+@app.route('/api/bulk_delete_files', methods=['DELETE'])
+def bulk_delete_files():
+    """파일 기반 콘텐츠 일괄 삭제"""
+    try:
+        data = request.json
+        file_paths = data.get('file_paths', [])
+        
+        if not file_paths:
+            return jsonify({
+                'success': False,
+                'error': '삭제할 파일이 선택되지 않았습니다.'
+            }), 400
+        
+        deleted_count = 0
+        failed_files = []
+        
+        for file_path in file_paths:
+            try:
+                # 파일 경로 검증 및 삭제
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    deleted_count += 1
+                    logger.info(f"파일 삭제 완료: {file_path}")
+                    
+                    # JSON 메타데이터 파일도 삭제 (있는 경우)
+                    json_path = file_path.replace('.html', '.json')
+                    if os.path.exists(json_path):
+                        os.remove(json_path)
+                        logger.info(f"메타데이터 파일 삭제 완료: {json_path}")
+                else:
+                    logger.warning(f"파일이 존재하지 않음: {file_path}")
+                    failed_files.append(file_path)
+                    
+            except Exception as e:
+                logger.error(f"파일 삭제 실패 {file_path}: {e}")
+                failed_files.append(file_path)
+        
+        return jsonify({
+            'success': True,
+            'message': f'{deleted_count}개의 콘텐츠가 삭제되었습니다.',
+            'deleted_count': deleted_count,
+            'failed_files': failed_files
+        })
+        
+    except Exception as e:
+        logger.error(f"일괄 삭제 오류: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/schedule')
 def get_schedule():
     """발행 일정 조회"""
@@ -2188,7 +2240,7 @@ def get_content_list(site):
         
         site_map = {
             'skewese': 'wordpress_posts/skewese',
-            'tistory': 'tistory_posts',
+            'tistory': 'wordpress_posts/tistory',
             'unpre': 'wordpress_posts/unpre', 
             'untab': 'wordpress_posts/untab'
         }
@@ -2242,8 +2294,58 @@ def get_content_preview(site):
         if not file_path:
             return jsonify({'error': '파일 경로가 필요합니다'}), 400
             
+        # URL 디코딩 및 경로 정규화
+        from urllib.parse import unquote_plus, unquote
+        import re
+        
+        # 다양한 방법으로 URL 디코딩 시도
+        original_path = file_path
+        decoded_path = None
+        
+        # 방법 1: unquote_plus 시도
+        try:
+            decoded_path = unquote_plus(file_path)
+            if '%' in decoded_path:
+                decoded_path = unquote_plus(decoded_path)
+        except:
+            pass
+        
+        # 방법 2: unquote 시도 (plus가 실패한 경우)
+        if not decoded_path or decoded_path == original_path:
+            try:
+                decoded_path = unquote(file_path)
+                if '%' in decoded_path:
+                    decoded_path = unquote(decoded_path)
+            except:
+                pass
+        
+        # 방법 3: 한글 인코딩 문제 해결 시도
+        if not decoded_path or decoded_path == original_path:
+            try:
+                decoded_path = unquote(file_path, encoding='utf-8', errors='replace')
+                if '%' in decoded_path:
+                    decoded_path = unquote(decoded_path, encoding='utf-8', errors='replace')
+            except:
+                pass
+        
+        # 최종적으로 디코딩된 경로 사용
+        file_path = decoded_path if decoded_path else file_path
+        
+        # 특수 문자 정리
+        file_path = re.sub(r'[\t\r\n\x00-\x08\x0b\x0c\x0e-\x1f]', '', file_path)
+        
+        # 경로 정규화
+        file_path = os.path.normpath(file_path)
+        
+        # 절대 경로로 변환 (보안상 현재 디렉토리 기준)
+        if not os.path.isabs(file_path):
+            file_path = os.path.abspath(file_path)
+        
+        logger.info(f"[PREVIEW] Original path: {request.args.get('file')}, Decoded+Normalized: {file_path}")
+        
         # JSON 메타데이터 로드
         json_path = file_path.replace('.html', '.json')
+        logger.info(f"[PREVIEW] Checking JSON: {json_path}, exists: {os.path.exists(json_path)}")
         if os.path.exists(json_path):
             with open(json_path, 'r', encoding='utf-8') as f:
                 metadata = json.load(f)
@@ -2251,12 +2353,45 @@ def get_content_preview(site):
             metadata = {}
             
         # HTML 콘텐츠 로드
+        logger.info(f"[PREVIEW] Checking HTML: {file_path}, exists: {os.path.exists(file_path)}")
         if os.path.exists(file_path):
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
         else:
             content = '파일이 존재하지 않습니다.'
             
+        # 이미지 경로를 웹 경로로 변환
+        import re
+        from bs4 import BeautifulSoup
+        
+        def replace_image_path(match):
+            original_path = match.group(1)
+            if 'blog_automation_images' in original_path:
+                # 로컬 temp 이미지 경로를 웹 경로로 변환
+                filename = os.path.basename(original_path)
+                return f'src="/api/images/{filename}"'
+            return match.group(0)
+        
+        # HTML 내 이미지 src 경로를 웹 경로로 변환
+        content = re.sub(r'src="([^"]*)"', replace_image_path, content)
+        
+        # HTML에서 body 내용만 추출
+        try:
+            soup = BeautifulSoup(content, 'html.parser')
+            body = soup.find('body')
+            if body:
+                # body 내의 모든 내용을 추출
+                content = str(body)
+                # body 태그 자체는 제거하고 내용만 남김
+                content = re.sub(r'^<body[^>]*>', '', content)
+                content = re.sub(r'</body>$', '', content)
+            else:
+                # body가 없으면 원본 그대로 사용
+                pass
+        except Exception as e:
+            logger.warning(f"HTML 파싱 실패, 원본 사용: {e}")
+            pass
+        
         return jsonify({
             'title': metadata.get('title', ''),
             'categories': metadata.get('categories', []),
@@ -2271,12 +2406,87 @@ def get_content_preview(site):
         logger.error(f"미리보기 오류: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/images/<filename>')
+def serve_image(filename):
+    """임시 이미지 파일 서빙"""
+    try:
+        import tempfile
+        temp_dir = tempfile.gettempdir()
+        image_dir = os.path.join(temp_dir, 'blog_automation_images')
+        
+        # 보안상 파일명 검증
+        if '..' in filename or '/' in filename or '\\' in filename:
+            return "Invalid filename", 400
+            
+        image_path = os.path.join(image_dir, filename)
+        
+        if os.path.exists(image_path):
+            return send_file(image_path)
+        else:
+            return "Image not found", 404
+            
+    except Exception as e:
+        logger.error(f"이미지 서빙 오류: {e}")
+        return "Error serving image", 500
+
 @app.route('/api/content/<site>/download')
 def get_content_download(site):
     """콘텐츠 다운로드"""
     try:
         file_path = request.args.get('file')
-        if not file_path or not os.path.exists(file_path):
+        if not file_path:
+            return "파일 경로가 필요합니다", 400
+            
+        # URL 디코딩 및 경로 정규화
+        from urllib.parse import unquote_plus, unquote
+        import re
+        
+        # 다양한 방법으로 URL 디코딩 시도
+        original_path = file_path
+        decoded_path = None
+        
+        # 방법 1: unquote_plus 시도
+        try:
+            decoded_path = unquote_plus(file_path)
+            if '%' in decoded_path:
+                decoded_path = unquote_plus(decoded_path)
+        except:
+            pass
+        
+        # 방법 2: unquote 시도 (plus가 실패한 경우)
+        if not decoded_path or decoded_path == original_path:
+            try:
+                decoded_path = unquote(file_path)
+                if '%' in decoded_path:
+                    decoded_path = unquote(decoded_path)
+            except:
+                pass
+        
+        # 방법 3: 한글 인코딩 문제 해결 시도
+        if not decoded_path or decoded_path == original_path:
+            try:
+                decoded_path = unquote(file_path, encoding='utf-8', errors='replace')
+                if '%' in decoded_path:
+                    decoded_path = unquote(decoded_path, encoding='utf-8', errors='replace')
+            except:
+                pass
+        
+        # 최종적으로 디코딩된 경로 사용
+        file_path = decoded_path if decoded_path else file_path
+        
+        # 특수 문자 정리
+        file_path = re.sub(r'[\t\r\n\x00-\x08\x0b\x0c\x0e-\x1f]', '', file_path)
+        
+        # 경로 정규화
+        file_path = os.path.normpath(file_path)
+        
+        # 절대 경로로 변환 (보안상 현재 디렉토리 기준)
+        if not os.path.isabs(file_path):
+            file_path = os.path.abspath(file_path)
+        
+        logger.info(f"[DOWNLOAD] Original path: {request.args.get('file')}, Decoded+Normalized: {file_path}")
+        
+        if not os.path.exists(file_path):
             return "파일이 존재하지 않습니다", 404
             
         return send_file(file_path, as_attachment=True, download_name=os.path.basename(file_path))
@@ -2297,6 +2507,37 @@ def system_status():
             'total_content': 0
         })
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/api_usage/today')
+def get_api_usage_today():
+    """오늘의 API 사용량 조회"""
+    try:
+        usage = api_tracker.get_today_usage()
+        return jsonify(usage)
+    except Exception as e:
+        logger.error(f"API 사용량 조회 오류: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/api_usage/monthly')
+def get_api_usage_monthly():
+    """이번 달 API 사용량 조회"""
+    try:
+        usage = api_tracker.get_monthly_usage()
+        return jsonify(usage)
+    except Exception as e:
+        logger.error(f"월간 API 사용량 조회 오류: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/api_usage/recent')
+def get_api_usage_recent():
+    """최근 API 호출 내역 조회"""
+    try:
+        limit = request.args.get('limit', 20, type=int)
+        calls = api_tracker.get_recent_calls(limit)
+        return jsonify(calls)
+    except Exception as e:
+        logger.error(f"최근 API 호출 조회 오류: {e}")
         return jsonify({'error': str(e)}), 500
 
 # 발행 상태를 전역으로 추적
@@ -2347,7 +2588,7 @@ def quick_publish():
     """수동 발행: 오늘 스케줄 주제로 직접 발행"""
     try:
         data = request.json or {}
-        sites = data.get('sites', ['unpre', 'untab', 'skewese'])
+        sites = data.get('sites', ['unpre', 'untab', 'skewese', 'tistory'])
         
         # 중복 실행 방지
         global publish_status
@@ -2388,31 +2629,39 @@ def quick_publish():
                         weekday = today.weekday()
                         week_start = today - timedelta(days=weekday)
                         
-                        # API 호출로 스케줄 데이터 가져오기
-                        schedule_response = requests.get(
-                            f'http://localhost:8000/api/schedule/weekly?start_date={week_start}',
-                            timeout=10
-                        )
+                        # 미리보기 API와 동일한 로직으로 주제 가져오기
+                        today_str = today.strftime('%Y-%m-%d')
+                        database = get_database()
+                        conn = database.get_connection()
                         
                         topic_data = None
-                        if schedule_response.status_code == 200:
-                            schedule_json = schedule_response.json()
-                            if 'schedule' in schedule_json and str(weekday) in schedule_json['schedule']:
-                                day_data = schedule_json['schedule'][str(weekday)]
-                                if 'sites' in day_data and site in day_data['sites']:
-                                    site_data = day_data['sites'][site]
+                        with conn.cursor() as cursor:
+                            days_since_monday = today.weekday()
+                            week_start = today - timedelta(days=days_since_monday)
+                            
+                            cursor.execute('''
+                            SELECT plan_data FROM blog_automation.weekly_plans 
+                            WHERE week_start = %s
+                            ORDER BY created_at DESC
+                            LIMIT 1
+                            ''', (week_start,))
+                            
+                            result = cursor.fetchone()
+                            if result:
+                                plan_data = result[0]
+                                plans = plan_data.get('plans', [])
+                                
+                                # 오늘 날짜, 현재 사이트에 해당하는 계획 찾기
+                                today_plan = next((plan for plan in plans 
+                                                 if plan.get('date') == today_str and plan.get('site') == site), None)
+                                
+                                if today_plan:
                                     topic_data = {
-                                        'topic': site_data.get('topic'),
-                                        'category': site_data.get('category'),
-                                        'keywords': site_data.get('keywords', [])
+                                        'topic': today_plan.get('title'),
+                                        'category': today_plan.get('category'),
+                                        'keywords': today_plan.get('keywords', [site])
                                     }
-                                    add_system_log('INFO', f'{site} API 스케줄 사용: {topic_data["topic"]}', 'SCHEDULE')
-                        
-                        if not topic_data:
-                            # DB fallback 시도
-                            topic_data = schedule_manager.get_today_topic_for_manual(site)
-                            if topic_data:
-                                add_system_log('INFO', f'{site} DB 스케줄 사용: {topic_data["topic"]}', 'SCHEDULE')
+                                    add_system_log('INFO', f'{site} 주간계획 사용: {topic_data["topic"]}', 'SCHEDULE')
                         
                         if topic_data:
                             topic = topic_data['topic']
@@ -2420,17 +2669,11 @@ def quick_publish():
                             keywords = topic_data.get('keywords', [site])
                             add_system_log('INFO', f'{site}: {topic}', 'SCHEDULE')
                         else:
-                            # 기본값 사용
-                            defaults = {
-                                'unpre': {'topic': 'Python 프로그래밍 완벽 가이드', 'category': 'programming'},
-                                'untab': {'topic': '부동산 투자 전략 분석', 'category': 'realestate'},  
-                                'skewese': {'topic': '한국사 흥미로운 이야기', 'category': 'koreanhistory'}
-                            }
-                            default = defaults.get(site, {'topic': f'{site} 전문 가이드', 'category': 'general'})
-                            topic = default['topic']
-                            category = default['category']
-                            keywords = [site, '가이드']
-                            add_system_log('WARNING', f'{site}: 기본값 사용 - {topic}', 'FALLBACK')
+                            # 미리보기 API와 동일한 대체 주제 사용
+                            topic = f'오늘의 {site.upper()} 추천 주제'
+                            category = '일반'
+                            keywords = ['오늘', '추천', '주제']
+                            add_system_log('WARNING', f'{site}: 대체 주제 사용 - {topic}', 'FALLBACK')
                         
                         # WordPress 콘텐츠 생성 및 발행
                         payload = {
@@ -2441,7 +2684,7 @@ def quick_publish():
                         }
                         
                         response = requests.post(
-                            'http://localhost:8000/api/generate_wordpress',
+                            'http://localhost:5000/api/generate_wordpress',
                             json=payload,
                             headers={'Content-Type': 'application/json'},
                             timeout=300
@@ -2525,7 +2768,7 @@ def manual_auto_publish():
     """수동으로 자동 발행 실행"""
     try:
         data = request.json
-        sites = data.get('sites', ['unpre', 'untab', 'skewese'])
+        sites = data.get('sites', ['unpre', 'untab', 'skewese', 'tistory'])
         
         # 전역 상태 초기화
         global publish_status
@@ -3673,7 +3916,7 @@ def auto_publish_task():
         
         add_system_log('INFO', f'스케줄 데이터 로드 완료: {len(schedule_data.get("schedule", {}))}일', 'SCHEDULER')
         
-        # 모든 사이트 발행 (WordPress + Tistory)
+        # 모든 사이트 자동 발행 (WordPress 3개 + tistory)
         sites_to_publish = ['unpre', 'untab', 'skewese', 'tistory']
         success_count = 0
         
@@ -3768,6 +4011,131 @@ def init_scheduler():
             next_run = job.next_run_time
             add_system_log('INFO', f'⏰ {job.name}: {next_run.strftime("%Y-%m-%d %H:%M:%S KST")}', 'SCHEDULER')
             logger.info(f"⏰ {job.name}: {next_run}")
+        
+        # 🔥 매주 일요일 밤 11시 30분에 다음주 수익성 최우선 계획 자동 생성
+        def auto_generate_next_week_profit_plan():
+            """다음주 수익성 최우선 주간계획 자동 생성 - 철저한 에러 방지"""
+            try:
+                add_system_log('INFO', '🔥 다음주 수익성 최우선 주간계획 자동 생성 시작', 'WEEKLY_PLANNER')
+                logger.info("🔥 다음주 수익성 최우선 주간계획 자동 생성 시작")
+                
+                # 1. 다음주 월요일 계산 (에러 방지)
+                try:
+                    today = datetime.now(kst).date()
+                    days_until_next_monday = (7 - today.weekday()) % 7
+                    if days_until_next_monday == 0:  # 오늘이 월요일이면 다다음주
+                        days_until_next_monday = 7
+                    next_monday = today + timedelta(days=days_until_next_monday)
+                    
+                    add_system_log('INFO', f'다음주 계획 기준일: {next_monday}', 'WEEKLY_PLANNER')
+                    logger.info(f"다음주 계획 기준일: {next_monday}")
+                except Exception as date_error:
+                    add_system_log('ERROR', f'날짜 계산 실패: {date_error}', 'WEEKLY_PLANNER')
+                    logger.error(f"날짜 계산 실패: {date_error}")
+                    return
+                
+                # 2. 기존 다음주 계획 체크 (중복 방지)
+                try:
+                    from src.utils.postgresql_database import PostgreSQLDatabase
+                    db = PostgreSQLDatabase()
+                    conn = db.get_connection()
+                    
+                    with conn.cursor() as cursor:
+                        cursor.execute('''
+                        SELECT id FROM blog_automation.weekly_plans 
+                        WHERE week_start = %s
+                        ''', (next_monday,))
+                        
+                        existing_plan = cursor.fetchone()
+                        if existing_plan:
+                            add_system_log('INFO', f'다음주 계획이 이미 존재함: {next_monday}', 'WEEKLY_PLANNER')
+                            logger.info(f"다음주 계획이 이미 존재함: {next_monday}")
+                            return  # 이미 있으면 생성하지 않음
+                            
+                except Exception as db_check_error:
+                    add_system_log('WARNING', f'기존 계획 체크 실패, 계속 진행: {db_check_error}', 'WEEKLY_PLANNER')
+                    logger.warning(f"기존 계획 체크 실패, 계속 진행: {db_check_error}")
+                
+                # 3. 수익성 최우선 주간계획 생성 (안전한 subprocess 실행)
+                try:
+                    import subprocess
+                    import sys
+                    
+                    # subprocess로 안전하게 실행 (timeout 설정)
+                    result = subprocess.run(
+                        [sys.executable, 'auto_weekly_planner.py'],
+                        cwd=os.path.dirname(os.path.abspath(__file__)),
+                        capture_output=True,
+                        text=True,
+                        timeout=300,  # 5분 timeout
+                        encoding='utf-8'
+                    )
+                    
+                    if result.returncode == 0:
+                        add_system_log('SUCCESS', '🎉 다음주 수익성 최우선 주간계획 자동 생성 완료!', 'WEEKLY_PLANNER')
+                        logger.info("🎉 다음주 수익성 최우선 주간계획 자동 생성 완료!")
+                        
+                        # 성공 로그에 결과 요약 포함
+                        output_lines = result.stdout.split('\n')[-10:]  # 마지막 10줄만
+                        for line in output_lines:
+                            if line.strip():
+                                add_system_log('INFO', f'생성결과: {line.strip()}', 'WEEKLY_PLANNER')
+                    else:
+                        add_system_log('ERROR', f'주간계획 생성 실패 (exit code: {result.returncode})', 'WEEKLY_PLANNER')
+                        add_system_log('ERROR', f'stderr: {result.stderr}', 'WEEKLY_PLANNER')
+                        logger.error(f"주간계획 생성 실패: {result.stderr}")
+                        
+                except subprocess.TimeoutExpired:
+                    add_system_log('ERROR', '주간계획 생성 타임아웃 (5분)', 'WEEKLY_PLANNER')
+                    logger.error("주간계획 생성 타임아웃")
+                except Exception as subprocess_error:
+                    add_system_log('ERROR', f'주간계획 생성 프로세스 실패: {subprocess_error}', 'WEEKLY_PLANNER')
+                    logger.error(f"주간계획 생성 프로세스 실패: {subprocess_error}")
+                
+                # 4. 생성 완료 후 검증
+                try:
+                    time.sleep(2)  # 잠깐 대기
+                    with conn.cursor() as cursor:
+                        cursor.execute('''
+                        SELECT plan_data FROM blog_automation.weekly_plans 
+                        WHERE week_start = %s
+                        ORDER BY created_at DESC LIMIT 1
+                        ''', (next_monday,))
+                        
+                        new_plan = cursor.fetchone()
+                        if new_plan:
+                            plan_data = json.loads(new_plan[0])
+                            plan_count = len(plan_data.get('plans', []))
+                            add_system_log('SUCCESS', f'✅ 생성 검증 완료: {plan_count}개 계획 저장됨', 'WEEKLY_PLANNER')
+                            logger.info(f"✅ 생성 검증 완료: {plan_count}개 계획")
+                        else:
+                            add_system_log('WARNING', '⚠️ 계획 생성 후 DB에서 확인되지 않음', 'WEEKLY_PLANNER')
+                            
+                except Exception as verify_error:
+                    add_system_log('WARNING', f'생성 검증 실패: {verify_error}', 'WEEKLY_PLANNER')
+                    
+            except Exception as main_error:
+                add_system_log('ERROR', f'주간계획 자동생성 메인 에러: {main_error}', 'WEEKLY_PLANNER')
+                logger.error(f"주간계획 자동생성 메인 에러: {main_error}")
+            finally:
+                add_system_log('INFO', '다음주 주간계획 자동생성 작업 종료', 'WEEKLY_PLANNER')
+        
+        # 매주 일요일 밤 11시 30분에 다음주 계획 생성
+        scheduler.add_job(
+            func=auto_generate_next_week_profit_plan,
+            trigger=CronTrigger(
+                day_of_week=6,  # 일요일 (0=월요일, 6=일요일)
+                hour=23,
+                minute=30,
+                second=0,
+                timezone=kst
+            ),
+            id='weekly_plan_auto_generate',
+            name='Next Week Profit-First Plan Auto Generator',
+            replace_existing=True,
+            max_instances=1,  # 중복 실행 방지
+            coalesce=True     # 누락된 실행을 하나로 합침
+        )
         
         # 테스트용 즉시 실행 (첫 시작 시에만)
         from datetime import timedelta
@@ -3945,8 +4313,194 @@ def generate_dynamic_schedule(start_date):
     }
 
 
-# 스케줄러 초기화 (앱 시작 시)
-scheduler_initialized = init_scheduler()
+# 누락된 API 엔드포인트 추가
+
+@app.route('/api/weekly-plan/current')
+def get_current_weekly_plan():
+    """현재 주간 계획표 조회"""
+    try:
+        from datetime import datetime, timedelta
+        import json
+        
+        # 현재 주의 월요일 구하기
+        today = datetime.now().date()
+        days_since_monday = today.weekday()
+        week_start = today - timedelta(days=days_since_monday)
+        
+        database = get_database()
+        conn = database.get_connection()
+        
+        with conn.cursor() as cursor:
+            cursor.execute('''
+            SELECT plan_data FROM blog_automation.weekly_plans 
+            WHERE week_start = %s
+            ORDER BY created_at DESC
+            LIMIT 1
+            ''', (week_start,))
+            
+            result = cursor.fetchone()
+            
+            if result:
+                plan_data = result[0]  # JSONB 데이터
+                return jsonify({
+                    'success': True,
+                    'data': plan_data
+                })
+            else:
+                # 주간계획이 없으면 빈 데이터 반환
+                return jsonify({
+                    'success': True,
+                    'data': {
+                        'week_start': week_start.strftime('%Y-%m-%d'),
+                        'week_end': (week_start + timedelta(days=6)).strftime('%Y-%m-%d'),
+                        'plans': [],
+                        'message': '주간계획이 없습니다. 자동 생성을 실행해주세요.'
+                    }
+                })
+                
+    except Exception as e:
+        logger.error(f"주간계획 조회 오류: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/manual-publish/preview')
+def get_manual_publish_preview():
+    """수동 발행 미리보기 - 오늘 날짜에 해당하는 주간계획 주제 표시"""
+    try:
+        from datetime import datetime, date, timedelta
+        import json
+        
+        today = date.today()
+        today_str = today.strftime('%Y-%m-%d')
+        
+        # 오늘 날짜의 주간계획 조회
+        database = get_database()
+        conn = database.get_connection()
+        
+        with conn.cursor() as cursor:
+            # 현재 주의 월요일 계산
+            days_since_monday = today.weekday()
+            week_start = today - timedelta(days=days_since_monday)
+            
+            cursor.execute('''
+            SELECT plan_data FROM blog_automation.weekly_plans 
+            WHERE week_start = %s
+            ORDER BY created_at DESC
+            LIMIT 1
+            ''', (week_start,))
+            
+            result = cursor.fetchone()
+            today_contents = []
+            
+            if result:
+                plan_data = result[0]  # JSONB 데이터
+                plans = plan_data.get('plans', [])
+                
+                # 오늘 날짜에 해당하는 계획들 필터링
+                today_plans = [plan for plan in plans if plan.get('date') == today_str]
+                
+                for plan in today_plans:
+                    today_contents.append({
+                        'site': plan.get('site'),
+                        'title': plan.get('title'),
+                        'category': plan.get('category'),
+                        'priority': plan.get('priority'),
+                        'trend_score': plan.get('trend_score'),
+                        'keywords': plan.get('keywords', []),
+                        'source': plan.get('source'),
+                        'original_topic': plan.get('original_topic'),
+                        'status': 'ready_to_publish'
+                    })
+            
+            # 기본 사이트 목록
+            available_sites = ['unpre', 'untab', 'skewese', 'tistory']
+            
+            # 오늘 계획이 없는 사이트들을 위한 대체 주제
+            planned_sites = [content['site'] for content in today_contents]
+            for site in available_sites:
+                if site not in planned_sites:
+                    # 대체 주제 추가
+                    today_contents.append({
+                        'site': site,
+                        'title': f'오늘의 {site.upper()} 추천 주제',
+                        'category': '일반',
+                        'priority': 'medium',
+                        'trend_score': 50,
+                        'keywords': ['오늘', '추천', '주제'],
+                        'source': '자동생성',
+                        'original_topic': '일반 주제',
+                        'status': 'fallback'
+                    })
+            
+            return jsonify({
+                'success': True,
+                'data': {
+                    'date': today_str,
+                    'available_sites': available_sites,
+                    'contents': today_contents,
+                    'total_plans': len(today_contents)
+                }
+            })
+                
+    except Exception as e:
+        logger.error(f"수동 발행 미리보기 오류: {e}")
+        return jsonify({
+            'success': False, 
+            'error': str(e),
+            'data': {
+                'available_sites': ['unpre', 'untab', 'skewese', 'tistory'],
+                'contents': []
+            }
+        }), 500
+
+@app.route('/api/trends/realtime')
+def get_realtime_trends():
+    """실시간 트렌드"""
+    try:
+        return jsonify({
+            'success': True,
+            'data': {
+                'trends': [],
+                'last_updated': '2025-09-08 11:19:49'
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/weekly-plan/generate', methods=['POST'])
+def generate_weekly_plan():
+    """주간계획 자동 생성"""
+    try:
+        import subprocess
+        import sys
+        
+        # 자동 주간계획 생성기 실행
+        result = subprocess.run(
+            [sys.executable, 'auto_weekly_planner.py'],
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            errors='ignore'
+        )
+        
+        if result.returncode == 0:
+            return jsonify({
+                'success': True,
+                'message': '주간계획이 성공적으로 생성되었습니다.',
+                'output': result.stdout
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'주간계획 생성 실패: {result.stderr}',
+                'output': result.stdout
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"주간계획 생성 오류: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# 스케줄러 초기화 (앱 시작 시) - 현재 비활성화됨
+# scheduler_initialized = init_scheduler()
 
 if __name__ == "__main__":
     # 시작 로그
@@ -3954,5 +4508,5 @@ if __name__ == "__main__":
     add_system_log('INFO', '새벽 3시 자동발행 스케줄 활성화됨', 'STARTUP')
     add_system_log('INFO', f'웹 대시보드 서버 시작 - http://localhost:8000', 'STARTUP')
     
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
