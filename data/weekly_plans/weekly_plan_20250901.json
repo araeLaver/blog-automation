@@ -1,0 +1,394 @@
+{
+  "week_start": "2025-09-07",
+  "week_end": "2025-09-13",
+  "trending_issues": [
+    "연말준비",
+    "추석",
+    "취업",
+    "주말나들이",
+    "단풍",
+    "수능",
+    "데이트"
+  ],
+  "total_expected_revenue": 0.8166666666666669,
+  "days": [
+    {
+      "day": "월요일",
+      "date": "2025-09-07",
+      "keyword": "2024년 배당주 추천",
+      "title": "2024년 배당주 추천 완벽정리 | 전문가 선정",
+      "search_volume": 500,
+      "revenue_score": 55,
+      "estimated_revenue": "$0.02",
+      "content_strategy": {
+        "main_keyword": "2024년 배당주 추천",
+        "related_keywords": [
+          "2024년 배당주 추천"
+        ],
+        "trending_angle": "2024년 최신 트렌드 반영",
+        "content_type": "리스티클 (순위형)",
+        "target_length": "2000-3000자",
+        "images_needed": 3
+      },
+      "seo_checklist": {
+        "title_keyword": true,
+        "meta_description": "2024년 배당주 추천의 모든 것. 2025년 최신 정보",
+        "h2_tags": "최소 3개, '2024년 배당주 추천' 포함",
+        "keyword_density": "1-2%",
+        "internal_links": "3개 이상",
+        "external_links": "권위있는 사이트 1-2개"
+      },
+      "monetization": {
+        "primary": [
+          "증권사 제휴",
+          "투자 서적 추천"
+        ],
+        "secondary": [
+          "구글 애드센스",
+          "경제 뉴스레터"
+        ],
+        "placement": {
+          "상단": "첫 문단 후 네이티브 광고",
+          "중간": "핵심 내용 후 제품 추천",
+          "하단": "CTA 버튼 + 관련 상품",
+          "사이드바": "플로팅 배너"
+        }
+      },
+      "publishing_time": "오전 9시 (골든타임)",
+      "promotion": {
+        "naver_blog": true,
+        "facebook": true,
+        "instagram": true,
+        "community": [
+          "네이버 주식카페",
+          "팍스넷"
+        ]
+      }
+    },
+    {
+      "day": "화요일",
+      "date": "2025-09-08",
+      "keyword": "2024년 배당주 추천",
+      "title": "2024년 배당주 추천 BEST 10 | 2024년 12월 최신",
+      "search_volume": 500,
+      "revenue_score": 55,
+      "estimated_revenue": "$0.02",
+      "content_strategy": {
+        "main_keyword": "2024년 배당주 추천",
+        "related_keywords": [
+          "2024년 배당주 추천"
+        ],
+        "trending_angle": "2024년 최신 트렌드 반영",
+        "content_type": "리스티클 (순위형)",
+        "target_length": "2000-3000자",
+        "images_needed": 3
+      },
+      "seo_checklist": {
+        "title_keyword": true,
+        "meta_description": "2024년 배당주 추천의 모든 것. 2025년 최신 정보",
+        "h2_tags": "최소 3개, '2024년 배당주 추천' 포함",
+        "keyword_density": "1-2%",
+        "internal_links": "3개 이상",
+        "external_links": "권위있는 사이트 1-2개"
+      },
+      "monetization": {
+        "primary": [
+          "증권사 제휴",
+          "투자 서적 추천"
+        ],
+        "secondary": [
+          "구글 애드센스",
+          "경제 뉴스레터"
+        ],
+        "placement": {
+          "상단": "첫 문단 후 네이티브 광고",
+          "중간": "핵심 내용 후 제품 추천",
+          "하단": "CTA 버튼 + 관련 상품",
+          "사이드바": "플로팅 배너"
+        }
+      },
+      "publishing_time": "오전 9시 (골든타임)",
+      "promotion": {
+        "naver_blog": true,
+        "facebook": true,
+        "instagram": true,
+        "community": [
+          "네이버 주식카페",
+          "팍스넷"
+        ]
+      }
+    },
+    {
+      "day": "수요일",
+      "date": "2025-09-09",
+      "keyword": "2024년 배당주 추천",
+      "title": "2024년 배당주 추천 완벽정리 | 전문가 선정",
+      "search_volume": 500,
+      "revenue_score": 55,
+      "estimated_revenue": "$0.02",
+      "content_strategy": {
+        "main_keyword": "2024년 배당주 추천",
+        "related_keywords": [
+          "2024년 배당주 추천"
+        ],
+        "trending_angle": "2024년 최신 트렌드 반영",
+        "content_type": "리스티클 (순위형)",
+        "target_length": "2000-3000자",
+        "images_needed": 3
+      },
+      "seo_checklist": {
+        "title_keyword": true,
+        "meta_description": "2024년 배당주 추천의 모든 것. 2025년 최신 정보",
+        "h2_tags": "최소 3개, '2024년 배당주 추천' 포함",
+        "keyword_density": "1-2%",
+        "internal_links": "3개 이상",
+        "external_links": "권위있는 사이트 1-2개"
+      },
+      "monetization": {
+        "primary": [
+          "증권사 제휴",
+          "투자 서적 추천"
+        ],
+        "secondary": [
+          "구글 애드센스",
+          "경제 뉴스레터"
+        ],
+        "placement": {
+          "상단": "첫 문단 후 네이티브 광고",
+          "중간": "핵심 내용 후 제품 추천",
+          "하단": "CTA 버튼 + 관련 상품",
+          "사이드바": "플로팅 배너"
+        }
+      },
+      "publishing_time": "오전 9시 (골든타임)",
+      "promotion": {
+        "naver_blog": true,
+        "facebook": true,
+        "instagram": true,
+        "community": [
+          "네이버 주식카페",
+          "팍스넷"
+        ]
+      }
+    },
+    {
+      "day": "목요일",
+      "date": "2025-09-10",
+      "keyword": "2024년 배당주 추천",
+      "title": "2024년 배당주 추천 완벽정리 | 전문가 선정",
+      "search_volume": 500,
+      "revenue_score": 55,
+      "estimated_revenue": "$0.02",
+      "content_strategy": {
+        "main_keyword": "2024년 배당주 추천",
+        "related_keywords": [
+          "2024년 배당주 추천"
+        ],
+        "trending_angle": "2024년 최신 트렌드 반영",
+        "content_type": "리스티클 (순위형)",
+        "target_length": "2000-3000자",
+        "images_needed": 3
+      },
+      "seo_checklist": {
+        "title_keyword": true,
+        "meta_description": "2024년 배당주 추천의 모든 것. 2025년 최신 정보",
+        "h2_tags": "최소 3개, '2024년 배당주 추천' 포함",
+        "keyword_density": "1-2%",
+        "internal_links": "3개 이상",
+        "external_links": "권위있는 사이트 1-2개"
+      },
+      "monetization": {
+        "primary": [
+          "증권사 제휴",
+          "투자 서적 추천"
+        ],
+        "secondary": [
+          "구글 애드센스",
+          "경제 뉴스레터"
+        ],
+        "placement": {
+          "상단": "첫 문단 후 네이티브 광고",
+          "중간": "핵심 내용 후 제품 추천",
+          "하단": "CTA 버튼 + 관련 상품",
+          "사이드바": "플로팅 배너"
+        }
+      },
+      "publishing_time": "오전 9시 (골든타임)",
+      "promotion": {
+        "naver_blog": true,
+        "facebook": true,
+        "instagram": true,
+        "community": [
+          "네이버 주식카페",
+          "팍스넷"
+        ]
+      }
+    },
+    {
+      "day": "금요일",
+      "date": "2025-09-11",
+      "keyword": "2024년 배당주 추천",
+      "title": "2024년 배당주 추천 실구매 후기 | 장단점 비교",
+      "search_volume": 500,
+      "revenue_score": 55,
+      "estimated_revenue": "$0.02",
+      "content_strategy": {
+        "main_keyword": "2024년 배당주 추천",
+        "related_keywords": [
+          "2024년 배당주 추천"
+        ],
+        "trending_angle": "2024년 최신 트렌드 반영",
+        "content_type": "리스티클 (순위형)",
+        "target_length": "2000-3000자",
+        "images_needed": 3
+      },
+      "seo_checklist": {
+        "title_keyword": true,
+        "meta_description": "2024년 배당주 추천의 모든 것. 2025년 최신 정보",
+        "h2_tags": "최소 3개, '2024년 배당주 추천' 포함",
+        "keyword_density": "1-2%",
+        "internal_links": "3개 이상",
+        "external_links": "권위있는 사이트 1-2개"
+      },
+      "monetization": {
+        "primary": [
+          "증권사 제휴",
+          "투자 서적 추천"
+        ],
+        "secondary": [
+          "구글 애드센스",
+          "경제 뉴스레터"
+        ],
+        "placement": {
+          "상단": "첫 문단 후 네이티브 광고",
+          "중간": "핵심 내용 후 제품 추천",
+          "하단": "CTA 버튼 + 관련 상품",
+          "사이드바": "플로팅 배너"
+        }
+      },
+      "publishing_time": "오전 9시 (골든타임)",
+      "promotion": {
+        "naver_blog": true,
+        "facebook": true,
+        "instagram": true,
+        "community": [
+          "네이버 주식카페",
+          "팍스넷"
+        ]
+      }
+    },
+    {
+      "day": "토요일",
+      "date": "2025-09-12",
+      "keyword": "2024년 배당주 추천",
+      "title": "2024년 배당주 추천 실구매 후기 | 장단점 비교",
+      "search_volume": 500,
+      "revenue_score": 55,
+      "estimated_revenue": "$0.02",
+      "content_strategy": {
+        "main_keyword": "2024년 배당주 추천",
+        "related_keywords": [
+          "2024년 배당주 추천"
+        ],
+        "trending_angle": "2024년 최신 트렌드 반영",
+        "content_type": "리스티클 (순위형)",
+        "target_length": "2000-3000자",
+        "images_needed": 3
+      },
+      "seo_checklist": {
+        "title_keyword": true,
+        "meta_description": "2024년 배당주 추천의 모든 것. 2025년 최신 정보",
+        "h2_tags": "최소 3개, '2024년 배당주 추천' 포함",
+        "keyword_density": "1-2%",
+        "internal_links": "3개 이상",
+        "external_links": "권위있는 사이트 1-2개"
+      },
+      "monetization": {
+        "primary": [
+          "증권사 제휴",
+          "투자 서적 추천"
+        ],
+        "secondary": [
+          "구글 애드센스",
+          "경제 뉴스레터"
+        ],
+        "placement": {
+          "상단": "첫 문단 후 네이티브 광고",
+          "중간": "핵심 내용 후 제품 추천",
+          "하단": "CTA 버튼 + 관련 상품",
+          "사이드바": "플로팅 배너"
+        }
+      },
+      "publishing_time": "오전 9시 (골든타임)",
+      "promotion": {
+        "naver_blog": true,
+        "facebook": true,
+        "instagram": true,
+        "community": [
+          "네이버 주식카페",
+          "팍스넷"
+        ]
+      }
+    },
+    {
+      "day": "일요일",
+      "date": "2025-09-13",
+      "keyword": "AI 주식 추천",
+      "title": "AI 주식 추천 완벽정리 | 전문가 선정",
+      "search_volume": 500,
+      "revenue_score": 45,
+      "estimated_revenue": "$0.02",
+      "content_strategy": {
+        "main_keyword": "AI 주식 추천",
+        "related_keywords": [
+          "AI 주식 추천"
+        ],
+        "trending_angle": "2024년 최신 트렌드 반영",
+        "content_type": "리스티클 (순위형)",
+        "target_length": "2000-3000자",
+        "images_needed": 3
+      },
+      "seo_checklist": {
+        "title_keyword": true,
+        "meta_description": "AI 주식 추천의 모든 것. 2025년 최신 정보",
+        "h2_tags": "최소 3개, 'AI 주식 추천' 포함",
+        "keyword_density": "1-2%",
+        "internal_links": "3개 이상",
+        "external_links": "권위있는 사이트 1-2개"
+      },
+      "monetization": {
+        "primary": [
+          "쿠팡파트너스 (전자기기)",
+          "네이버 브랜드스토어"
+        ],
+        "secondary": [
+          "구글 애드센스",
+          "온라인 강의 제휴"
+        ],
+        "placement": {
+          "상단": "첫 문단 후 네이티브 광고",
+          "중간": "핵심 내용 후 제품 추천",
+          "하단": "CTA 버튼 + 관련 상품",
+          "사이드바": "플로팅 배너"
+        }
+      },
+      "publishing_time": "오전 9시 (골든타임)",
+      "promotion": {
+        "naver_blog": true,
+        "facebook": true,
+        "instagram": true,
+        "community": [
+          "클리앙",
+          "루리웹",
+          "OKKY"
+        ]
+      }
+    }
+  ],
+  "weekly_goals": {
+    "traffic_target": 35,
+    "revenue_target": "$0.82",
+    "posts_count": 7,
+    "engagement_target": "댓글 10개 이상/글"
+  }
+}

@@ -1,0 +1,302 @@
+[
+  {
+    "keyword": "간단한 요리 레시피",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "간단한 요리 레시피"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:01.791388"
+  },
+  {
+    "keyword": "원룸 인테리어",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "원룸 인테리어"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:02.292067"
+  },
+  {
+    "keyword": "청소 꿀팁",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "청소 꿀팁"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:02.792783"
+  },
+  {
+    "keyword": "정리정돈 방법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "정리정돈 방법"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:03.293582"
+  },
+  {
+    "keyword": "홈카페 만들기",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "홈카페 만들기"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:03.794060"
+  },
+  {
+    "keyword": "베이킹 레시피",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "베이킹 레시피"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:04.294635"
+  },
+  {
+    "keyword": "집밥 메뉴 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "집밥 메뉴 추천"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:04.795188"
+  },
+  {
+    "keyword": "밑반찬 만들기",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "밑반찬 만들기"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:05.295623"
+  },
+  {
+    "keyword": "도시락 싸는법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "도시락 싸는법"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:05.802857"
+  },
+  {
+    "keyword": "김치냉장고 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "김치냉장고 추천"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:06.303212"
+  },
+  {
+    "keyword": "청소용품 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "청소용품 추천"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:06.803936"
+  },
+  {
+    "keyword": "수납용품 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "수납용품 추천"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:07.304602"
+  },
+  {
+    "keyword": "홈데코 아이디어",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "홈데코 아이디어"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:07.804953"
+  },
+  {
+    "keyword": "원룸 가구",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "원룸 가구"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:08.305351"
+  },
+  {
+    "keyword": "LED 조명",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "LED 조명"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:08.806136"
+  },
+  {
+    "keyword": "침구 세탁법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "침구 세탁법"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:09.306816"
+  },
+  {
+    "keyword": "주방용품 정리",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "주방용품 정리"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:09.807536"
+  },
+  {
+    "keyword": "냉장고 정리",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "냉장고 정리"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:10.308052"
+  },
+  {
+    "keyword": "화분 키우기",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "화분 키우기"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:10.808743"
+  },
+  {
+    "keyword": "반려동물 용품",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "반려동물 용품"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:08:11.309438"
+  }
+]

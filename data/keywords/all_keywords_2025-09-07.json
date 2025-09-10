@@ -1,0 +1,2402 @@
+[
+  {
+    "keyword": "ChatGPT 활용법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "ChatGPT 활용법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:14.653306"
+  },
+  {
+    "keyword": "AI 부업",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "AI 부업"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:15.154032"
+  },
+  {
+    "keyword": "Python 독학",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "Python 독학"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:15.654807"
+  },
+  {
+    "keyword": "코딩테스트 준비",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "코딩테스트 준비"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:16.156069"
+  },
+  {
+    "keyword": "프로그래밍 학원",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "프로그래밍 학원"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:16.656605"
+  },
+  {
+    "keyword": "ChatGPT로 블로그 글쓰기",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "ChatGPT로 블로그 글쓰기"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:17.157086"
+  },
+  {
+    "keyword": "AI 그림 만들기",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "AI 그림 만들기"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:17.657736"
+  },
+  {
+    "keyword": "홈페이지 제작 비용",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Navigational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "홈페이지 제작 비용"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:18.158149"
+  },
+  {
+    "keyword": "앱개발 외주",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "앱개발 외주"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:18.658722"
+  },
+  {
+    "keyword": "IT 비전공자 개발자",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "IT 비전공자 개발자"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:19.159152"
+  },
+  {
+    "keyword": "코딩 독학 순서",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "코딩 독학 순서"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:19.659736"
+  },
+  {
+    "keyword": "웹개발 포트폴리오",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "웹개발 포트폴리오"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:20.160103"
+  },
+  {
+    "keyword": "AWS 자격증",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "AWS 자격증"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:20.660747"
+  },
+  {
+    "keyword": "AI 주식 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "AI 주식 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:21.161514"
+  },
+  {
+    "keyword": "ChatGPT 프롬프트",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "ChatGPT 프롬프트"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:21.662362"
+  },
+  {
+    "keyword": "노코드 툴",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "노코드 툴"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:22.162873"
+  },
+  {
+    "keyword": "블록체인 투자",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "블록체인 투자"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:22.663678"
+  },
+  {
+    "keyword": "메타버스 주식",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "메타버스 주식"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:23.164304"
+  },
+  {
+    "keyword": "2024년 배당주 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "2024년 배당주 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:25.668428"
+  },
+  {
+    "keyword": "부동산 투자 방법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "부동산 투자 방법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:26.168827"
+  },
+  {
+    "keyword": "주식 초보 가이드",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "주식 초보 가이드"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:26.669409"
+  },
+  {
+    "keyword": "재테크 블로그",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "재테크 블로그"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:27.169875"
+  },
+  {
+    "keyword": "비트코인 전망",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "비트코인 전망"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:27.670564"
+  },
+  {
+    "keyword": "펀드 추천 순위",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "펀드 추천 순위"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:28.171358"
+  },
+  {
+    "keyword": "적금 금리 비교",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "적금 금리 비교"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:28.672007"
+  },
+  {
+    "keyword": "전세대출 조건",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "전세대출 조건"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:29.172450"
+  },
+  {
+    "keyword": "신용카드 혜택 비교",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "신용카드 혜택 비교"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:29.672872"
+  },
+  {
+    "keyword": "보험 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "보험 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:30.173572"
+  },
+  {
+    "keyword": "청약 당첨 팁",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "청약 당첨 팁"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:30.673995"
+  },
+  {
+    "keyword": "아파트 시세 조회",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "아파트 시세 조회"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:31.174310"
+  },
+  {
+    "keyword": "월세 세액공제",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "월세 세액공제"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:31.675067"
+  },
+  {
+    "keyword": "경매 투자법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "경매 투자법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:32.175713"
+  },
+  {
+    "keyword": "달러 투자 방법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "달러 투자 방법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:32.676254"
+  },
+  {
+    "keyword": "개인연금 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "개인연금 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:33.176839"
+  },
+  {
+    "keyword": "퇴직연금 운용",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "퇴직연금 운용"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:33.677616"
+  },
+  {
+    "keyword": "부업 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "부업 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:34.177957"
+  },
+  {
+    "keyword": "용돈벌이",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "용돈벌이"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:34.678348"
+  },
+  {
+    "keyword": "투자 공부",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "투자 공부"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:35.178846"
+  },
+  {
+    "keyword": "금리 전망",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "투자/경제",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "금리 전망"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:35.679338"
+  },
+  {
+    "keyword": "30대 다이어트 방법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "30대 다이어트 방법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:38.182248"
+  },
+  {
+    "keyword": "홈트레이닝 루틴",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "홈트레이닝 루틴"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:38.682997"
+  },
+  {
+    "keyword": "간헐적 단식 효과",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "간헐적 단식 효과"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:39.183651"
+  },
+  {
+    "keyword": "단백질 보충제 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "단백질 보충제 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:39.684048"
+  },
+  {
+    "keyword": "비타민D 복용법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "비타민D 복용법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:40.184727"
+  },
+  {
+    "keyword": "요가 초보자 가이드",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "요가 초보자 가이드"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:40.685402"
+  },
+  {
+    "keyword": "필라테스 홈트",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "필라테스 홈트"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:41.185843"
+  },
+  {
+    "keyword": "러닝 운동화 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "러닝 운동화 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:41.686497"
+  },
+  {
+    "keyword": "체중감량 식단",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "체중감량 식단"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:42.186828"
+  },
+  {
+    "keyword": "근력운동 순서",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "근력운동 순서"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:42.687295"
+  },
+  {
+    "keyword": "불면증 해결법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "불면증 해결법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:43.188010"
+  },
+  {
+    "keyword": "스트레스 관리",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "스트레스 관리"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:43.688811"
+  },
+  {
+    "keyword": "건강검진 항목",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "건강검진 항목"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:44.189119"
+  },
+  {
+    "keyword": "영양제 조합",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "영양제 조합"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:44.689743"
+  },
+  {
+    "keyword": "다이어트 성공후기",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Commercial",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "다이어트 성공후기"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:45.190394"
+  },
+  {
+    "keyword": "홈짐 기구 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "홈짐 기구 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:45.690791"
+  },
+  {
+    "keyword": "키토제닉 다이어트",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "키토제닉 다이어트"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:46.191475"
+  },
+  {
+    "keyword": "프로틴 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "프로틴 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:46.692291"
+  },
+  {
+    "keyword": "헬스장 운동법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "헬스장 운동법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:47.192839"
+  },
+  {
+    "keyword": "살빼는 음식",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "건강/의료",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "살빼는 음식"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:47.693223"
+  },
+  {
+    "keyword": "토익 900점 공부법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "토익 900점 공부법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:50.195700"
+  },
+  {
+    "keyword": "영어회화 독학",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "영어회화 독학"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:50.696488"
+  },
+  {
+    "keyword": "코딩테스트 문제집",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "코딩테스트 문제집"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:51.196787"
+  },
+  {
+    "keyword": "공무원 시험 준비",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "공무원 시험 준비"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:51.697381"
+  },
+  {
+    "keyword": "자격증 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "자격증 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:52.197712"
+  },
+  {
+    "keyword": "온라인강의 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "온라인강의 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:52.698369"
+  },
+  {
+    "keyword": "취업 면접 질문",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "취업 면접 질문"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:53.198793"
+  },
+  {
+    "keyword": "이력서 쓰는법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "이력서 쓰는법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:53.699477"
+  },
+  {
+    "keyword": "자소서 예시",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "자소서 예시"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:54.200254"
+  },
+  {
+    "keyword": "대학원 준비",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "대학원 준비"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:54.700990"
+  },
+  {
+    "keyword": "학점은행제 후기",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Commercial",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "학점은행제 후기"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:55.201360"
+  },
+  {
+    "keyword": "방통대 편입",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "방통대 편입"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:55.702182"
+  },
+  {
+    "keyword": "독학사 시험",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "독학사 시험"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:56.202568"
+  },
+  {
+    "keyword": "평생교육원 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "평생교육원 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:56.702922"
+  },
+  {
+    "keyword": "학자금대출 신청",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Transactional",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "학자금대출 신청"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:57.203861"
+  },
+  {
+    "keyword": "직업훈련 과정",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "직업훈련 과정"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:57.704417"
+  },
+  {
+    "keyword": "국비지원 교육",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "국비지원 교육"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:58.204954"
+  },
+  {
+    "keyword": "어학연수 비용",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "어학연수 비용"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:58.705683"
+  },
+  {
+    "keyword": "토플 공부법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "토플 공부법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:59.206232"
+  },
+  {
+    "keyword": "오픽 고득점",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "교육/학습",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "오픽 고득점"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:08:59.707002"
+  },
+  {
+    "keyword": "간단한 요리 레시피",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "간단한 요리 레시피"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:02.209909"
+  },
+  {
+    "keyword": "원룸 인테리어",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "원룸 인테리어"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:02.710770"
+  },
+  {
+    "keyword": "청소 꿀팁",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "청소 꿀팁"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:03.211146"
+  },
+  {
+    "keyword": "정리정돈 방법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "정리정돈 방법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:03.711575"
+  },
+  {
+    "keyword": "홈카페 만들기",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "홈카페 만들기"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:04.211989"
+  },
+  {
+    "keyword": "베이킹 레시피",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "베이킹 레시피"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:04.712791"
+  },
+  {
+    "keyword": "집밥 메뉴 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "집밥 메뉴 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:05.214016"
+  },
+  {
+    "keyword": "밑반찬 만들기",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "밑반찬 만들기"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:05.714625"
+  },
+  {
+    "keyword": "도시락 싸는법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "도시락 싸는법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:06.215273"
+  },
+  {
+    "keyword": "김치냉장고 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "김치냉장고 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:06.716507"
+  },
+  {
+    "keyword": "청소용품 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "청소용품 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:07.216966"
+  },
+  {
+    "keyword": "수납용품 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "수납용품 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:07.717309"
+  },
+  {
+    "keyword": "홈데코 아이디어",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "홈데코 아이디어"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:08.218292"
+  },
+  {
+    "keyword": "원룸 가구",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "원룸 가구"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:08.718873"
+  },
+  {
+    "keyword": "LED 조명",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "LED 조명"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:09.219434"
+  },
+  {
+    "keyword": "침구 세탁법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "침구 세탁법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:09.720150"
+  },
+  {
+    "keyword": "주방용품 정리",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "주방용품 정리"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:10.220543"
+  },
+  {
+    "keyword": "냉장고 정리",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "냉장고 정리"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:10.721430"
+  },
+  {
+    "keyword": "화분 키우기",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "화분 키우기"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:11.221853"
+  },
+  {
+    "keyword": "반려동물 용품",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "생활/라이프",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "반려동물 용품"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:11.722424"
+  },
+  {
+    "keyword": "제주도 3박4일 코스",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "제주도 3박4일 코스"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:14.224983"
+  },
+  {
+    "keyword": "부산 맛집 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "부산 맛집 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:14.725383"
+  },
+  {
+    "keyword": "강릉 여행코스",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "강릉 여행코스"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:15.226108"
+  },
+  {
+    "keyword": "경주 당일치기",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "경주 당일치기"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:15.726662"
+  },
+  {
+    "keyword": "전주 한옥마을",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "전주 한옥마을"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:16.227378"
+  },
+  {
+    "keyword": "여수 밤바다 코스",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "여수 밤바다 코스"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:16.727972"
+  },
+  {
+    "keyword": "속초 맛집",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "속초 맛집"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:17.229057"
+  },
+  {
+    "keyword": "춘천 닭갈비",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "춘천 닭갈비"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:17.729506"
+  },
+  {
+    "keyword": "가평 펜션",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "가평 펜션"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:18.230019"
+  },
+  {
+    "keyword": "남이섬 가는법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "남이섬 가는법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:18.730800"
+  },
+  {
+    "keyword": "일본여행 경비",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "일본여행 경비"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:19.231417"
+  },
+  {
+    "keyword": "오사카 3박4일",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "오사카 3박4일"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:19.732222"
+  },
+  {
+    "keyword": "도쿄 자유여행",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "도쿄 자유여행"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:20.232561"
+  },
+  {
+    "keyword": "동남아 배낭여행",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "동남아 배낭여행"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:20.733106"
+  },
+  {
+    "keyword": "유럽 패키지",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "유럽 패키지"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:21.233864"
+  },
+  {
+    "keyword": "항공료 싸게 사는법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "항공료 싸게 사는법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:21.734172"
+  },
+  {
+    "keyword": "렌터카 보험",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "렌터카 보험"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:22.234951"
+  },
+  {
+    "keyword": "숙박 할인",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Commercial",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "숙박 할인"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:22.735783"
+  },
+  {
+    "keyword": "여행 짐 싸는법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "여행 짐 싸는법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:23.236531"
+  },
+  {
+    "keyword": "해외여행 준비물",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "여행/관광",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "해외여행 준비물"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:23.737069"
+  },
+  {
+    "keyword": "쿠션파운데이션 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "쿠션파운데이션 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:26.239046"
+  },
+  {
+    "keyword": "립스틱 색깔 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "립스틱 색깔 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:26.739619"
+  },
+  {
+    "keyword": "아이섀도 발색",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "아이섀도 발색"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:27.240228"
+  },
+  {
+    "keyword": "마스카라 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "마스카라 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:27.740992"
+  },
+  {
+    "keyword": "클렌징오일",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "클렌징오일"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:28.241533"
+  },
+  {
+    "keyword": "토너 사용법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "토너 사용법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:28.741846"
+  },
+  {
+    "keyword": "세럼 순서",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "세럼 순서"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:29.242197"
+  },
+  {
+    "keyword": "수분크림 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "수분크림 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:29.742773"
+  },
+  {
+    "keyword": "자외선차단제 순위",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "자외선차단제 순위"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:30.243601"
+  },
+  {
+    "keyword": "30대 스킨케어",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "30대 스킨케어"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:30.744061"
+  },
+  {
+    "keyword": "데일리룩 코디",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "데일리룩 코디"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:31.244605"
+  },
+  {
+    "keyword": "직장인 패션",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "직장인 패션"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:31.745407"
+  },
+  {
+    "keyword": "쇼핑몰 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Commercial",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "쇼핑몰 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:32.246170"
+  },
+  {
+    "keyword": "브랜드 세일",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "브랜드 세일"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:32.746916"
+  },
+  {
+    "keyword": "가방 브랜드",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "가방 브랜드"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:33.247597"
+  },
+  {
+    "keyword": "운동화 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "운동화 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:33.748023"
+  },
+  {
+    "keyword": "액세서리 쇼핑몰",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Commercial",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "액세서리 쇼핑몰"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:34.248542"
+  },
+  {
+    "keyword": "향수 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "향수 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:34.749086"
+  },
+  {
+    "keyword": "네일아트",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "네일아트"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:35.249927"
+  },
+  {
+    "keyword": "염색 후 관리법",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "패션/뷰티",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "염색 후 관리법"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:35.751022"
+  },
+  {
+    "keyword": "넷플릭스 추천 드라마",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "넷플릭스 추천 드라마"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:38.254554"
+  },
+  {
+    "keyword": "디즈니플러스 영화",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "디즈니플러스 영화"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:38.755374"
+  },
+  {
+    "keyword": "웨이브 오리지널",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "웨이브 오리지널"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:39.255749"
+  },
+  {
+    "keyword": "티빙 예능",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "티빙 예능"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:39.756217"
+  },
+  {
+    "keyword": "왓챠 로맨스",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "왓챠 로맨스"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:40.256852"
+  },
+  {
+    "keyword": "OTT 가격 비교",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Commercial",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "OTT 가격 비교"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:40.757647"
+  },
+  {
+    "keyword": "무료 스트리밍",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "무료 스트리밍"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:41.258500"
+  },
+  {
+    "keyword": "카카오페이지 웹툰",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "카카오페이지 웹툰"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:41.758999"
+  },
+  {
+    "keyword": "네이버웹툰 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "네이버웹툰 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:42.260076"
+  },
+  {
+    "keyword": "BL 웹툰",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "BL 웹툰"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:42.760455"
+  },
+  {
+    "keyword": "로맨스 소설",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "로맨스 소설"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:43.260959"
+  },
+  {
+    "keyword": "액션 영화",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "액션 영화"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:43.761417"
+  },
+  {
+    "keyword": "스릴러 드라마",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "스릴러 드라마"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:44.262005"
+  },
+  {
+    "keyword": "코미디 예능",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "코미디 예능"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:44.762884"
+  },
+  {
+    "keyword": "PC게임 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "PC게임 추천"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:45.263524"
+  },
+  {
+    "keyword": "모바일게임 순위",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "모바일게임 순위"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:45.763923"
+  },
+  {
+    "keyword": "LOL 티어",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "LOL 티어"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:46.264521"
+  },
+  {
+    "keyword": "배그 공략",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "배그 공략"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:46.764865"
+  },
+  {
+    "keyword": "게임 방송",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "게임 방송"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:47.265649"
+  },
+  {
+    "keyword": "K팝 차트",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "K팝 차트"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:47.766377"
+  },
+  {
+    "keyword": "아이돌 컴백",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "아이돌 컴백"
+    ],
+    "collected_date": "2025-09-07",
+    "timestamp": "2025-09-07T09:09:48.266808"
+  }
+]

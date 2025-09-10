@@ -49,6 +49,11 @@ class WordPressPublisher:
                     'url': 'https://skewese.com',
                     'username': 'skewese',
                     'password': 'Kdwyyr1527!'
+                },
+                'tistory': {
+                    'url': 'https://tistory.com',
+                    'username': 'tistory',
+                    'password': 'Kdwyyr1527!'
                 }
             }
             

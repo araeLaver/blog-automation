@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 트렌드 대시보드 - UNBLE</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-attachment: fixed;
+            font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            margin: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .trend-card {
+            background: white;
+            border: none;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+        
+        .trend-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        
+        .score-badge {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E8E);
+            border: none;
+            font-size: 0.85em;
+            min-width: 60px;
+            font-weight: 700;
+            padding: 8px 12px;
+            border-radius: 20px;
+        }
+        
+        .source-badge {
+            background: linear-gradient(45deg, #4ECDC4, #6BCF7F);
+            border: none;
+            font-size: 0.75em;
+            padding: 6px 10px;
+            border-radius: 15px;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .trend-title {
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+            line-height: 1.3;
+        }
+        
+        .trend-description {
+            color: #6c757d;
+            font-size: 0.9em;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+        
+        .category-section {
+            margin-bottom: 3rem;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .category-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            margin-bottom: 0;
+            font-size: 1.3em;
+            font-weight: 700;
+            border-radius: 0;
+        }
+        
+        .category-content {
+            padding: 25px;
+        }
+        
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            color: white;
+            font-size: 1.2em;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.6);
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 50px;
+        }
+        
+        .loading-spinner .spinner-border {
+            width: 4rem;
+            height: 4rem;
+            border-width: 0.4em;
+        }
+        
+        .trend-tags {
+            margin-top: 15px;
+        }
+        
+        .trend-tags .badge {
+            background: linear-gradient(45deg, #74b9ff, #a29bfe);
+            border: none;
+            margin-right: 8px;
+            margin-bottom: 5px;
+            font-size: 0.75em;
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: white;
+            font-weight: 500;
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #74b9ff 0%, #a29bfe 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(116, 185, 255, 0.3);
+            transition: transform 0.3s ease;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .auto-refresh-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .auto-refresh-status .alert {
+            border-radius: 15px;
+            border: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+        
+        .trend-timestamp {
+            font-size: 0.8em;
+            color: #95a5a6;
+            font-weight: 500;
+        }
+        
+        .page-title {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2.5em;
+        }
+        
+        .category-filters .btn {
+            margin: 5px;
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .category-filters .btn-outline-primary {
+            border-color: #667eea;
+            color: #667eea;
+        }
+        
+        .category-filters .btn-outline-primary:hover,
+        .category-filters .btn-outline-primary.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: transparent;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 10px;
+                padding: 20px;
+                border-radius: 15px;
+            }
+            
+            .page-title {
+                font-size: 2em;
+            }
+            
+            .trend-card {
+                margin-bottom: 15px;
+            }
+            
+            .refresh-btn {
+                bottom: 20px;
+                right: 20px;
+                width: 55px;
+                height: 55px;
+            }
+            
+            .category-header {
+                padding: 15px 20px;
+                font-size: 1.1em;
+            }
+            
+            .category-content {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 자동 새로고침 상태 -->
+    <div class="auto-refresh-status">
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="fas fa-sync-alt"></i> 자동 새로고침: <span id="refreshCountdown">60</span>초
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- 헤더 -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h1 class="page-title">
+                    📊 실시간 트렌드 대시보드
+                </h1>
+                
+                <!-- 통계 카드 -->
+                <div class="row justify-content-center mb-4">
+                    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                        <div class="card stats-card text-center">
+                            <div class="card-body py-3">
+                                <h5 class="card-title" id="totalTrends">-</h5>
+                                <p class="card-text mb-0">총 트렌드</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                        <div class="card stats-card text-center">
+                            <div class="card-body py-3">
+                                <h5 class="card-title" id="totalSources">-</h5>
+                                <p class="card-text mb-0">데이터 소스</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                        <div class="card stats-card text-center">
+                            <div class="card-body py-3">
+                                <h5 class="card-title" id="lastUpdate">-</h5>
+                                <p class="card-text mb-0">마지막 업데이트</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 필터 버튼 -->
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <div class="category-filters" id="categoryFilters">
+                    <button type="button" class="btn btn-outline-primary active" data-category="all">🔍 전체</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 로딩 스피너 -->
+        <div class="row loading-spinner" id="loadingSpinner">
+            <div class="col-12 text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">실시간 트렌드 데이터를 수집 중입니다...</p>
+            </div>
+        </div>
+
+        <!-- 트렌드 데이터 -->
+        <div id="trendsContainer">
+            <!-- 트렌드 카테고리별로 동적 생성 -->
+        </div>
+    </div>
+
+    <!-- 새로고침 버튼 -->
+    <button class="btn btn-primary btn-lg refresh-btn" onclick="refreshTrends()">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let autoRefreshInterval;
+        let countdownInterval;
+        let refreshCountdown = 60;
+        
+        // 페이지 로드 시 트렌드 데이터 로드
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTrends();
+            startAutoRefresh();
+        });
+        
+        // 트렌드 데이터 로드
+        async function loadTrends() {
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/trends/realtime');
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayTrends(data.trends);
+                    updateStats(data.stats);
+                } else {
+                    showError('트렌드 데이터 로드 실패: ' + data.error);
+                }
+            } catch (error) {
+                console.error('트렌드 로드 오류:', error);
+                showError('트렌드 데이터를 불러올 수 없습니다.');
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        // 트렌드 데이터 표시
+        function displayTrends(categorizedTrends) {
+            const container = document.getElementById('trendsContainer');
+            container.innerHTML = '';
+            
+            // 카테고리 필터 버튼 업데이트
+            updateCategoryFilters(Object.keys(categorizedTrends));
+            
+            // 카테고리별로 트렌드 표시
+            Object.entries(categorizedTrends).forEach(([category, trends]) => {
+                const categorySection = createCategorySection(category, trends);
+                container.appendChild(categorySection);
+            });
+        }
+        
+        // 카테고리 섹션 생성
+        function createCategorySection(category, trends) {
+            const section = document.createElement('div');
+            section.className = 'category-section';
+            section.dataset.category = category;
+            
+            const header = document.createElement('h3');
+            header.className = 'category-header';
+            header.innerHTML = `
+                ${getCategoryIcon(category)} ${category} (${trends.length}개)
+            `;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'category-content';
+            
+            const cardContainer = document.createElement('div');
+            cardContainer.className = 'row';
+            
+            trends.forEach(trend => {
+                const col = document.createElement('div');
+                col.className = 'col-lg-6 col-md-6 col-sm-12';
+                col.appendChild(createTrendCard(trend));
+                cardContainer.appendChild(col);
+            });
+            
+            contentDiv.appendChild(cardContainer);
+            section.appendChild(header);
+            section.appendChild(contentDiv);
+            
+            return section;
+        }
+        
+        // 트렌드 카드 생성
+        function createTrendCard(trend) {
+            const card = document.createElement('div');
+            card.className = 'card trend-card h-100';
+            card.onclick = () => openTrendUrl(trend.url);
+            
+            const cardBody = document.createElement('div');
+            cardBody.className = 'card-body';
+            
+            cardBody.innerHTML = `
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge bg-success score-badge">${Math.round(trend.score)}</span>
+                    <span class="badge bg-secondary source-badge">${trend.source}</span>
+                </div>
+                
+                <h6 class="trend-title">${escapeHtml(trend.title)}</h6>
+                
+                ${trend.description ? `<p class="trend-description">${escapeHtml(trend.description.substring(0, 120))}...</p>` : ''}
+                
+                <div class="trend-tags">
+                    ${(trend.tags || []).map(tag => 
+                        `<span class="badge bg-light text-dark">#${tag}</span>`
+                    ).join('')}
+                </div>
+                
+                <div class="trend-timestamp mt-2">
+                    <i class="fas fa-clock"></i> ${formatTimestamp(trend.timestamp)}
+                </div>
+            `;
+            
+            card.appendChild(cardBody);
+            return card;
+        }
+        
+        // 카테고리 필터 업데이트
+        function updateCategoryFilters(categories) {
+            const filterContainer = document.getElementById('categoryFilters');
+            
+            // 전체 버튼 유지하고 카테고리별 버튼 추가
+            const existingAll = filterContainer.querySelector('[data-category="all"]');
+            filterContainer.innerHTML = '';
+            filterContainer.appendChild(existingAll);
+            
+            categories.forEach(category => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'btn btn-outline-primary';
+                button.dataset.category = category;
+                button.innerHTML = `${getCategoryIcon(category)} ${category}`;
+                button.onclick = () => filterByCategory(category);
+                filterContainer.appendChild(button);
+            });
+        }
+        
+        // 카테고리별 필터링
+        function filterByCategory(category) {
+            // 버튼 활성화 상태 변경
+            document.querySelectorAll('#categoryFilters button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-category="${category}"]`).classList.add('active');
+            
+            // 카테고리별 표시/숨김
+            document.querySelectorAll('.category-section').forEach(section => {
+                if (category === 'all' || section.dataset.category === category) {
+                    section.style.display = 'block';
+                } else {
+                    section.style.display = 'none';
+                }
+            });
+        }
+        
+        // 통계 업데이트
+        function updateStats(stats) {
+            document.getElementById('totalTrends').textContent = stats.totalTrends || '-';
+            document.getElementById('totalSources').textContent = stats.totalSources || '-';
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('ko-KR');
+        }
+        
+        // 트렌드 새로고침
+        async function refreshTrends() {
+            const button = document.querySelector('.refresh-btn i');
+            button.classList.add('fa-spin');
+            
+            await loadTrends();
+            resetAutoRefresh();
+            
+            setTimeout(() => {
+                button.classList.remove('fa-spin');
+            }, 1000);
+        }
+        
+        // 자동 새로고침 시작
+        function startAutoRefresh() {
+            autoRefreshInterval = setInterval(refreshTrends, 60000); // 1분마다
+            startCountdown();
+        }
+        
+        // 카운트다운 시작
+        function startCountdown() {
+            refreshCountdown = 60;
+            countdownInterval = setInterval(() => {
+                refreshCountdown--;
+                document.getElementById('refreshCountdown').textContent = refreshCountdown;
+                
+                if (refreshCountdown <= 0) {
+                    refreshCountdown = 60;
+                }
+            }, 1000);
+        }
+        
+        // 자동 새로고침 리셋
+        function resetAutoRefresh() {
+            clearInterval(autoRefreshInterval);
+            clearInterval(countdownInterval);
+            startAutoRefresh();
+        }
+        
+        // 유틸리티 함수들
+        function showLoading() {
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('trendsContainer').style.display = 'none';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingSpinner').style.display = 'none';
+            document.getElementById('trendsContainer').style.display = 'block';
+        }
+        
+        function showError(message) {
+            document.getElementById('trendsContainer').innerHTML = `
+                <div class="alert alert-danger text-center">
+                    <i class="fas fa-exclamation-triangle"></i> ${message}
+                </div>
+            `;
+        }
+        
+        function openTrendUrl(url) {
+            if (url) {
+                window.open(url, '_blank');
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('ko-KR');
+        }
+        
+        function getCategoryIcon(category) {
+            const icons = {
+                '기술': '💻',
+                '검색': '🔍', 
+                '뉴스': '📰',
+                '생활': '🏠',
+                '연예': '🎭',
+                '문화': '🎨',
+                '음식': '🍽️',
+                '패션': '👗',
+                '건강': '💪',
+                '경제': '💰',
+                '교육': '📚',
+                '여행': '✈️',
+                '스포츠': '⚽',
+                '쇼핑': '🛒',
+                '영화': '🎬',
+                '엔터테인먼트': '🎪',
+                '소셜': '📱',
+                '라이프': '✨',
+                '커뮤니티': '💬',
+                '인기': '🔥',
+                '정치': '🏛️',
+                '상식': '🧠',
+                '놀라운': '😲',
+                '짜증': '😤',
+                '이슈': '📢',
+                '틱톡': '🎵',
+                '캐릭터': '👤',
+                '흥미로운': '🤔',
+                '훈훈한': '😊',
+                '유머': '😄',
+                '개발자유머': '🤓',
+                '만화': '📝',
+                '블루스카이': '🌌',
+                '게임': '🎮'
+            };
+            return icons[category] || '📌';
+        }
+        
+        // 전체 필터 버튼 이벤트
+        document.querySelector('[data-category="all"]').onclick = () => filterByCategory('all');
+    </script>
+</body>
+</html>

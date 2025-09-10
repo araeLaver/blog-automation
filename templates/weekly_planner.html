@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주간 블로그 계획 - 블로그 자동화</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .main-container {
+            padding: 2rem 0;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 3rem;
+        }
+
+        .nav-menu {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.7rem 1.2rem;
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .nav-link.active {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+            font-weight: 600;
+        }
+
+        .control-panel {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .control-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 10px;
+            padding: 0.8rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .weekly-plan {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .day-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
+        }
+
+        .day-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .day-title {
+            font-weight: 700;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .revenue-badge {
+            background: linear-gradient(135deg, #43e97b, #38f9d7);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .keyword-tag {
+            background: #f8f9fa;
+            color: #666;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+
+        .monetization-info {
+            background: rgba(67, 233, 123, 0.1);
+            border-radius: 10px;
+            padding: 0.8rem;
+            margin-top: 1rem;
+            border: 1px solid rgba(67, 233, 123, 0.3);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.2));
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .alert-info {
+            background: rgba(13, 202, 240, 0.1);
+            border: 1px solid rgba(13, 202, 240, 0.3);
+            color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="container">
+            <!-- Header -->
+            <div class="header">
+                <h1><i class="bi bi-calendar-week"></i> 주간 블로그 계획</h1>
+                <p class="mb-0">수익 최적화된 주간 콘텐츠 계획</p>
+                
+                <!-- 네비게이션 메뉴 -->
+                <div class="nav-menu mt-3">
+                    <a href="/" class="nav-link"><i class="bi bi-house"></i> 대시보드</a>
+                    <a href="/keywords" class="nav-link"><i class="bi bi-search"></i> 키워드 연구</a>
+                    <a href="/weekly-planner" class="nav-link active"><i class="bi bi-calendar-week"></i> 주간 계획</a>
+                    <a href="/trending" class="nav-link"><i class="bi bi-graph-up"></i> 트렌드</a>
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <!-- 통계 요약 -->
+                <div class="summary-stats" id="summary-stats" style="display: none;">
+                    <div class="stat-card">
+                        <div class="stat-number" id="weekly-revenue">$0.00</div>
+                        <div class="stat-label">예상 주간 수익</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="post-count">0</div>
+                        <div class="stat-label">계획된 포스트</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="traffic-target">0</div>
+                        <div class="stat-label">목표 트래픽</div>
+                    </div>
+                </div>
+
+                <!-- 제어 패널 -->
+                <div class="control-card">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div>
+                            <h5 class="mb-1"><i class="bi bi-calendar-week"></i> 주간 계획 관리</h5>
+                            <p class="text-muted mb-0">수익성이 높은 키워드 기반 주간 블로그 계획을 생성합니다</p>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <input type="date" class="form-control" id="target-date" style="max-width: 150px;">
+                            <button class="btn btn-primary" onclick="createWeeklyPlan()">
+                                <i class="bi bi-plus-circle"></i> 새 계획 생성
+                            </button>
+                            <button class="btn btn-outline-primary" onclick="loadCurrentPlan()">
+                                <i class="bi bi-arrow-clockwise"></i> 현재 계획 조회
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 계획 내용 -->
+                <div class="control-card">
+                    <div id="plan-content">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>현재 주간 계획을 불러오는 중...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 페이지 로드 시 현재 계획 자동 로드
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCurrentPlan();
+        });
+
+        async function loadCurrentPlan() {
+            const planContent = document.getElementById('plan-content');
+            const summaryStats = document.getElementById('summary-stats');
+            
+            planContent.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>현재 주간 계획을 불러오는 중...</div>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch('/api/weekly-plan/current');
+                const data = await response.json();
+                
+                if (data.success && data.plan) {
+                    displayWeeklyPlan(data.plan, data.summary);
+                    updateSummaryStats(data.plan);
+                    summaryStats.style.display = 'grid';
+                } else if (data.success && !data.plan) {
+                    planContent.innerHTML = `
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>계획이 없습니다</strong><br>
+                            이번 주에 대한 블로그 계획이 아직 생성되지 않았습니다. 
+                            <button class="btn btn-primary btn-sm ms-2" onclick="createWeeklyPlan()">
+                                새 계획 생성
+                            </button>
+                        </div>
+                    `;
+                    summaryStats.style.display = 'none';
+                } else {
+                    throw new Error(data.error || '계획을 불러올 수 없습니다.');
+                }
+            } catch (error) {
+                console.error('계획 로딩 오류:', error);
+                planContent.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>오류 발생:</strong> ${error.message}
+                    </div>
+                `;
+                summaryStats.style.display = 'none';
+            }
+        }
+
+        async function createWeeklyPlan() {
+            const planContent = document.getElementById('plan-content');
+            const targetDate = document.getElementById('target-date').value;
+            
+            planContent.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>새로운 주간 계획을 생성하는 중...</div>
+                </div>
+            `;
+            
+            try {
+                const requestBody = {};
+                if (targetDate) {
+                    requestBody.target_date = targetDate;
+                }
+                
+                const response = await fetch('/api/weekly-plan/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayWeeklyPlan(data.plan);
+                    updateSummaryStats(data.plan);
+                    document.getElementById('summary-stats').style.display = 'grid';
+                    
+                    // 성공 메시지 표시
+                    showToast('새로운 주간 계획이 생성되었습니다!', 'success');
+                } else {
+                    throw new Error(data.error || '계획 생성에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('계획 생성 오류:', error);
+                planContent.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>생성 실패:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        function displayWeeklyPlan(plan, summary = null) {
+            const planContent = document.getElementById('plan-content');
+            
+            let content = '';
+            
+            // 요약 정보 표시 (텍스트 형태가 있는 경우)
+            if (summary) {
+                content += `
+                    <div class="alert alert-info mb-4">
+                        <h6><i class="bi bi-info-circle"></i> 주간 계획 요약</h6>
+                        <pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">${summary}</pre>
+                    </div>
+                `;
+            }
+            
+            // 일별 계획 카드
+            if (plan.days && plan.days.length > 0) {
+                content += '<div class="weekly-plan">';
+                
+                plan.days.forEach(day => {
+                    content += `
+                        <div class="day-card">
+                            <div class="day-header">
+                                <div class="day-title">
+                                    <i class="bi bi-calendar-day"></i> 
+                                    ${day.day} (${day.date})
+                                </div>
+                                <div class="revenue-badge">${day.estimated_revenue}</div>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <strong><i class="bi bi-key"></i> 키워드:</strong>
+                                <span class="keyword-tag">${day.keyword}</span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <strong><i class="bi bi-file-text"></i> 제목:</strong><br>
+                                <span style="color: #333; font-weight: 500;">${day.title}</span>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <strong><i class="bi bi-clock"></i> 발행시간:</strong> ${day.publishing_time}
+                            </div>
+                            
+                            ${day.monetization ? `
+                            <div class="monetization-info">
+                                <strong><i class="bi bi-currency-dollar"></i> 수익화:</strong><br>
+                                <small>
+                                    주요: ${day.monetization.primary?.join(', ') || 'N/A'}<br>
+                                    보조: ${day.monetization.secondary?.join(', ') || 'N/A'}
+                                </small>
+                            </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                
+                content += '</div>';
+            } else {
+                content += `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        주간 계획 데이터를 찾을 수 없습니다.
+                    </div>
+                `;
+            }
+            
+            planContent.innerHTML = content;
+        }
+
+        function updateSummaryStats(plan) {
+            if (plan.total_expected_revenue !== undefined) {
+                document.getElementById('weekly-revenue').textContent = '$' + plan.total_expected_revenue.toFixed(2);
+            }
+            
+            if (plan.days) {
+                document.getElementById('post-count').textContent = plan.days.length;
+            }
+            
+            if (plan.weekly_goals && plan.weekly_goals.traffic_target) {
+                document.getElementById('traffic-target').textContent = plan.weekly_goals.traffic_target;
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            // Toast 알림을 표시하는 함수
+            const toastContainer = document.getElementById('toast-container') || createToastContainer();
+            
+            const toastElement = document.createElement('div');
+            toastElement.className = `toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} border-0`;
+            toastElement.setAttribute('role', 'alert');
+            toastElement.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toastElement);
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+            
+            // Toast가 숨겨진 후 DOM에서 제거
+            toastElement.addEventListener('hidden.bs.toast', () => {
+                toastElement.remove();
+            });
+        }
+
+        function createToastContainer() {
+            const container = document.createElement('div');
+            container.id = 'toast-container';
+            container.className = 'toast-container position-fixed top-0 end-0 p-3';
+            container.style.zIndex = '1200';
+            document.body.appendChild(container);
+            return container;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+{
+  "keyword_data": {
+    "keyword": "IT 비전공자 개발자",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "기술/IT",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "IT 비전공자 개발자"
+    ],
+    "collected_date": "2025-09-05",
+    "timestamp": "2025-09-05T14:07:18.733791"
+  },
+  "outline": {
+    "keyword": "IT 비전공자 개발자",
+    "title": "IT 비전공자 개발자 A to Z | 초보자 가이드",
+    "meta_description": "IT 비전공자 개발자에 대한 완벽한 가이드. 실제 경험과 전문가 팁을 바탕으로 작성된 2025년 최신 정보.",
+    "template_type": "guide",
+    "search_volume": 500,
+    "competition": "Medium",
+    "intro": "IT 비전공자 개발자에 대해 알아야 할 모든 것을 정리했습니다.",
+    "sections": [
+      {
+        "title": "개요",
+        "keywords_to_include": [
+          "IT 비전공자 개발자"
+        ],
+        "word_count_target": 300
+      },
+      {
+        "title": "준비사항",
+        "keywords_to_include": [
+          "IT 비전공자 개발자"
+        ],
+        "word_count_target": 500
+      },
+      {
+        "title": "단계별가이드",
+        "keywords_to_include": [
+          "IT 비전공자 개발자"
+        ],
+        "word_count_target": 500
+      },
+      {
+        "title": "주의사항",
+        "keywords_to_include": [
+          "IT 비전공자 개발자"
+        ],
+        "word_count_target": 500
+      },
+      {
+        "title": "팁",
+        "keywords_to_include": [
+          "IT 비전공자 개발자"
+        ],
+        "word_count_target": 500
+      },
+      {
+        "title": "FAQ",
+        "keywords_to_include": [
+          "IT 비전공자 개발자"
+        ],
+        "word_count_target": 500
+      }
+    ],
+    "monetization": [
+      "애드센스",
+      "관련상품추천",
+      "온라인강의"
+    ],
+    "seo_tips": {
+      "main_keyword": "IT 비전공자 개발자",
+      "keyword_density": "1-2%",
+      "use_in_title": true,
+      "use_in_h2": "최소 2개 이상의 H2에 'IT 비전공자 개발자' 포함",
+      "use_in_first_paragraph": true,
+      "use_in_meta": true,
+      "related_keywords": [
+        "IT 비전공자 개발자"
+      ],
+      "internal_links": "관련 포스트 3개 이상 링크",
+      "external_links": "권위있는 사이트 1-2개 링크",
+      "image_alt": "모든 이미지 alt 텍스트에 'IT 비전공자 개발자' 관련 설명",
+      "url_slug": "it-비전공자-개발자",
+      "target_word_count": "최소 2000자 이상"
+    },
+    "created_at": "2025-09-05T14:15:09.191260"
+  },
+  "monetization": {
+    "primary": [
+      "개발 도구 추천 (제휴링크)",
+      "온라인 코딩 강의 추천"
+    ],
+    "secondary": [
+      "IT 기기 리뷰 (쿠팡파트너스)",
+      "구글 애드센스 광고"
+    ],
+    "placement": {
+      "top": "첫 단락 후 광고",
+      "middle": "중간 섹션 후 제품 추천",
+      "bottom": "결론 전 CTA(Call-to-Action)",
+      "sidebar": "사이드바 제휴 배너"
+    }
+  },
+  "estimated_traffic": {
+    "monthly": 10,
+    "daily": 0,
+    "potential_revenue": "$0.10 - $0.50"
+  },
+  "created_at": "2025-09-05T14:15:09.191269"
+}

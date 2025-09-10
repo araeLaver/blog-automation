@@ -1,0 +1,317 @@
+[
+  {
+    "keyword": "넷플릭스 추천 드라마",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "넷플릭스 추천 드라마"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:22.864532"
+  },
+  {
+    "keyword": "디즈니플러스 영화",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "디즈니플러스 영화"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:23.365264"
+  },
+  {
+    "keyword": "웨이브 오리지널",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "웨이브 오리지널"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:23.865783"
+  },
+  {
+    "keyword": "티빙 예능",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "티빙 예능"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:24.366182"
+  },
+  {
+    "keyword": "왓챠 로맨스",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "왓챠 로맨스"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:24.866783"
+  },
+  {
+    "keyword": "OTT 가격 비교",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Commercial",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "OTT 가격 비교"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:25.367723"
+  },
+  {
+    "keyword": "무료 스트리밍",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "무료 스트리밍"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:25.868332"
+  },
+  {
+    "keyword": "카카오페이지 웹툰",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "카카오페이지 웹툰"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:26.368755"
+  },
+  {
+    "keyword": "네이버웹툰 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "네이버웹툰 추천"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:26.869817"
+  },
+  {
+    "keyword": "BL 웹툰",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "BL 웹툰"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:27.370512"
+  },
+  {
+    "keyword": "로맨스 소설",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "로맨스 소설"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:27.871148"
+  },
+  {
+    "keyword": "액션 영화",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "액션 영화"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:28.371550"
+  },
+  {
+    "keyword": "스릴러 드라마",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "스릴러 드라마"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:28.872313"
+  },
+  {
+    "keyword": "코미디 예능",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "코미디 예능"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:29.372749"
+  },
+  {
+    "keyword": "PC게임 추천",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "PC게임 추천"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:29.873455"
+  },
+  {
+    "keyword": "모바일게임 순위",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "모바일게임 순위"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:30.375101"
+  },
+  {
+    "keyword": "LOL 티어",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "LOL 티어"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:30.875743"
+  },
+  {
+    "keyword": "배그 공략",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "배그 공략"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:31.376422"
+  },
+  {
+    "keyword": "게임 방송",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "게임 방송"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:31.877266"
+  },
+  {
+    "keyword": "K팝 차트",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "K팝 차트"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:32.378082"
+  },
+  {
+    "keyword": "아이돌 컴백",
+    "search_volume": 500,
+    "trend_score": 30.0,
+    "competition": "Medium",
+    "category": "연예/문화",
+    "search_intent": "Informational",
+    "difficulty": 60,
+    "opportunity_score": 4.17,
+    "related_keywords": [
+      "아이돌 컴백"
+    ],
+    "collected_date": "2025-09-06",
+    "timestamp": "2025-09-06T09:02:32.878497"
+  }
+]

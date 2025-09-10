@@ -131,20 +131,25 @@ class APITracker:
             
             conn.commit()
         
-        # 콘솔에 출력
-        print(f"\n💰 API 사용 기록:")
-        print(f"   - 서비스: {service}")
-        print(f"   - 모델: {model}")
-        print(f"   - 입력 토큰: {input_tokens:,}")
-        print(f"   - 출력 토큰: {output_tokens:,}")
-        print(f"   - 총 토큰: {total_tokens:,}")
-        print(f"   - 비용: ${cost:.4f} USD")
-        if site:
-            print(f"   - 사이트: {site}")
-        if purpose:
-            print(f"   - 용도: {purpose}")
-        if not success:
-            print(f"   ❌ 실패: {error_message}")
+        # 콘솔에 출력 (Unicode 안전하게)
+        try:
+            print(f"\n[가격] API 사용 기록:")
+            print(f"   - 서비스: {service}")
+            print(f"   - 모델: {model}")
+            print(f"   - 입력 토큰: {input_tokens:,}")
+            print(f"   - 출력 토큰: {output_tokens:,}")
+            print(f"   - 총 토큰: {total_tokens:,}")
+            print(f"   - 비용: ${cost:.4f} USD")
+            if site:
+                print(f"   - 사이트: {site}")
+            if purpose:
+                print(f"   - 용도: {purpose}")
+            if not success:
+                print(f"   [실패] {error_message}")
+        except UnicodeEncodeError:
+            print(f"\n[API USAGE] Service: {service}, Model: {model}, Cost: ${cost:.4f}")
+            if not success:
+                print(f"   ERROR: {error_message}")
         
         return cost
     

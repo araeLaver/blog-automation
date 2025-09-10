@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>블로그 자동화 대시보드</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>블로그 자동화 대시보드 v2.0</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
     <style>
@@ -488,6 +491,10 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // 캐시 무효화를 위한 버전 체크
+        const SCRIPT_VERSION = '2025091003';
+        console.log('Script version:', SCRIPT_VERSION, 'loaded at:', new Date().toISOString());
+        
         let currentPreviewData = null;
 
         // 초기화
@@ -499,8 +506,9 @@
         async function loadContent() {
             try {
                 const sites = ['unpre', 'skewese', 'tistory', 'untab'];
+                const cacheBuster = Date.now();
                 const promises = sites.map(site => 
-                    fetch(`/api/content/${site}`).then(res => res.json()).catch(() => [])
+                    fetch(`/api/content/${site}?_=${cacheBuster}`).then(res => res.json()).catch(() => [])
                 );
                 
                 const results = await Promise.all(promises);
@@ -543,7 +551,7 @@
                 const statusClass = content.status === 'published' ? 'success' : 'secondary';
                 
                 html += `
-                    <div class="content-card" data-content-id="${content.id}">
+                    <div class="content-card" data-content-id="${content.id}" data-file-path="${content.file_path}">
                         <input type="checkbox" class="content-checkbox" onchange="updateSelectedCount()">
                         <div class="d-flex justify-content-between align-items-start mb-2" style="padding-left: 30px;">
                             <span class="site-badge site-${content.site}">${content.site.toUpperCase()}</span>
@@ -556,13 +564,19 @@
                             ⏱️ ${content.estimated_reading_time || 0}분
                         </p>
                         <div class="action-buttons">
-                            <button class="action-btn btn btn-primary btn-sm" onclick="previewContent(${content.id})">
+                            <button class="action-btn btn btn-primary btn-sm preview-btn" 
+                                    data-file-path="${content.file_path}" 
+                                    data-site="${content.site}">
                                 <i class="bi bi-eye"></i> 미리보기
                             </button>
-                            <button class="action-btn btn btn-success btn-sm" onclick="downloadContent(${content.id})">
+                            <button class="action-btn btn btn-success btn-sm download-btn" 
+                                    data-file-path="${content.file_path}" 
+                                    data-site="${content.site}">
                                 <i class="bi bi-download"></i> 다운로드
                             </button>
-                            <button class="action-btn btn btn-info btn-sm" onclick="quickCopyHtml(${content.id})">
+                            <button class="action-btn btn btn-info btn-sm copy-btn" 
+                                    data-file-path="${content.file_path}" 
+                                    data-site="${content.site}">
                                 <i class="bi bi-clipboard"></i> HTML
                             </button>
                         </div>
@@ -572,6 +586,47 @@
             html += '</div>';
 
             container.innerHTML = html;
+            
+            // 이벤트 리스너 다시 등록
+            setupEventListeners();
+        }
+        
+        // 이벤트 리스너 설정
+        function setupEventListeners() {
+            console.log('Setting up event listeners...');
+            
+            // 미리보기 버튼들
+            document.querySelectorAll('.preview-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const filePath = this.dataset.filePath;
+                    const site = this.dataset.site;
+                    console.log('Preview button clicked:', {filePath, site});
+                    previewContent(filePath, site);
+                });
+            });
+            
+            // 다운로드 버튼들
+            document.querySelectorAll('.download-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const filePath = this.dataset.filePath;
+                    const site = this.dataset.site;
+                    downloadContent(filePath, site);
+                });
+            });
+            
+            // HTML 복사 버튼들
+            document.querySelectorAll('.copy-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const filePath = this.dataset.filePath;
+                    const site = this.dataset.site;
+                    quickCopyHtml(filePath, site);
+                });
+            });
+            
+            console.log('Event listeners setup completed');
         }
 
         // 유틸리티 함수들
@@ -585,19 +640,94 @@
         }
 
         // 콘텐츠 미리보기
-        function previewContent(fileId) {
+        function previewContent(filePath, site) {
+            console.log('previewContent called with:', {filePath, site});
             try {
-                // 새 탭에서 미리보기 열기
-                window.open(`/api/preview_content/${fileId}`, '_blank');
+                if (!filePath || !site) {
+                    throw new Error('filePath 또는 site 파라미터가 없습니다');
+                }
+                
+                const encodedPath = encodeURIComponent(filePath);
+                console.log('Encoded path:', encodedPath);
+                showToast('콘텐츠 로딩 중...', 'info');
+                
+                const fetchUrl = `/api/content/${site}/preview?file=${encodedPath}`;
+                console.log('Fetch URL:', fetchUrl);
+                
+                fetch(fetchUrl)
+                    .then(response => {
+                        console.log('Response received:', response.status, response.ok);
+                        if (!response.ok) {
+                            throw new Error(`서버 응답 오류: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Preview data received:', data);
+                        
+                        if (data && data.content && data.content !== '파일이 존재하지 않습니다.') {
+                            let displayContent = '';
+                            
+                            try {
+                                // HTML 콘텐츠를 파싱하여 본문만 추출
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(data.content, 'text/html');
+                                
+                                // body 내용 추출 또는 전체 콘텐츠 사용
+                                const bodyContent = doc.querySelector('.content-container');
+                                if (bodyContent) {
+                                    // WordPress 액션 제거
+                                    const wpActions = bodyContent.querySelector('.wordpress-actions');
+                                    if (wpActions) wpActions.remove();
+                                    
+                                    displayContent = bodyContent.innerHTML;
+                                } else {
+                                    // body 태그가 있으면 그 내용 사용
+                                    const body = doc.querySelector('body');
+                                    if (body) {
+                                        displayContent = body.innerHTML;
+                                    } else {
+                                        // 그렇지 않으면 원본 사용
+                                        displayContent = data.content;
+                                    }
+                                }
+                                
+                            } catch (parseError) {
+                                console.warn('HTML 파싱 실패, 원본 사용:', parseError);
+                                displayContent = data.content;
+                            }
+                            
+                            if (displayContent) {
+                                console.log('Calling showPreviewModal with:', displayContent.substring(0, 100) + '...');
+                                showPreviewModal(displayContent, {
+                                    title: data.title || '콘텐츠 미리보기',
+                                    site: site.toUpperCase()
+                                });
+                                showToast('콘텐츠 로딩 완료', 'success');
+                            } else {
+                                console.warn('Display content is empty');
+                                showToast('콘텐츠가 비어있습니다', 'warning');
+                            }
+                        } else {
+                            console.warn('No valid content in response:', data);
+                            showToast('파일을 찾을 수 없습니다', 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Preview fetch error:', error);
+                        showToast('미리보기 로딩 실패: ' + error.message, 'danger');
+                    });
             } catch (error) {
-                showToast('미리보기 열기 실패', 'danger');
+                console.error('Preview execution error:', error);
+                showToast('미리보기 실행 실패: ' + error.message, 'danger');
             }
         }
 
         // 다운로드
-        function downloadContent(fileId) {
+        function downloadContent(filePath, site) {
             const link = document.createElement('a');
-            link.href = `/api/download_content/${fileId}`;
+            const encodedPath = encodeURIComponent(filePath);
+            link.href = `/api/content/${site}/download?file=${encodedPath}`;
             link.target = '_blank';
             document.body.appendChild(link);
             link.click();
@@ -606,11 +736,12 @@
         }
 
         // HTML 복사
-        async function quickCopyHtml(fileId) {
+        async function quickCopyHtml(filePath, site) {
             try {
-                const response = await fetch(`/api/preview_content/${fileId}`);
-                const htmlContent = await response.text();
-                await navigator.clipboard.writeText(htmlContent);
+                const encodedPath = encodeURIComponent(filePath);
+                const response = await fetch(`/api/content/${site}/preview?file=${encodedPath}`);
+                const data = await response.json();
+                await navigator.clipboard.writeText(data.content);
                 showToast('HTML 복사 완료', 'success');
             } catch (error) {
                 showToast('복사 실패', 'danger');
@@ -626,6 +757,17 @@
                     showToast('복사 실패', 'danger');
                 }
             }
+        }
+
+        // 사이트별 색상 클래스 반환
+        function getSiteBadgeClass(site) {
+            const siteColors = {
+                'unpre': 'bg-danger',     // 빨간색 - 기술/스타트업
+                'untab': 'bg-success',    // 초록색 - 라이프스타일
+                'skewese': 'bg-warning',  // 노란색 - 비즈니스
+                'tistory': 'bg-info'      // 파란색 - 일반
+            };
+            return siteColors[site] || 'bg-primary';
         }
 
         // 계획표 보기
@@ -772,6 +914,65 @@
                             }
                         });
                     }
+                } else if (data.data && data.data.plans && Array.isArray(data.data.plans)) {
+                    // 새로운 주간계획 데이터 구조 처리: data.data.plans 배열
+                    const plans = data.data.plans;
+                    
+                    // 날짜별로 그룹핑
+                    const plansByDate = {};
+                    plans.forEach(plan => {
+                        const date = plan.date;
+                        if (!plansByDate[date]) {
+                            plansByDate[date] = [];
+                        }
+                        plansByDate[date].push(plan);
+                    });
+                    
+                    // 날짜 순으로 정렬해서 표시
+                    const sortedDates = Object.keys(plansByDate).sort();
+                    
+                    sortedDates.forEach(date => {
+                        const dayPlans = plansByDate[date];
+                        const dayNum = new Date(date).getDate();
+                        const dayName = dayPlans[0].day_name;
+                        
+                        let dayContent = '<div class="small">';
+                        dayPlans.forEach(plan => {
+                            const priorityBadge = plan.priority === 'high' ? 'bg-danger' : 'bg-warning';
+                            dayContent += `
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <span class="badge ${getSiteBadgeClass(plan.site)} small">${plan.site.toUpperCase()}</span>
+                                        <span class="badge ${priorityBadge} small">${plan.priority}</span>
+                                    </div>
+                                    <div class="mt-1" style="font-size: 11px;">
+                                        <strong>${plan.title.substring(0, 50)}${plan.title.length > 50 ? '...' : ''}</strong>
+                                    </div>
+                                    <div class="text-success small">
+                                        카테고리: ${plan.category}
+                                    </div>
+                                    <div class="text-info small">
+                                        트렌드점수: ${plan.trend_score}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        dayContent += '</div>';
+                        
+                        html += `
+                            <div class="col-md-4 col-lg-3 mb-3">
+                                <div class="card border-success">
+                                    <div class="card-header bg-light d-flex justify-content-between">
+                                        <strong>${dayNum}일 (${dayName})</strong>
+                                        <span class="badge bg-success">${dayPlans.length}개</span>
+                                    </div>
+                                    <div class="card-body p-2 small">
+                                        ${dayContent}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
                 } else {
                     html += '<div class="col-12 text-center text-muted">스케줄 데이터가 없습니다.</div>';
                 }
@@ -844,14 +1045,14 @@
                 const today = new Date();
                 const todayStr = today.getDate().toString();
                 
-                if (!data.success || !data.preview) {
+                if (!data.success || !data.data) {
                     throw new Error('주제를 불러올 수 없습니다');
                 }
                 
-                const preview = data.preview;
+                const preview = data.data;
                 let html = `
                     <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> ${preview.message || `오늘 수동발행 시 생성될 ${preview.total_posts}개 포스트 주제`}
+                        <i class="bi bi-info-circle"></i> ${preview.message || `오늘 수동발행 시 생성될 ${preview.total_plans || 0}개 포스트 주제`}
                     </div>
                     <div class="row">
                 `;
@@ -864,53 +1065,37 @@
                 };
                 
                 // 새로운 미리보기 API 형식으로 표시
-                if (preview.sites && preview.sites.length > 0) {
-                    for (const siteData of preview.sites) {
-                        if (siteData.error) {
-                            html += `
-                                <div class="col-md-6 mb-3">
-                                    <div class="card border-danger">
-                                        <div class="card-header bg-danger text-white">
-                                            <strong>${siteData.site}</strong>
+                if (preview.contents && preview.contents.length > 0) {
+                    for (const content of preview.contents) {
+                        const siteColor = getSiteBadgeClass(content.site);
+                        const priorityBadge = content.priority === 'high' ? 'bg-danger' : content.priority === 'medium' ? 'bg-warning' : 'bg-info';
+                        
+                        html += `
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <span class="badge ${siteColor}">${content.site.toUpperCase()}</span>
+                                        <span class="badge ${priorityBadge}">${content.priority}</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <h6 class="card-title">${content.title}</h6>
+                                        <div class="text-muted small mb-2">
+                                            <i class="bi bi-tag"></i> ${content.category} | 
+                                            <i class="bi bi-graph-up"></i> ${content.trend_score} | 
+                                            <i class="bi bi-source"></i> ${content.source}
                                         </div>
-                                        <div class="card-body text-danger">
-                                            <i class="bi bi-exclamation-triangle"></i> 오류: ${siteData.error}
+                                        ${content.keywords && content.keywords.length > 0 ? `
+                                            <div class="mb-2">
+                                                ${content.keywords.map(keyword => `<span class="badge bg-light text-dark me-1">${keyword}</span>`).join('')}
+                                            </div>
+                                        ` : ''}
+                                        <div class="text-success small">
+                                            상태: ${content.status === 'ready_to_publish' ? '발행 준비완료' : content.status === 'fallback' ? '대체 주제' : content.status}
                                         </div>
                                     </div>
                                 </div>
-                            `;
-                        } else {
-                            html += `
-                                <div class="col-md-6 mb-3">
-                                    <div class="card">
-                                        <div class="card-header bg-primary text-white">
-                                            <strong><i class="bi bi-globe"></i> ${siteData.site}</strong>
-                                        </div>
-                                        <div class="card-body">
-                            `;
-                            
-                            // 각 주제 표시 (Primary, Secondary)
-                            for (const topic of siteData.topics) {
-                                const badgeColor = topic.type === 'Primary' ? 'bg-success' : 'bg-info';
-                                html += `
-                                    <div class="mb-3 p-2 border-start border-3 border-primary">
-                                        <div class="d-flex justify-content-between align-items-center mb-1">
-                                            <span class="badge ${badgeColor}">${topic.type}</span>
-                                            <small class="text-muted">${topic.category}</small>
-                                        </div>
-                                        <div class="fw-bold">
-                                            ${topic.topic}
-                                        </div>
-                                    </div>
-                                `;
-                            }
-                            
-                            html += `
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        }
+                            </div>
+                        `;
                     }
                 } else {
                     html += '<div class="col-12"><div class="alert alert-warning">주제 정보를 불러올 수 없습니다.</div></div>';
@@ -1319,9 +1504,9 @@
                 const monthlyData = await monthlyResponse.json();
                 const recentData = await recentResponse.json();
 
-                displayTodayUsage(todayData.data);
-                displayMonthlyUsage(monthlyData.data);
-                displayRecentCalls(recentData.data);
+                displayTodayUsage(todayData);
+                displayMonthlyUsage(monthlyData);
+                displayRecentCalls(recentData);
 
             } catch (error) {
                 console.error('API 사용량 로드 오류:', error);
@@ -1470,14 +1655,14 @@
         // 선택된 콘텐츠 삭제
         async function deleteSelectedContent() {
             const selectedCards = document.querySelectorAll('.content-card.selected');
-            const contentIds = Array.from(selectedCards).map(card => card.dataset.contentId);
+            const filePaths = Array.from(selectedCards).map(card => card.dataset.filePath).filter(path => path);
             
-            if (contentIds.length === 0) {
+            if (filePaths.length === 0) {
                 showToast('삭제할 콘텐츠를 선택해주세요.', 'warning');
                 return;
             }
             
-            if (!confirm(`선택한 ${contentIds.length}개의 콘텐츠를 삭제하시겠습니까?`)) {
+            if (!confirm(`선택한 ${filePaths.length}개의 콘텐츠를 삭제하시겠습니까?`)) {
                 return;
             }
             
@@ -1487,7 +1672,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ file_ids: contentIds })
+                    body: JSON.stringify({ file_paths: filePaths })
                 });
                 
                 const result = await response.json();
@@ -1507,14 +1692,14 @@
         // 전체 삭제
         async function deleteAllContent() {
             const allCards = document.querySelectorAll('.content-card');
-            const contentIds = Array.from(allCards).map(card => card.dataset.contentId);
+            const filePaths = Array.from(allCards).map(card => card.dataset.filePath).filter(path => path);
             
-            if (contentIds.length === 0) {
+            if (filePaths.length === 0) {
                 showToast('삭제할 콘텐츠가 없습니다.', 'warning');
                 return;
             }
             
-            if (!confirm(`정말로 모든 콘텐츠(${contentIds.length}개)를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+            if (!confirm(`정말로 모든 콘텐츠(${filePaths.length}개)를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
                 return;
             }
             
@@ -1524,7 +1709,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ file_ids: contentIds })
+                    body: JSON.stringify({ file_paths: filePaths })
                 });
                 
                 const result = await response.json();
@@ -1565,6 +1750,81 @@
                 toastContainer.removeChild(toast);
             });
         }
-    </script>
+
+        // 콘텐츠 텍스트 포매팅 (대시 기준 줄바꿈)
+        function formatContentText(text) {
+            if (!text) return text;
+            // - 기준으로 줄바꿈 처리
+            return text.replace(/\s*-\s*/g, '<br>- ');
+        }
+
+        // 모달 미리보기
+        function showPreviewModal(content, metadata = {}) {
+            // 기존 모달 제거
+            const existingModal = document.getElementById('previewModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // 콘텐츠 포매팅 (대시 기준 줄바꿈)
+            const formattedContent = formatContentText(content);
+            
+            // 새 모달 생성
+            const modalHtml = `
+                <div class="modal fade show" id="previewModal" tabindex="-1" style="display: block; background: rgba(0,0,0,0.5);">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">${metadata.title || '콘텐츠 미리보기'}</h5>
+                                <button type="button" class="btn-close" onclick="closePreviewModal()"></button>
+                            </div>
+                            <div class="modal-body" style="max-height: 70vh; overflow-y: auto; padding: 20px;">
+                                ${formattedContent}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" onclick="closePreviewModal()">닫기</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // 클릭 이벤트로 닫기
+            const modalEl = document.getElementById('previewModal');
+            modalEl.addEventListener('click', function(e) {
+                if (e.target === modalEl) {
+                    closePreviewModal();
+                }
+            });
+        }
+
+        // 모달 닫기 함수
+        function closePreviewModal() {
+            const modalEl = document.getElementById('previewModal');
+            if (modalEl) {
+                modalEl.remove();
+            }
+        }
+        </script>
+
+    <!-- 미리보기 모달 -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">콘텐츠 미리보기</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <div id="previewContent" style="line-height: 1.6;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

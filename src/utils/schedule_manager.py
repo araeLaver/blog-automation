@@ -9,8 +9,12 @@ import psycopg2
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).parent.parent))
-from src.web_dashboard_pg import get_database
+from src.utils.postgresql_database import PostgreSQLDatabase
 from src.utils.trending_topic_manager import TrendingTopicManager
+
+def get_database():
+    """PostgreSQL 데이터베이스 인스턴스 반환"""
+    return PostgreSQLDatabase()
 
 class ScheduleManager:
     """발행 스케줄 관리 클래스"""
