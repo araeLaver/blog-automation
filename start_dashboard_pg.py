@@ -46,8 +46,8 @@ def start_postgresql_dashboard():
         input("엔터키를 눌러 종료...")
         return
     
-    # Flask 앱 시작
-    from src.web_dashboard_pg import app
+    # Flask 앱 시작 (메인 app.py 사용)
+    from app import app
     
     print("📊 PostgreSQL 대시보드 주소: http://localhost:5000")
     print("🔧 관리자 기능:")
