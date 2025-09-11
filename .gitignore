@@ -56,6 +56,11 @@ data/*.json
 data/*.csv
 !data/.gitkeep
 
+# Generated content files (ignore all content files)
+data/wordpress_posts/
+data/tistory_posts/
+data/logs/
+
 # Static uploaded files
 static/uploads/
 !static/uploads/.gitkeep
