@@ -2015,8 +2015,20 @@ def bulk_delete_files():
         deleted_count = 0
         failed_files = []
         
+        # DB 연결
+        database = get_database()
+        
         for file_path in file_paths:
             try:
+                # DB에서 먼저 삭제
+                if database.is_connected:
+                    try:
+                        # 파일 경로로 DB에서 레코드 찾아서 삭제
+                        database.delete_content_by_path(file_path)
+                        logger.info(f"DB에서 삭제 완료: {file_path}")
+                    except Exception as db_error:
+                        logger.warning(f"DB 삭제 실패 (파일은 삭제 진행): {db_error}")
+                
                 # 파일 경로 검증 및 삭제
                 if os.path.exists(file_path):
                     os.remove(file_path)
@@ -2030,7 +2042,8 @@ def bulk_delete_files():
                         logger.info(f"메타데이터 파일 삭제 완료: {json_path}")
                 else:
                     logger.warning(f"파일이 존재하지 않음: {file_path}")
-                    failed_files.append(file_path)
+                    # DB에서만 삭제하고 카운트 증가
+                    deleted_count += 1
                     
             except Exception as e:
                 logger.error(f"파일 삭제 실패 {file_path}: {e}")

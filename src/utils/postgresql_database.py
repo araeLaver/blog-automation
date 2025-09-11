@@ -857,6 +857,23 @@ class PostgreSQLDatabase:
             logger.error(f"파일 삭제 오류: {e}")
             return False
     
+    def delete_content_by_path(self, file_path: str) -> bool:
+        """파일 경로로 콘텐츠 삭제"""
+        try:
+            conn = self.get_connection()
+            with conn.cursor() as cursor:
+                cursor.execute(f"""
+                    DELETE FROM {self.schema}.content_files 
+                    WHERE file_path = %s
+                """, (file_path,))
+                conn.commit()
+                deleted_count = cursor.rowcount
+                logger.info(f"경로로 DB 삭제: {file_path} (삭제된 행: {deleted_count})")
+                return deleted_count > 0
+        except Exception as e:
+            logger.error(f"경로 기반 파일 삭제 오류: {e}")
+            return False
+    
     def get_content_files(self, file_type: str = None, limit: int = 50) -> List[Dict]:
         """콘텐츠 파일 목록 조회 (오버로드 버전)"""
         try:
