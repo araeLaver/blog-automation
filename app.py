@@ -1300,7 +1300,7 @@ def generate_tistory():
                     content_html = _create_beautiful_html_template(generated_content, site_config)
                     
                     content = content_html
-                    title = generated_content['title']
+                    title = generated_content.get('title', f'{topic} 분석')
                     logger.info(f"Claude API Tistory 콘텐츠 생성 완료: {title[:50]}...")
                     
                 else:
@@ -3394,8 +3394,8 @@ def _create_beautiful_html_template(generated_content, site_config):
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{generated_content['title']}</title>
-    <meta name="description" content="{generated_content['meta_description']}">
+    <title>{generated_content.get('title', '제목')}</title>
+    <meta name="description" content="{generated_content.get('meta_description', '설명')}"
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {{
@@ -3735,23 +3735,23 @@ def _create_beautiful_html_template(generated_content, site_config):
             <main>
 {''.join([f'''
                 <section class="section">
-                    <h2>{section['heading']}</h2>
+                    <h2>{section.get('heading', '섹션')}</h2>
                     <div class="section-content">
-                        {_format_section_content(section['content'])}
+                        {_format_section_content(section.get('content', '내용'))}
                     </div>
                 </section>
-''' for section in generated_content['sections']])}
+''' for section in generated_content.get('sections', [])])}
             </main>
             
             <footer>
                 <section class="conclusion">
                     <h2>마무리</h2>
-                    <p>{generated_content['conclusion']}</p>
+                    <p>{generated_content.get('conclusion', generated_content.get('additional_content', '이상으로 마무리하겠습니다.'))}</p>
                 </section>
                 
                 <div class="tags">
                     <strong style="display: block; margin-bottom: 15px; color: #667eea; font-size: 1.1em;">🏷️ 관련 태그</strong>
-                    {''.join([f'<span class="tag">{tag}</span>' for tag in generated_content['tags']])}
+                    {''.join([f'<span class="tag">{tag}</span>' for tag in generated_content.get('tags', [])])}
                 </div>
             </footer>
         </div>
