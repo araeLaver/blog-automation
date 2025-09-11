@@ -2060,10 +2060,16 @@ def bulk_delete_files():
                         logger.info(f"파일 삭제 완료: {path_to_try}")
                         
                         # JSON 메타데이터 파일도 삭제 (있는 경우)
-                        json_path = path_to_try.replace('.html', '.json')
-                        if os.path.exists(json_path):
-                            os.remove(json_path)
-                            logger.info(f"메타데이터 파일 삭제 완료: {json_path}")
+                        # 일반 JSON 파일과 Tistory _meta.json 파일 모두 확인
+                        json_paths = [
+                            path_to_try.replace('.html', '.json'),
+                            path_to_try.replace('.html', '_meta.json')
+                        ]
+                        
+                        for json_path in json_paths:
+                            if os.path.exists(json_path):
+                                os.remove(json_path)
+                                logger.info(f"메타데이터 파일 삭제 완료: {json_path}")
                         break
                 
                 if file_deleted:
