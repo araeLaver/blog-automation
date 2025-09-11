@@ -2586,6 +2586,13 @@ def reset_publish_status():
 @app.route('/api/quick_publish', methods=['POST'])
 def quick_publish():
     """수동 발행: 오늘 스케줄 주제로 직접 발행"""
+    # 임시 비활성화: API 비용 절약을 위해
+    return jsonify({
+        'success': False,
+        'message': '수동발행 기능이 임시 비활성화되었습니다. 운영환경 문제 해결 중입니다.',
+        'error': 'TEMPORARILY_DISABLED'
+    }), 503
+    
     try:
         data = request.json or {}
         sites = data.get('sites', ['unpre', 'untab', 'skewese', 'tistory'])
