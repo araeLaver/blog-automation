@@ -2305,7 +2305,9 @@ def get_content_list(site):
         # 안전한 파일 검색
         try:
             for filename in os.listdir(content_dir):
-                if filename.endswith('.json'):
+                # 티스토리는 _meta.json, 나머지는 .json 파일 찾기
+                if (site == 'tistory' and filename.endswith('_meta.json')) or \
+                   (site != 'tistory' and filename.endswith('.json') and not filename.endswith('_meta.json')):
                     json_file_path = os.path.join(content_dir, filename)
                     try:
                         with open(json_file_path, 'r', encoding='utf-8') as f:
