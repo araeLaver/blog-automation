@@ -2006,7 +2006,11 @@ def bulk_delete_files():
         data = request.json
         file_paths = data.get('file_paths', [])
         
+        logger.info(f"[DELETE] 삭제 요청 받음: {len(file_paths)}개 파일")
+        logger.info(f"[DELETE] 파일 경로들: {file_paths}")
+        
         if not file_paths:
+            logger.warning("[DELETE] 삭제할 파일이 선택되지 않음")
             return jsonify({
                 'success': False,
                 'error': '삭제할 파일이 선택되지 않았습니다.'
@@ -2020,29 +2024,55 @@ def bulk_delete_files():
         
         for file_path in file_paths:
             try:
+                logger.info(f"[DELETE] 처리 중인 파일: {file_path}")
+                
+                # 운영 환경 경로 변환
+                actual_file_path = file_path
+                if os.getenv('KOYEB_SERVICE'):
+                    # Koyeb 환경에서는 절대 경로로 변환
+                    if not file_path.startswith('/workspace'):
+                        if file_path.startswith('data\\'):
+                            # Windows 경로를 Linux 경로로 변환
+                            actual_file_path = file_path.replace('\\', '/')
+                            actual_file_path = f"/workspace/{actual_file_path}"
+                        elif file_path.startswith('data/'):
+                            actual_file_path = f"/workspace/{file_path}"
+                        else:
+                            actual_file_path = f"/workspace/data/{file_path}"
+                
+                logger.info(f"[DELETE] 변환된 경로: {actual_file_path}")
+                
                 # DB에서 먼저 삭제
                 if database.is_connected:
                     try:
-                        # 파일 경로로 DB에서 레코드 찾아서 삭제
+                        # 원본 경로와 변환된 경로 모두 시도
                         database.delete_content_by_path(file_path)
+                        if file_path != actual_file_path:
+                            database.delete_content_by_path(actual_file_path)
                         logger.info(f"DB에서 삭제 완료: {file_path}")
                     except Exception as db_error:
                         logger.warning(f"DB 삭제 실패 (파일은 삭제 진행): {db_error}")
                 
                 # 파일 경로 검증 및 삭제
-                if os.path.exists(file_path):
-                    os.remove(file_path)
+                file_deleted = False
+                for path_to_try in [actual_file_path, file_path]:
+                    if os.path.exists(path_to_try):
+                        os.remove(path_to_try)
+                        file_deleted = True
+                        logger.info(f"파일 삭제 완료: {path_to_try}")
+                        
+                        # JSON 메타데이터 파일도 삭제 (있는 경우)
+                        json_path = path_to_try.replace('.html', '.json')
+                        if os.path.exists(json_path):
+                            os.remove(json_path)
+                            logger.info(f"메타데이터 파일 삭제 완료: {json_path}")
+                        break
+                
+                if file_deleted:
                     deleted_count += 1
-                    logger.info(f"파일 삭제 완료: {file_path}")
-                    
-                    # JSON 메타데이터 파일도 삭제 (있는 경우)
-                    json_path = file_path.replace('.html', '.json')
-                    if os.path.exists(json_path):
-                        os.remove(json_path)
-                        logger.info(f"메타데이터 파일 삭제 완료: {json_path}")
                 else:
-                    logger.warning(f"파일이 존재하지 않음: {file_path}")
-                    # DB에서만 삭제하고 카운트 증가
+                    logger.warning(f"파일을 찾을 수 없음: {file_path} / {actual_file_path}")
+                    # DB에서만 삭제되었으므로 카운트 증가
                     deleted_count += 1
                     
             except Exception as e:
