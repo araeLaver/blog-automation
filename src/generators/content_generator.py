@@ -69,7 +69,8 @@ class ContentGenerator:
         optimized_content = self._optimize_for_seo(structured_content, site_config)
         
         # 최종 Unicode 안전성 검사 (Windows CP949 호환성 보장)
-        optimized_content = self._ensure_cp949_compatibility(optimized_content)
+        # UTF-8 사용으로 변경 - cp949 호환성 체크 제거
+        # optimized_content = self._ensure_cp949_compatibility(optimized_content)
         
         return optimized_content
     
@@ -283,10 +284,12 @@ Category: {category}
             result = response.content[0].text
             
             # 즉시 CP949 호환성 처리 - API 응답 직후
-            result = self._aggressive_cp949_clean(result)
+            # UTF-8 사용으로 변경 - cp949 클리닝 제거
+            # result = self._aggressive_cp949_clean(result)
             
             # 추가 CP949 호환성 처리 - 문자 단위로 검사 및 변환
-            result = self._ensure_cp949_compatibility(result)
+            # UTF-8 사용으로 변경 - cp949 호환성 체크 제거
+            # result = self._ensure_cp949_compatibility(result)
             
             # 실제 토큰 사용량 (Claude API 응답에서 가져오기)
             actual_input_tokens = response.usage.input_tokens
@@ -372,7 +375,8 @@ Category: {category}
             print(f"Parsing content: {content[:500]}...")
             
             # CP949 호환성 처리
-            content = self._ensure_cp949_compatibility(content)
+            # UTF-8 사용으로 변경 - cp949 호환성 체크 제거
+            # content = self._ensure_cp949_compatibility(content)
             
             # JSON 추출 (마크다운 코드 블록 제거)
             original_content = content
@@ -416,40 +420,26 @@ Category: {category}
             print("Unicode sanitization completed.")
             
             # 강력한 CP949 정리 적용 (JSON 파싱 전)
-            content = self._aggressive_cp949_clean(content)
+            # UTF-8 사용으로 변경 - cp949 클리닝 제거
+            # content = self._aggressive_cp949_clean(content)
             print("CP949 cleaning applied before JSON parsing.")
             
             parsed_content = json.loads(content)
             print(f"Successfully parsed JSON: {list(parsed_content.keys())}")
             
             # 강제 CP949 호환성 변환
-            def force_cp949_safe(obj):
+            def force_utf8_safe(obj):
                 if isinstance(obj, dict):
-                    return {k: force_cp949_safe(v) for k, v in obj.items()}
+                    return {k: force_utf8_safe(v) for k, v in obj.items()}
                 elif isinstance(obj, list):
-                    return [force_cp949_safe(item) for item in obj]
+                    return [force_utf8_safe(item) for item in obj]
                 elif isinstance(obj, str):
-                    try:
-                        obj.encode('cp949')
-                        return obj
-                    except UnicodeEncodeError:
-                        # 모든 문제 문자들을 안전하게 변환
-                        result = (obj
-                                .replace('⚠️', '[주의]').replace('⚠', '[주의]')
-                                .replace('✅', '[완료]').replace('❌', '[실패]')
-                                .replace('📌', '[중요]').replace('📊', '[차트]')
-                                .replace('🔍', '[검색]').replace('🎯', '[목표]')
-                                .replace('📝', '[메모]').replace('📅', '[일정]')
-                                .replace('📋', '[목록]').replace('🔌', '[연결]'))
-                        try:
-                            result.encode('cp949')
-                            return result
-                        except UnicodeEncodeError:
-                            return result.encode('cp949', errors='ignore').decode('cp949')
+                    # UTF-8로 그대로 반환
+                    return obj
                 else:
                     return obj
             
-            parsed_content = force_cp949_safe(parsed_content)
+            parsed_content = force_utf8_safe(parsed_content)
             print("CP949 호환성 변환 적용 완료")
             
             # 콘텐츠 검증

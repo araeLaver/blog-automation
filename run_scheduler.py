@@ -39,8 +39,8 @@ if __name__ == "__main__":
     
     else:
         # 기본: 스케줄러 시작
-        print("🚀 자동 발행 스케줄러 v2를 시작합니다...")
-        print("📅 매일 새벽 3시에 계획표 기반으로 모든 사이트에 자동 발행됩니다.")
-        print("🎯 대상 사이트: UNPRE, UNTAB, SKEWESE, TISTORY (각 사이트당 2개씩 총 8개 콘텐츠)")
-        print("🛑 종료하려면 Ctrl+C를 누르세요.")
+        print("자동 발행 스케줄러 v2를 시작합니다...")
+        print("매일 새벽 3시에 계획표 기반으로 모든 사이트에 자동 발행됩니다.")
+        print("대상 사이트: UNPRE, UNTAB, SKEWESE, TISTORY (각 사이트당 2개씩 총 8개 콘텐츠)")
+        print("종료하려면 Ctrl+C를 누르세요.")
         publisher.start()

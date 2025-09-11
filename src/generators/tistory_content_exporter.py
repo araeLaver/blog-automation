@@ -48,8 +48,8 @@ class TistoryContentExporter:
         with open(metadata_file, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
         
-        print(f"✅ Tistory 콘텐츠 생성 완료: {filepath}")
-        print(f"📋 메타데이터: {metadata_file}")
+        print(f"[완료] Tistory 콘텐츠 생성 완료: {filepath}")
+        print(f"[메타] 메타데이터: {metadata_file}")
         
         return str(filepath)
     
