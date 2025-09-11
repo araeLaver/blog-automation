@@ -2586,13 +2586,6 @@ def reset_publish_status():
 @app.route('/api/quick_publish', methods=['POST'])
 def quick_publish():
     """수동 발행: 오늘 스케줄 주제로 직접 발행"""
-    # 임시 비활성화: API 비용 절약을 위해
-    return jsonify({
-        'success': False,
-        'message': '수동발행 기능이 임시 비활성화되었습니다. 운영환경 문제 해결 중입니다.',
-        'error': 'TEMPORARILY_DISABLED'
-    }), 503
-    
     try:
         data = request.json or {}
         sites = data.get('sites', ['unpre', 'untab', 'skewese', 'tistory'])
@@ -2682,32 +2675,67 @@ def quick_publish():
                             keywords = ['오늘', '추천', '주제']
                             add_system_log('WARNING', f'{site}: 대체 주제 사용 - {topic}', 'FALLBACK')
                         
-                        # WordPress 콘텐츠 생성 및 발행
-                        payload = {
-                            'site': site,
-                            'topic': topic,
-                            'keywords': keywords,
-                            'category': category
-                        }
-                        
-                        # 환경에 따른 API URL 결정
-                        if os.getenv('KOYEB_SERVICE'):
-                            # Koyeb 운영 환경
-                            api_url = 'http://localhost:8000/api/generate_wordpress'
-                        else:
-                            # 로컬 개발 환경
-                            api_url = 'http://localhost:5000/api/generate_wordpress'
-                        
-                        response = requests.post(
-                            api_url,
-                            json=payload,
-                            headers={'Content-Type': 'application/json'},
-                            timeout=300
-                        )
-                        
-                        if response.status_code == 200:
-                            result = response.json()
-                            if result.get('success'):
+                        # 직접 콘텐츠 생성 (HTTP 호출 대신)
+                        try:
+                            # 콘텐츠 생성기 사용
+                            generator = ContentGenerator()
+                            
+                            # 사이트별 설정
+                            if site == 'tistory':
+                                from src.generators.tistory_content_exporter import TistoryContentExporter
+                                exporter = TistoryContentExporter()
+                                site_config = {
+                                    'name': 'TISTORY',
+                                    'categories': [category],
+                                    'content_style': '친근하고 읽기 쉬운 톤',
+                                    'target_audience': '일반 대중',
+                                    'keywords_focus': keywords
+                                }
+                            else:
+                                from src.generators.wordpress_content_exporter import WordPressContentExporter
+                                exporter = WordPressContentExporter()
+                                site_config = {
+                                    'name': site.upper(),
+                                    'categories': [category],
+                                    'content_style': '전문적이고 신뢰할 수 있는 톤',
+                                    'target_audience': '관심 있는 독자들',
+                                    'keywords_focus': keywords
+                                }
+                            
+                            # 콘텐츠 생성
+                            content_data = generator.generate_content(
+                                site_config,
+                                topic,
+                                category,
+                                None,  # existing_posts
+                                'medium',  # content_length
+                                site  # site_key for API tracking
+                            )
+                            
+                            if content_data:
+                                # 파일로 내보내기
+                                if site == 'tistory':
+                                    filepath = exporter.export_content(content_data)
+                                else:
+                                    filepath = exporter.export_content(site, content_data)
+                                
+                                # DB에 저장
+                                file_id = db.add_content_file(
+                                    site=site,
+                                    title=content_data['title'],
+                                    file_path=filepath,
+                                    file_type='tistory' if site == 'tistory' else 'wordpress',
+                                    metadata={
+                                        'category': category,
+                                        'tags': content_data.get('tags', []),
+                                        'manual_published': True,
+                                        'published_at': datetime.now(timezone(timedelta(hours=9))).isoformat()
+                                    }
+                                )
+                                
+                                # 발행 상태 업데이트
+                                db.update_file_status(file_id, 'published', datetime.now())
+                                
                                 publish_status['results'].append({
                                     'site': site,
                                     'success': True,
@@ -2716,22 +2744,22 @@ def quick_publish():
                                 })
                                 add_system_log('INFO', f'{site} 발행 성공: {topic}', 'SUCCESS')
                             else:
-                                error = result.get('error', '알 수 없는 오류')
                                 publish_status['results'].append({
                                     'site': site,
                                     'success': False,
-                                    'message': f'{site} 발행 실패: {error}',
+                                    'message': f'{site} 콘텐츠 생성 실패',
                                     'topic': topic
                                 })
-                                add_system_log('ERROR', f'{site} 발행 실패: {error}', 'ERROR')
-                        else:
+                                add_system_log('ERROR', f'{site} 콘텐츠 생성 실패', 'ERROR')
+                        
+                        except Exception as content_error:
                             publish_status['results'].append({
                                 'site': site,
                                 'success': False,
-                                'message': f'{site} API 오류: HTTP {response.status_code}',
+                                'message': f'{site} 콘텐츠 생성 오류: {str(content_error)}',
                                 'topic': topic
                             })
-                            add_system_log('ERROR', f'{site} API 오류: {response.status_code}', 'ERROR')
+                            add_system_log('ERROR', f'{site} 콘텐츠 생성 오류: {content_error}', 'ERROR')
                             
                     except Exception as site_error:
                         publish_status['results'].append({
