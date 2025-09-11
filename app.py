@@ -2691,6 +2691,39 @@ def reset_publish_status():
         'message': '발행 상태가 초기화되었습니다.'
     })
 
+@app.route('/api/quick-publish/preview', methods=['GET'])
+def quick_publish_preview():
+    """수동발행 미리보기: 오늘의 수익 최우선 주제 표시"""
+    try:
+        from auto_weekly_planner import ProfitWeeklyPlanner
+        from datetime import datetime
+        
+        planner = ProfitWeeklyPlanner()
+        today_topics = planner.get_today_profit_topics()
+        
+        preview_data = {
+            'date': datetime.now().strftime('%Y-%m-%d'),
+            'sites': {}
+        }
+        
+        for topic_info in today_topics:
+            site = topic_info['site']
+            preview_data['sites'][site] = {
+                'title': topic_info['title'],
+                'category': topic_info['category'],
+                'keywords': topic_info.get('keywords', []),
+                'trend_score': topic_info.get('trend_score', 0),
+                'profit_type': 'ultra_profit' if topic_info.get('trend_score', 0) >= 90 else 
+                              'high_profit' if topic_info.get('trend_score', 0) >= 80 else 
+                              'profit_optimized'
+            }
+        
+        return jsonify(preview_data)
+        
+    except Exception as e:
+        logger.error(f"미리보기 오류: {e}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/quick_publish', methods=['POST'])
 def quick_publish():
     """수동 발행: 오늘 스케줄 주제로 직접 발행"""
@@ -2742,34 +2775,56 @@ def quick_publish():
                         database = get_database()
                         conn = database.get_connection()
                         
+                        # 수익 최우선 계획표에서 가져오기
+                        from auto_weekly_planner import ProfitWeeklyPlanner
+                        planner = ProfitWeeklyPlanner()
+                        
                         topic_data = None
-                        with conn.cursor() as cursor:
-                            days_since_monday = today.weekday()
-                            week_start = today - timedelta(days=days_since_monday)
+                        try:
+                            # 오늘의 수익 최우선 주제 가져오기
+                            today_topics = planner.get_today_profit_topics()
                             
-                            cursor.execute('''
-                            SELECT plan_data FROM blog_automation.weekly_plans 
-                            WHERE week_start = %s
-                            ORDER BY created_at DESC
-                            LIMIT 1
-                            ''', (week_start,))
-                            
-                            result = cursor.fetchone()
-                            if result:
-                                plan_data = result[0]
-                                plans = plan_data.get('plans', [])
-                                
-                                # 오늘 날짜, 현재 사이트에 해당하는 계획 찾기
-                                today_plan = next((plan for plan in plans 
-                                                 if plan.get('date') == today_str and plan.get('site') == site), None)
-                                
-                                if today_plan:
+                            # 사이트별 주제 찾기
+                            for topic_info in today_topics:
+                                if topic_info['site'] == site:
                                     topic_data = {
-                                        'topic': today_plan.get('title'),
-                                        'category': today_plan.get('category'),
-                                        'keywords': today_plan.get('keywords', [site])
+                                        'topic': topic_info['title'],
+                                        'category': topic_info['category'],
+                                        'keywords': topic_info.get('keywords', [])
                                     }
-                                    add_system_log('INFO', f'{site} 주간계획 사용: {topic_data["topic"]}', 'SCHEDULE')
+                                    add_system_log('INFO', f'{site} 수익 최우선 계획 사용: {topic_data["topic"]} (카테고리: {topic_data["category"]}, 트렌드점수: {topic_info.get("trend_score", 0)})', 'PROFIT_SCHEDULE')
+                                    break
+                        except Exception as e:
+                            add_system_log('WARNING', f'수익 계획표 조회 실패, DB 폴백: {e}', 'SCHEDULE')
+                            
+                            # 폴백: DB에서 가져오기
+                            with conn.cursor() as cursor:
+                                days_since_monday = today.weekday()
+                                week_start = today - timedelta(days=days_since_monday)
+                                
+                                cursor.execute('''
+                                SELECT plan_data FROM blog_automation.weekly_plans 
+                                WHERE week_start = %s
+                                ORDER BY created_at DESC
+                                LIMIT 1
+                                ''', (week_start,))
+                                
+                                result = cursor.fetchone()
+                                if result:
+                                    plan_data = result[0]
+                                    plans = plan_data.get('plans', [])
+                                    
+                                    # 오늘 날짜, 현재 사이트에 해당하는 계획 찾기
+                                    today_plan = next((plan for plan in plans 
+                                                     if plan.get('date') == today_str and plan.get('site') == site), None)
+                                    
+                                    if today_plan:
+                                        topic_data = {
+                                            'topic': today_plan.get('title'),
+                                            'category': today_plan.get('category'),
+                                            'keywords': today_plan.get('keywords', [site])
+                                        }
+                                        add_system_log('INFO', f'{site} DB 계획 사용: {topic_data["topic"]}', 'SCHEDULE')
                         
                         if topic_data:
                             topic = topic_data['topic']

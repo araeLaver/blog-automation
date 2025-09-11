@@ -17,7 +17,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class AutoWeeklyPlanner:
+class ProfitWeeklyPlanner:
     """자동 주간계획 생성기"""
     
     def __init__(self):
@@ -386,6 +386,33 @@ class AutoWeeklyPlanner:
             
         return korean_title.strip()
 
+    def get_today_profit_topics(self):
+        """오늘의 수익 최우선 주제 반환"""
+        today = datetime.now().date()
+        
+        # 이번 주 계획 가져오기
+        weekday = today.weekday()  
+        week_start = today - timedelta(days=weekday)
+        
+        # 이번 주 계획 찾기 또는 생성
+        weekly_plan = self.generate_weekly_plan(week_start)
+        
+        # 오늘 날짜에 해당하는 계획들 필터링
+        today_str = today.strftime('%Y-%m-%d')
+        today_topics = []
+        
+        for plan in weekly_plan.get('plans', []):
+            if plan.get('date') == today_str:
+                today_topics.append({
+                    'site': plan.get('site'),
+                    'title': plan.get('title'),
+                    'category': plan.get('category', 'profit_optimized'),
+                    'keywords': plan.get('keywords', []),
+                    'trend_score': plan.get('profit_score', 0)
+                })
+        
+        return today_topics
+    
     def _adjust_title_for_site(self, original_title: str, site: str) -> str:
         """사이트별 제목 조정"""
         # 먼저 한국어로 변환
