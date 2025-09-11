@@ -1191,6 +1191,24 @@ def generate_wordpress():
                     file_path = exporter.export_content(site, content_dict, [])
                     logger.warning(f"Claude API 미사용, 기본 콘텐츠 생성: {title}")
                 
+                # JSON 메타데이터 파일 생성 (목록 표시용)
+                import time
+                import json
+                json_file_path = file_path.replace('.html', '.json')
+                metadata_content = {
+                    'title': title,
+                    'id': int(time.time()),
+                    'site': site,
+                    'status': 'draft',
+                    'tags': data.get('keywords', [topic]),
+                    'categories': [data.get('category', '기본')],
+                    'created_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+                    'file_path': file_path
+                }
+                
+                with open(json_file_path, 'w', encoding='utf-8') as f:
+                    json.dump(metadata_content, f, ensure_ascii=False, indent=2)
+                
                 # 콘텐츠를 데이터베이스에 직접 저장
                 file_id = database.add_content_file(
                     site=site,
@@ -1310,11 +1328,45 @@ def generate_tistory():
                     title = f'{topic} 심화 분석'
                     logger.warning(f"Claude API 미사용, Tistory 기본 콘텐츠 생성: {title}")
                 
-                # 콘텐츠를 데이터베이스에 직접 저장 (파일 시스템 사용 안함)
+                # Tistory 파일로 저장 (목록 표시를 위해)
+                import time
+                import json
+                from datetime import datetime
+                
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                safe_title = safe_title.replace(' ', ' ')[:50]  # 제목 길이 제한
+                
+                html_filename = f"{timestamp}_{safe_title}.html"
+                html_file_path = os.path.join('data', 'tistory_posts', html_filename)
+                
+                # 디렉토리 생성
+                os.makedirs(os.path.dirname(html_file_path), exist_ok=True)
+                
+                # HTML 파일 저장
+                with open(html_file_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                
+                # _meta.json 파일 생성 (목록 표시용)
+                meta_filename = html_filename.replace('.html', '_meta.json')
+                meta_file_path = os.path.join('data', 'tistory_posts', meta_filename)
+                
+                metadata_content = {
+                    'title': title,
+                    'tags': data.get('keywords', [topic]),
+                    'category': data.get('category', '기본'),
+                    'created_at': datetime.now().isoformat(),
+                    'file_path': html_file_path.replace('\\', '/')
+                }
+                
+                with open(meta_file_path, 'w', encoding='utf-8') as f:
+                    json.dump(metadata_content, f, ensure_ascii=False, indent=2)
+                
+                # 콘텐츠를 데이터베이스에도 저장
                 file_id = database.add_content_file(
-                    site='untab',
+                    site='tistory',
                     title=title,
-                    file_path=content,  # 실제 콘텐츠를 file_path 필드에 저장
+                    file_path=html_file_path,  # 파일 경로 저장
                     file_type='tistory',
                     metadata={
                         'categories': [data.get('category', '기본')],
