@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from flask import Flask, render_template, jsonify, request, send_file, make_response
 from flask_cors import CORS
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 import pytz
 import json
 import logging
@@ -2281,7 +2281,7 @@ def get_content_list(site):
         
         site_map = {
             'skewese': 'wordpress_posts/skewese',
-            'tistory': 'wordpress_posts/tistory',
+            'tistory': 'tistory_posts',  # 티스토리는 별도 경로
             'unpre': 'wordpress_posts/unpre', 
             'untab': 'wordpress_posts/untab'
         }
