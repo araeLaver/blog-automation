@@ -2683,8 +2683,16 @@ def quick_publish():
                             'category': category
                         }
                         
+                        # 환경에 따른 API URL 결정
+                        if os.getenv('KOYEB_SERVICE'):
+                            # Koyeb 운영 환경
+                            api_url = 'http://localhost:8000/api/generate_wordpress'
+                        else:
+                            # 로컬 개발 환경
+                            api_url = 'http://localhost:5000/api/generate_wordpress'
+                        
                         response = requests.post(
-                            'http://localhost:5000/api/generate_wordpress',
+                            api_url,
                             json=payload,
                             headers={'Content-Type': 'application/json'},
                             timeout=300
