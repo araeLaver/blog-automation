@@ -2024,6 +2024,8 @@ def bulk_delete_files():
         
         for file_path in file_paths:
             try:
+                # 백슬래시를 슬래시로 변환 (모든 환경)
+                file_path = file_path.replace('\\', '/')
                 logger.info(f"[DELETE] 처리 중인 파일: {file_path}")
                 
                 # 운영 환경 경로 변환
@@ -2031,11 +2033,7 @@ def bulk_delete_files():
                 if os.getenv('KOYEB_SERVICE'):
                     # Koyeb 환경에서는 절대 경로로 변환
                     if not file_path.startswith('/workspace'):
-                        if file_path.startswith('data\\'):
-                            # Windows 경로를 Linux 경로로 변환
-                            actual_file_path = file_path.replace('\\', '/')
-                            actual_file_path = f"/workspace/{actual_file_path}"
-                        elif file_path.startswith('data/'):
+                        if file_path.startswith('data/'):
                             actual_file_path = f"/workspace/{file_path}"
                         else:
                             actual_file_path = f"/workspace/data/{file_path}"
@@ -2312,6 +2310,13 @@ def get_content_list(site):
                     try:
                         with open(json_file_path, 'r', encoding='utf-8') as f:
                             content_data = json.load(f)
+                            
+                            # 운영 환경에서 경로 정규화 (백슬래시를 슬래시로 변환)
+                            if 'file_path' in content_data:
+                                if os.getenv('KOYEB_SERVICE'):
+                                    # Koyeb 환경에서는 슬래시로 변환
+                                    content_data['file_path'] = content_data['file_path'].replace('\\', '/')
+                            
                             contents.append(content_data)
                             logger.debug(f"JSON 파일 로드 성공: {filename}")
                     except Exception as e:
