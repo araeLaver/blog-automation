@@ -1,0 +1,23 @@
+{
+  "site": "unpre",
+  "title": "파이썬으로 구현하는 NLP 감정 분석: 초보자도 이해하는 실전 가이드",
+  "tags": [
+    "NLP",
+    "감정분석",
+    "머신러닝",
+    "파이썬",
+    "텍스트마이닝"
+  ],
+  "categories": [],
+  "keywords": [
+    "NLP감정분석",
+    "자연어처리",
+    "텍스트분석"
+  ],
+  "meta_description": "자연어 처리(NLP)를 활용한 감정 분석 구현 방법을 상세히 알아봅니다. 파이썬 코드와 함께 실제 프로젝트에 적용할 수 있는 단계별 가이드를 제공합니다.",
+  "created_at": "2025-09-11T10:12:47.598666",
+  "file_path": "data\\wordpress_posts\\unpre\\20250911_101247_파이썬으로 구현하는 NLP 감정 분석 초보자도 이해하는 실전 가이드.html",
+  "status": "draft",
+  "word_count": 1967,
+  "estimated_reading_time": 7
+}
