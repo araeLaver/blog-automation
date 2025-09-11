@@ -1109,7 +1109,10 @@
 
                 showToast(`${site.toUpperCase()} 콘텐츠 생성을 시작합니다...`, 'info');
 
-                const response = await fetch('/api/generate_wordpress', {
+                // 사이트에 따라 올바른 API 엔드포인트 선택
+                const apiEndpoint = site === 'tistory' ? '/api/generate_tistory' : '/api/generate_wordpress';
+                
+                const response = await fetch(apiEndpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
