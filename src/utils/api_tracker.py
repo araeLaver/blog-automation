@@ -1,20 +1,32 @@
 """
-API 사용 내역 추적 시스템
+API 사용 내역 추적 시스템 - PostgreSQL 버전
 Claude API 사용량과 비용을 실시간으로 추적하고 기록
 """
 
 import json
-import sqlite3
-from datetime import datetime
+import psycopg2
+import psycopg2.extras
+from datetime import datetime, date
 from typing import Dict, List, Optional
-from pathlib import Path
 import os
+from dotenv import load_dotenv
+import logging
+
+load_dotenv()
+logger = logging.getLogger(__name__)
 
 class APITracker:
-    def __init__(self, db_path: str = "data/api_usage.db"):
-        """API 추적기 초기화"""
-        self.db_path = db_path
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    def __init__(self):
+        """API 추적기 초기화 - PostgreSQL 사용"""
+        # PostgreSQL 연결 정보
+        self.connection_params = {
+            'host': os.getenv('PG_HOST', 'ep-divine-bird-a1f4mly5.ap-southeast-1.pg.koyeb.app'),
+            'port': int(os.getenv('PG_PORT', 5432)),
+            'database': os.getenv('PG_DATABASE', 'unble'),
+            'user': os.getenv('PG_USER', 'unble'),
+            'password': os.getenv('PG_PASSWORD', 'npg_1kjV0mhECxqs'),
+        }
+        self.schema = os.getenv('PG_SCHEMA', 'blog_automation')
         self._init_database()
         
         # Claude API 가격 (1M 토큰당)
@@ -26,336 +38,226 @@ class APITracker:
         }
     
     def _init_database(self):
-        """데이터베이스 초기화"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            
-            # API 사용 내역 테이블
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS api_usage (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp TEXT NOT NULL,
-                    service TEXT NOT NULL,
-                    model TEXT NOT NULL,
-                    endpoint TEXT,
-                    input_tokens INTEGER,
-                    output_tokens INTEGER,
-                    total_tokens INTEGER,
-                    cost_usd REAL,
-                    site TEXT,
-                    purpose TEXT,
-                    success BOOLEAN,
-                    error_message TEXT,
-                    metadata TEXT
-                )
-            """)
-            
-            # 일별 집계 테이블
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS daily_usage (
-                    date TEXT PRIMARY KEY,
-                    total_requests INTEGER DEFAULT 0,
-                    total_tokens INTEGER DEFAULT 0,
-                    total_cost_usd REAL DEFAULT 0,
-                    by_service TEXT,
-                    by_site TEXT,
-                    updated_at TEXT
-                )
-            """)
-            
-            conn.commit()
-    
-    def log_api_call(self, 
-                     service: str,
-                     model: str,
-                     input_tokens: int,
-                     output_tokens: int,
-                     site: str = None,
-                     purpose: str = None,
-                     success: bool = True,
-                     error_message: str = None,
-                     endpoint: str = None,
-                     metadata: Dict = None) -> float:
-        """API 호출 기록"""
-        
-        # 총 토큰 수 계산
-        total_tokens = input_tokens + output_tokens
-        
-        # 비용 계산 (USD)
-        model_key = model.lower()
-        cost = 0.0
-        
-        # 모델명 매칭
-        if "opus" in model_key:
-            pricing = self.pricing["claude-3-opus"]
-        elif "sonnet" in model_key:
-            pricing = self.pricing.get("claude-3.5-sonnet", self.pricing["claude-3-sonnet"])
-        elif "haiku" in model_key:
-            pricing = self.pricing["claude-3-haiku"]
-        else:
-            pricing = self.pricing["claude-3-sonnet"]  # 기본값
-        
-        # 비용 계산 (토큰 수 / 1,000,000 * 가격)
-        cost = (input_tokens / 1_000_000 * pricing["input"]) + \
-               (output_tokens / 1_000_000 * pricing["output"])
-        
-        # 데이터베이스에 기록
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                INSERT INTO api_usage (
-                    timestamp, service, model, endpoint, input_tokens, 
-                    output_tokens, total_tokens, cost_usd, site, purpose, 
-                    success, error_message, metadata
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                datetime.now().isoformat(),
-                service,
-                model,
-                endpoint,
-                input_tokens,
-                output_tokens,
-                total_tokens,
-                cost,
-                site,
-                purpose,
-                success,
-                error_message,
-                json.dumps(metadata) if metadata else None
-            ))
-            
-            # 일별 집계 업데이트
-            today = datetime.now().date().isoformat()
-            self._update_daily_usage(cursor, today, service, site, cost, total_tokens)
-            
-            conn.commit()
-        
-        # 콘솔에 출력 (Unicode 안전하게)
+        """PostgreSQL 데이터베이스 초기화"""
         try:
-            print(f"\n[가격] API 사용 기록:")
-            print(f"   - 서비스: {service}")
-            print(f"   - 모델: {model}")
-            print(f"   - 입력 토큰: {input_tokens:,}")
-            print(f"   - 출력 토큰: {output_tokens:,}")
-            print(f"   - 총 토큰: {total_tokens:,}")
-            print(f"   - 비용: ${cost:.4f} USD")
-            if site:
-                print(f"   - 사이트: {site}")
-            if purpose:
-                print(f"   - 용도: {purpose}")
-            if not success:
-                print(f"   [실패] {error_message}")
-        except UnicodeEncodeError:
-            print(f"\n[API USAGE] Service: {service}, Model: {model}, Cost: ${cost:.4f}")
-            if not success:
-                print(f"   ERROR: {error_message}")
-        
-        return cost
+            with psycopg2.connect(**self.connection_params) as conn:
+                cursor = conn.cursor()
+                
+                # API 사용 내역 테이블
+                cursor.execute(f"""
+                    CREATE TABLE IF NOT EXISTS {self.schema}.api_usage (
+                        id SERIAL PRIMARY KEY,
+                        timestamp TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                        service TEXT NOT NULL,
+                        model TEXT NOT NULL,
+                        endpoint TEXT,
+                        input_tokens INTEGER,
+                        output_tokens INTEGER,
+                        total_tokens INTEGER,
+                        cost_usd NUMERIC(10,6),
+                        site TEXT,
+                        purpose TEXT,
+                        success BOOLEAN,
+                        error_message TEXT,
+                        metadata JSONB
+                    )
+                """)
+                
+                # 인덱스 생성
+                cursor.execute(f"""
+                    CREATE INDEX IF NOT EXISTS idx_api_usage_timestamp 
+                    ON {self.schema}.api_usage(timestamp)
+                """)
+                cursor.execute(f"""
+                    CREATE INDEX IF NOT EXISTS idx_api_usage_site 
+                    ON {self.schema}.api_usage(site)
+                """)
+                
+                conn.commit()
+        except Exception as e:
+            logger.error(f"데이터베이스 초기화 오류: {e}")
     
-    def _update_daily_usage(self, cursor, date: str, service: str, site: str, cost: float, tokens: int):
-        """일별 사용량 업데이트"""
-        
-        # 기존 데이터 조회
-        cursor.execute("SELECT * FROM daily_usage WHERE date = ?", (date,))
-        existing = cursor.fetchone()
-        
-        if existing:
-            # 업데이트
-            cursor.execute("""
-                UPDATE daily_usage 
-                SET total_requests = total_requests + 1,
-                    total_tokens = total_tokens + ?,
-                    total_cost_usd = total_cost_usd + ?,
-                    updated_at = ?
-                WHERE date = ?
-            """, (tokens, cost, datetime.now().isoformat(), date))
-        else:
-            # 새로 추가
-            by_service = {service: {"requests": 1, "tokens": tokens, "cost": cost}}
-            by_site = {site: {"requests": 1, "tokens": tokens, "cost": cost}} if site else {}
+    def track_usage(self, 
+                    service: str,
+                    model: str,
+                    input_tokens: int,
+                    output_tokens: int,
+                    site: str = None,
+                    endpoint: str = None,
+                    purpose: str = None,
+                    success: bool = True,
+                    error_message: str = None,
+                    metadata: Dict = None):
+        """API 사용량 추적"""
+        try:
+            total_tokens = input_tokens + output_tokens
+            cost_usd = self.calculate_cost(model, input_tokens, output_tokens)
             
-            cursor.execute("""
-                INSERT INTO daily_usage (
-                    date, total_requests, total_tokens, total_cost_usd, 
-                    by_service, by_site, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                date, 1, tokens, cost,
-                json.dumps(by_service),
-                json.dumps(by_site),
-                datetime.now().isoformat()
-            ))
+            with psycopg2.connect(**self.connection_params) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute(f"""
+                    INSERT INTO {self.schema}.api_usage (
+                        service, model, endpoint, input_tokens, output_tokens, 
+                        total_tokens, cost_usd, site, purpose, success, error_message, metadata
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
+                    service, model, endpoint, input_tokens, output_tokens,
+                    total_tokens, cost_usd, site, purpose, success, error_message,
+                    json.dumps(metadata) if metadata else None
+                ))
+                
+                conn.commit()
+                logger.info(f"API 사용량 기록: {service} {model} - {total_tokens} 토큰, ${cost_usd:.4f}")
+                
+        except Exception as e:
+            logger.error(f"API 사용량 추적 오류: {e}")
+    
+    def calculate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
+        """토큰 사용량을 기반으로 비용 계산"""
+        if model not in self.pricing:
+            return 0.0
+        
+        prices = self.pricing[model]
+        input_cost = (input_tokens / 1_000_000) * prices["input"]
+        output_cost = (output_tokens / 1_000_000) * prices["output"]
+        
+        return input_cost + output_cost
     
     def get_today_usage(self) -> Dict:
-        """오늘의 사용량 조회"""
-        today = datetime.now().date().isoformat()
-        
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            
-            # 오늘 총 사용량
-            cursor.execute("""
-                SELECT COUNT(*) as count, 
-                       SUM(total_tokens) as tokens,
-                       SUM(cost_usd) as cost
-                FROM api_usage
-                WHERE DATE(timestamp) = ?
-            """, (today,))
-            
-            result = cursor.fetchone()
-            
-            # 서비스별 집계
-            cursor.execute("""
-                SELECT service, 
-                       COUNT(*) as count,
-                       SUM(total_tokens) as tokens,
-                       SUM(cost_usd) as cost
-                FROM api_usage
-                WHERE DATE(timestamp) = ?
-                GROUP BY service
-            """, (today,))
-            
-            by_service = {}
-            for row in cursor.fetchall():
-                by_service[row[0]] = {
-                    "requests": row[1],
-                    "tokens": row[2] or 0,
-                    "cost": row[3] or 0
+        """오늘의 API 사용량 조회"""
+        try:
+            with psycopg2.connect(**self.connection_params) as conn:
+                cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+                
+                cursor.execute(f"""
+                    SELECT 
+                        COUNT(*) as total_requests,
+                        SUM(input_tokens) as total_input_tokens,
+                        SUM(output_tokens) as total_output_tokens,
+                        SUM(total_tokens) as total_tokens,
+                        SUM(cost_usd) as total_cost_usd
+                    FROM {self.schema}.api_usage 
+                    WHERE DATE(timestamp) = CURRENT_DATE
+                """)
+                
+                result = cursor.fetchone()
+                return {
+                    'total_requests': result['total_requests'] or 0,
+                    'total_input_tokens': result['total_input_tokens'] or 0,
+                    'total_output_tokens': result['total_output_tokens'] or 0,
+                    'total_tokens': result['total_tokens'] or 0,
+                    'total_cost_usd': float(result['total_cost_usd'] or 0)
                 }
-            
-            # 사이트별 집계
-            cursor.execute("""
-                SELECT site, 
-                       COUNT(*) as count,
-                       SUM(total_tokens) as tokens,
-                       SUM(cost_usd) as cost
-                FROM api_usage
-                WHERE DATE(timestamp) = ? AND site IS NOT NULL
-                GROUP BY site
-            """, (today,))
-            
-            by_site = {}
-            for row in cursor.fetchall():
-                by_site[row[0]] = {
-                    "requests": row[1],
-                    "tokens": row[2] or 0,
-                    "cost": row[3] or 0
-                }
-            
+        except Exception as e:
+            logger.error(f"오늘 사용량 조회 오류: {e}")
             return {
-                "date": today,
-                "total_requests": result[0] or 0,
-                "total_tokens": result[1] or 0,
-                "total_cost_usd": result[2] or 0,
-                "by_service": by_service,
-                "by_site": by_site
+                'total_requests': 0,
+                'total_input_tokens': 0,
+                'total_output_tokens': 0,
+                'total_tokens': 0,
+                'total_cost_usd': 0.0
             }
     
-    def get_monthly_usage(self) -> Dict:
-        """이번 달 사용량 조회"""
-        month_start = datetime.now().replace(day=1).date().isoformat()
-        
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                SELECT COUNT(*) as count,
-                       SUM(total_tokens) as tokens,
-                       SUM(cost_usd) as cost
-                FROM api_usage
-                WHERE DATE(timestamp) >= ?
-            """, (month_start,))
-            
-            result = cursor.fetchone()
-            
-            # 일별 추이
-            cursor.execute("""
-                SELECT DATE(timestamp) as date,
-                       COUNT(*) as count,
-                       SUM(cost_usd) as cost
-                FROM api_usage
-                WHERE DATE(timestamp) >= ?
-                GROUP BY DATE(timestamp)
-                ORDER BY date
-            """, (month_start,))
-            
-            daily_trend = []
-            for row in cursor.fetchall():
-                daily_trend.append({
-                    "date": row[0],
-                    "requests": row[1],
-                    "cost": row[2] or 0
-                })
-            
+    def get_usage_by_site(self, site: str, days: int = 7) -> Dict:
+        """사이트별 API 사용량 조회"""
+        try:
+            with psycopg2.connect(**self.connection_params) as conn:
+                cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+                
+                cursor.execute(f"""
+                    SELECT 
+                        COUNT(*) as total_requests,
+                        SUM(input_tokens) as total_input_tokens,
+                        SUM(output_tokens) as total_output_tokens,
+                        SUM(total_tokens) as total_tokens,
+                        SUM(cost_usd) as total_cost_usd
+                    FROM {self.schema}.api_usage 
+                    WHERE site = %s AND timestamp >= CURRENT_DATE - INTERVAL '%s days'
+                """, (site, days))
+                
+                result = cursor.fetchone()
+                return {
+                    'site': site,
+                    'total_requests': result['total_requests'] or 0,
+                    'total_input_tokens': result['total_input_tokens'] or 0,
+                    'total_output_tokens': result['total_output_tokens'] or 0,
+                    'total_tokens': result['total_tokens'] or 0,
+                    'total_cost_usd': float(result['total_cost_usd'] or 0)
+                }
+        except Exception as e:
+            logger.error(f"사이트별 사용량 조회 오류: {e}")
             return {
-                "month": datetime.now().strftime("%Y-%m"),
-                "total_requests": result[0] or 0,
-                "total_tokens": result[1] or 0,
-                "total_cost_usd": result[2] or 0,
-                "daily_trend": daily_trend,
-                "days_in_month": len(daily_trend),
-                "avg_daily_cost": (result[2] or 0) / max(len(daily_trend), 1)
+                'site': site,
+                'total_requests': 0,
+                'total_input_tokens': 0,
+                'total_output_tokens': 0,
+                'total_tokens': 0,
+                'total_cost_usd': 0.0
             }
     
-    def get_recent_calls(self, limit: int = 10) -> List[Dict]:
-        """최근 API 호출 내역 조회"""
-        with sqlite3.connect(self.db_path) as conn:
-            cursor = conn.cursor()
+    def get_monthly_usage(self, year: int = None, month: int = None) -> Dict:
+        """월별 API 사용량 조회"""
+        if not year:
+            year = datetime.now().year
+        if not month:
+            month = datetime.now().month
             
-            cursor.execute("""
-                SELECT timestamp, service, model, input_tokens, output_tokens,
-                       cost_usd, site, purpose, success, error_message
-                FROM api_usage
-                ORDER BY timestamp DESC
-                LIMIT ?
-            """, (limit,))
-            
-            calls = []
-            for row in cursor.fetchall():
-                calls.append({
-                    "timestamp": row[0],
-                    "service": row[1],
-                    "model": row[2],
-                    "input_tokens": row[3],
-                    "output_tokens": row[4],
-                    "cost_usd": row[5],
-                    "site": row[6],
-                    "purpose": row[7],
-                    "success": row[8],
-                    "error_message": row[9]
-                })
-            
-            return calls
+        try:
+            with psycopg2.connect(**self.connection_params) as conn:
+                cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+                
+                cursor.execute(f"""
+                    SELECT 
+                        COUNT(*) as total_requests,
+                        SUM(input_tokens) as total_input_tokens,
+                        SUM(output_tokens) as total_output_tokens,
+                        SUM(total_tokens) as total_tokens,
+                        SUM(cost_usd) as total_cost_usd
+                    FROM {self.schema}.api_usage 
+                    WHERE EXTRACT(YEAR FROM timestamp) = %s 
+                    AND EXTRACT(MONTH FROM timestamp) = %s
+                """, (year, month))
+                
+                result = cursor.fetchone()
+                return {
+                    'year': year,
+                    'month': month,
+                    'total_requests': result['total_requests'] or 0,
+                    'total_input_tokens': result['total_input_tokens'] or 0,
+                    'total_output_tokens': result['total_output_tokens'] or 0,
+                    'total_tokens': result['total_tokens'] or 0,
+                    'total_cost_usd': float(result['total_cost_usd'] or 0)
+                }
+        except Exception as e:
+            logger.error(f"월별 사용량 조회 오류: {e}")
+            return {
+                'year': year,
+                'month': month,
+                'total_requests': 0,
+                'total_input_tokens': 0,
+                'total_output_tokens': 0,
+                'total_tokens': 0,
+                'total_cost_usd': 0.0
+            }
     
-    def export_report(self, output_file: str = None) -> str:
-        """사용 내역 리포트 생성"""
-        if not output_file:
-            output_file = f"data/api_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        
-        today_usage = self.get_today_usage()
-        monthly_usage = self.get_monthly_usage()
-        recent_calls = self.get_recent_calls(50)
-        
-        report = {
-            "generated_at": datetime.now().isoformat(),
-            "today": today_usage,
-            "month": monthly_usage,
-            "recent_calls": recent_calls
-        }
-        
-        Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(report, f, indent=2, ensure_ascii=False)
-        
-        print(f"\n📊 API 사용 리포트 생성: {output_file}")
-        print(f"   - 오늘 요청: {today_usage['total_requests']}건")
-        print(f"   - 오늘 비용: ${today_usage['total_cost_usd']:.4f}")
-        print(f"   - 이번달 요청: {monthly_usage['total_requests']}건")
-        print(f"   - 이번달 비용: ${monthly_usage['total_cost_usd']:.2f}")
-        
-        return output_file
-
+    def get_detailed_usage(self, limit: int = 100) -> List[Dict]:
+        """상세 사용 내역 조회"""
+        try:
+            with psycopg2.connect(**self.connection_params) as conn:
+                cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+                
+                cursor.execute(f"""
+                    SELECT * FROM {self.schema}.api_usage 
+                    ORDER BY timestamp DESC 
+                    LIMIT %s
+                """, (limit,))
+                
+                results = cursor.fetchall()
+                return [dict(row) for row in results]
+        except Exception as e:
+            logger.error(f"상세 사용 내역 조회 오류: {e}")
+            return []
 
 # 전역 인스턴스
 api_tracker = APITracker()
