@@ -2726,10 +2726,11 @@ def quick_publish_preview():
 
 @app.route('/api/quick_publish', methods=['POST'])
 def quick_publish():
-    """수동 발행: 오늘 스케줄 주제로 직접 발행"""
+    """수동 발행: 오늘 스케줄 주제로 직접 발행 + WordPress 업로드"""
     try:
         data = request.json or {}
         sites = data.get('sites', ['unpre', 'untab', 'skewese', 'tistory'])
+        upload_to_wordpress = data.get('upload_to_wordpress', True)  # 기본값: 업로드 활성화
         
         # 중복 실행 방지
         global publish_status
@@ -2899,11 +2900,51 @@ def quick_publish():
                                 # 발행 상태 업데이트
                                 db.update_file_status(file_id, 'published', datetime.now())
                                 
+                                # WordPress 업로드 (WordPress 사이트만)
+                                upload_result = None
+                                if upload_to_wordpress and site in ['unpre', 'untab', 'skewese']:
+                                    try:
+                                        from src.publishers.wordpress_publisher import WordPressPublisher
+                                        import json
+                                        
+                                        # WordPress 설정 로드
+                                        config_path = 'config/wordpress_sites.json'
+                                        if os.path.exists(config_path):
+                                            with open(config_path, 'r', encoding='utf-8') as f:
+                                                wp_config = json.load(f)
+                                            
+                                            if site in wp_config:
+                                                publisher = WordPressPublisher(wp_config[site])
+                                                
+                                                wp_content = {
+                                                    'title': content_data['title'],
+                                                    'content': content_data['content'],
+                                                    'excerpt': content_data.get('summary', '')[:100],
+                                                    'status': 'publish'
+                                                }
+                                                
+                                                upload_result = publisher.publish_post(wp_content)
+                                                if upload_result and upload_result.get('success'):
+                                                    add_system_log('INFO', f'{site} WordPress 업로드 성공: {upload_result.get("url")}', 'SUCCESS')
+                                                else:
+                                                    add_system_log('ERROR', f'{site} WordPress 업로드 실패: {upload_result.get("error")}', 'ERROR')
+                                    except Exception as wp_error:
+                                        add_system_log('ERROR', f'{site} WordPress 업로드 오류: {wp_error}', 'ERROR')
+                                
+                                # 결과에 WordPress 업로드 정보 포함
+                                result_message = f'{site} 발행 성공'
+                                if upload_result:
+                                    if upload_result.get('success'):
+                                        result_message += f' + WordPress 업로드 성공'
+                                    else:
+                                        result_message += f' (WordPress 업로드 실패)'
+                                
                                 publish_status['results'].append({
                                     'site': site,
                                     'success': True,
-                                    'message': f'{site} 발행 성공',
-                                    'topic': topic
+                                    'message': result_message,
+                                    'topic': topic,
+                                    'wordpress_upload': upload_result
                                 })
                                 add_system_log('INFO', f'{site} 발행 성공: {topic}', 'SUCCESS')
                             else:

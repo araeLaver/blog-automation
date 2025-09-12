@@ -1,0 +1,26 @@
+{
+  "unpre": {
+    "name": "UNPRE",
+    "url": "https://unpre.co.kr",
+    "username": "admin",
+    "password": "your_application_password",
+    "default_category": "금융",
+    "default_status": "publish"
+  },
+  "untab": {
+    "name": "UNTAB", 
+    "url": "https://untab.co.kr",
+    "username": "admin",
+    "password": "your_application_password",
+    "default_category": "쇼핑",
+    "default_status": "publish"
+  },
+  "skewese": {
+    "name": "SKEWESE",
+    "url": "https://skewese.com", 
+    "username": "admin",
+    "password": "your_application_password",
+    "default_category": "가이드",
+    "default_status": "publish"
+  }
+}
