@@ -31,3 +31,6 @@ feedparser==6.0.10
 
 # Trend analysis
 pytrends==4.9.2
+
+# Async HTTP
+aiohttp==3.9.1
