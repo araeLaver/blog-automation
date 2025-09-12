@@ -296,7 +296,7 @@ Category: {category}
             actual_output_tokens = response.usage.output_tokens
             
             # API 사용량 추적
-            api_tracker.log_api_call(
+            api_tracker.track_usage(
                 service="claude",
                 model="claude-3-5-sonnet-20241022",
                 input_tokens=actual_input_tokens,
@@ -339,7 +339,7 @@ Category: {category}
                 result = response.content[0].text
                 
                 # 재시도 API 사용량 추적
-                api_tracker.log_api_call(
+                api_tracker.track_usage(
                     service="claude",
                     model="claude-3-5-sonnet-20241022",
                     input_tokens=response.usage.input_tokens,
@@ -355,7 +355,7 @@ Category: {category}
             return result
         except Exception as e:
             # 실패한 API 호출 추적
-            api_tracker.log_api_call(
+            api_tracker.track_usage(
                 service="claude",
                 model="claude-3-5-sonnet-20241022",
                 input_tokens=estimated_input_tokens if 'estimated_input_tokens' in locals() else 0,
