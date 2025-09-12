@@ -20,6 +20,8 @@ from src.generators.wordpress_content_exporter import WordPressContentExporter
 from src.generators.tistory_content_exporter import TistoryContentExporter
 from src.utils.postgresql_database import PostgreSQLDatabase
 from src.utils.api_tracker import api_tracker
+from src.publishers.wordpress_publisher import WordPressPublisher
+import json
 
 # 로거 설정
 logging.basicConfig(
@@ -55,6 +57,16 @@ class AutoPublisherV2:
         """자동 발행 스케줄러 초기화"""
         self.sites = ['unpre', 'untab', 'skewese', 'tistory']
         self.running = True
+        
+        # WordPress 설정 로드
+        try:
+            with open('config/wordpress_sites.json', 'r', encoding='utf-8') as f:
+                self.wp_config = json.load(f)
+            logger.info("✅ WordPress 설정 로드 완료")
+        except Exception as e:
+            logger.error(f"❌ WordPress 설정 로드 실패: {e}")
+            self.wp_config = {}
+        
         logger.info("✅ 자동 발행 스케줄러 v2 초기화 완료")
     
     def daily_publish_all(self):
@@ -69,6 +81,7 @@ class AutoPublisherV2:
         
         success_count = 0
         fail_count = 0
+        wp_success_count = 0  # WordPress 업로드 성공 카운트
         total_posts = len(self.sites) * 2  # 사이트당 2개 (Primary + Secondary)
         
         try:
@@ -94,14 +107,20 @@ class AutoPublisherV2:
                     logger.info(f"📚 Secondary: {secondary_topic['topic']} ({secondary_topic['category']})")
                     
                     # Primary 카테고리 발행
-                    if self._publish_content(db, site, primary_topic, 'primary'):
+                    primary_success, primary_wp_success = self._publish_content(db, site, primary_topic, 'primary')
+                    if primary_success:
                         success_count += 1
+                        if primary_wp_success:
+                            wp_success_count += 1
                     else:
                         fail_count += 1
                     
                     # Secondary 카테고리 발행
-                    if self._publish_content(db, site, secondary_topic, 'secondary'):
+                    secondary_success, secondary_wp_success = self._publish_content(db, site, secondary_topic, 'secondary')
+                    if secondary_success:
                         success_count += 1
+                        if secondary_wp_success:
+                            wp_success_count += 1
                     else:
                         fail_count += 1
                     
@@ -119,6 +138,7 @@ class AutoPublisherV2:
             logger.info("📊 자동 발행 완료 리포트")
             logger.info(f"✅ 성공: {success_count}/{total_posts} 건")
             logger.info(f"❌ 실패: {fail_count}/{total_posts} 건")
+            logger.info(f"🌐 WordPress 업로드 성공: {wp_success_count}/{success_count} 건")
             logger.info(f"⏱️  소요시간: {elapsed.seconds//60}분 {elapsed.seconds%60}초")
             logger.info(f"🕐 완료시간: {end_time.strftime('%Y-%m-%d %H:%M:%S KST')}")
             
@@ -130,7 +150,7 @@ class AutoPublisherV2:
         except Exception as e:
             logger.error(f"❌ 자동 발행 중 심각한 오류: {str(e)}")
     
-    def _publish_content(self, db, site: str, topic_data: dict, category_type: str) -> bool:
+    def _publish_content(self, db, site: str, topic_data: dict, category_type: str) -> tuple[bool, bool]:
         """개별 콘텐츠 생성 및 발행"""
         try:
             logger.info(f"  📝 {category_type.upper()}: {topic_data['topic']} 생성 시작...")
@@ -192,15 +212,56 @@ class AutoPublisherV2:
                 }
             )
             
-            # 발행 상태 업데이트
-            db.update_file_status(file_id, 'published', datetime.now())
+            # WordPress 업로드 (WordPress 사이트인 경우)
+            wp_upload_success = False
+            if site in ['unpre', 'untab', 'skewese'] and site in self.wp_config:
+                try:
+                    logger.info(f"  🌐 WordPress 업로드 시작: {site.upper()}")
+                    
+                    # WordPress 콘텐츠 형식으로 변환
+                    wp_content = {
+                        'title': content_data['title'],
+                        'content': content_data['content'],
+                        'excerpt': content_data.get('meta_description', '')[:160],
+                        'status': 'publish',
+                        'categories': [],  # 기본값, 필요시 카테고리 ID 매핑
+                        'tags': []  # 기본값, 필요시 태그 처리
+                    }
+                    
+                    # WordPress Publisher 초기화 및 업로드
+                    publisher = WordPressPublisher(self.wp_config[site])
+                    upload_result = publisher.publish_post(wp_content)
+                    
+                    if upload_result and upload_result.get('success'):
+                        wp_upload_success = True
+                        wp_url = upload_result.get('url', '')
+                        logger.info(f"  ✅ WordPress 업로드 성공: {wp_url}")
+                        
+                        # DB 메타데이터에 WordPress URL 추가
+                        db.cursor.execute("""
+                            UPDATE unble.content_files 
+                            SET metadata = metadata || %s::jsonb 
+                            WHERE id = %s
+                        """, [json.dumps({'wordpress_url': wp_url, 'wordpress_post_id': upload_result.get('post_id')}), file_id])
+                        db.connection.commit()
+                    else:
+                        error_msg = upload_result.get('error', 'Unknown error') if upload_result else 'No response'
+                        logger.error(f"  ❌ WordPress 업로드 실패: {error_msg}")
+                        
+                except Exception as wp_error:
+                    logger.error(f"  ❌ WordPress 업로드 오류: {str(wp_error)}")
             
-            logger.info(f"  ✅ {category_type.upper()} 완료: {content_data['title'][:50]}...")
-            return True
+            # 발행 상태 업데이트 (WordPress 업로드 결과 반영)
+            status_msg = 'published_with_wp' if wp_upload_success else 'published'
+            db.update_file_status(file_id, status_msg, datetime.now())
+            
+            success_indicator = "🌐✅" if wp_upload_success else "✅"
+            logger.info(f"  {success_indicator} {category_type.upper()} 완료: {content_data['title'][:50]}...")
+            return True, wp_upload_success
             
         except Exception as e:
             logger.error(f"  ❌ {category_type} 발행 오류: {str(e)}")
-            return False
+            return False, False
     
     def _get_target_audience(self, category: str) -> str:
         """카테고리별 타겟 오디언스 반환"""
