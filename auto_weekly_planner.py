@@ -597,19 +597,19 @@ class ProfitWeeklyPlanner:
 
 
 def main():
-    """메인 실행 함수 - 다음주 수익성 최우선 계획 생성"""
+    """메인 실행 함수 - 현재주 수익성 최우선 계획 생성"""
     try:
-        planner = AutoWeeklyPlanner()
-        
-        # 🔥 다음주 계획 생성 (수익성 최우선)
-        logger.info("🔥 다음주 수익성 최우선 주간계획 생성 시작")
-        weekly_plan = planner.generate_weekly_plan(target_week='next')
+        planner = ProfitWeeklyPlanner()
+
+        # 🔥 현재주 계획 생성 (수익성 최우선)
+        logger.info("🔥 현재주 수익성 최우선 주간계획 생성 시작")
+        weekly_plan = planner.generate_weekly_plan(target_week='current')
         
         if not weekly_plan or not weekly_plan.get('plans'):
             logger.error("주간계획 생성 실패 또는 빈 계획")
             return False
             
-        logger.info(f"다음주 계획 생성 완료: {len(weekly_plan['plans'])}개 계획")
+        logger.info(f"현재주 계획 생성 완료: {len(weekly_plan['plans'])}개 계획")
         
     except Exception as e:
         logger.error(f"주간계획 생성 메인 에러: {e}")
@@ -629,8 +629,8 @@ def main():
     # 데이터베이스에 저장 (강력한 에러 방지)
     try:
         if planner.save_weekly_plan(weekly_plan):
-            print("🎉 다음주 수익성 최우선 주간계획이 데이터베이스에 저장되었습니다!")
-            logger.info("다음주 주간계획 자동생성 및 저장 완료")
+            print("🎉 현재주 수익성 최우선 주간계획이 데이터베이스에 저장되었습니다!")
+            logger.info("현재주 주간계획 자동생성 및 저장 완료")
             return True
         else:
             print("❌ 주간계획 저장 실패")
