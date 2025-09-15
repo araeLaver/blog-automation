@@ -4746,8 +4746,8 @@ def generate_weekly_plan():
         logger.error(f"주간계획 생성 오류: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# 스케줄러 초기화 (앱 시작 시) - 현재 비활성화됨
-# scheduler_initialized = init_scheduler()
+# 스케줄러 초기화 (앱 시작 시)
+scheduler_initialized = init_scheduler()
 
 if __name__ == "__main__":
     # 시작 로그
