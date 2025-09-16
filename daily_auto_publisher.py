@@ -160,10 +160,12 @@ class DailyAutoPublisher:
     def auto_publish_for_site(self, site: str) -> bool:
         """특정 사이트의 자동발행 실행"""
         logger.info(f"[AUTO_PUBLISH] {site.upper()} 자동발행 시작")
-        
+
         try:
-            # 오늘 날짜로 스케줄된 주제 조회
-            today = datetime.now()
+            # 한국 시간 기준 오늘 날짜로 스케줄된 주제 조회
+            import pytz
+            kst = pytz.timezone('Asia/Seoul')
+            today = datetime.now(kst)
             topics = self.get_today_topics(site, today.year, today.month, today.day)
             
             if not topics:
@@ -206,6 +208,12 @@ class DailyAutoPublisher:
         try:
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
+                # 한국 시간 기준으로 조회
+                import pytz
+                kst = pytz.timezone('Asia/Seoul')
+                now_kst = datetime.now(kst)
+
+                # 오늘 날짜 기준으로 조회
                 cursor.execute(f"""
                     SELECT id, topic_category, specific_topic, keywords
                     FROM {self.db.schema}.monthly_publishing_schedule
@@ -237,11 +245,16 @@ class DailyAutoPublisher:
         try:
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
+                # 한국 시간으로 업데이트
+                import pytz
+                kst = pytz.timezone('Asia/Seoul')
+                now_kst = datetime.now(kst)
+
                 cursor.execute(f"""
                     UPDATE {self.db.schema}.monthly_publishing_schedule
-                    SET status = 'completed', updated_at = %s
+                    SET status = 'completed'
                     WHERE id = %s
-                """, (datetime.now(), schedule_id))
+                """, (schedule_id,))
                 
                 conn.commit()
                 logger.info(f"[COMPLETED] 스케줄 ID {schedule_id} 완료 처리됨")
@@ -319,18 +332,28 @@ class DailyAutoPublisher:
                 # 상태를 published로 설정하여 목록에 표시되도록 함
                 conn = self.db.get_connection()
                 with conn.cursor() as cursor:
+                    # 한국 시간으로 업데이트
+                    import pytz
+                    kst = pytz.timezone('Asia/Seoul')
+                    now_kst = datetime.now(kst)
+
                     cursor.execute(f"""
                         UPDATE {self.db.schema}.content_files
-                        SET status = 'published', updated_at = %s
+                        SET status = 'published', published_at = %s
                         WHERE id = %s
-                    """, (datetime.now(), content_id))
+                    """, (now_kst, content_id))
                     conn.commit()
                 
                 # 메타데이터 업데이트 (목록에 즉시 반영)
                 try:
+                    # 한국 시간으로 메타데이터 업데이트
+                    import pytz
+                    kst = pytz.timezone('Asia/Seoul')
+                    now_kst = datetime.now(kst)
+
                     self.db.update_content_metadata(content_id, {
                         'auto_generated': True,
-                        'generated_at': datetime.now().isoformat(),
+                        'generated_at': now_kst.isoformat(),
                         'schedule_id': topic_data.get('id'),
                         'category': topic_data['category']
                     })
@@ -348,10 +371,14 @@ class DailyAutoPublisher:
                     # 발행 성공 시 publish_history에 기록
                     self.record_publish_history(site, content_id, 'success', None, result)
                     
-                    # 메타데이터 업데이트
+                    # 한국 시간으로 메타데이터 업데이트
+                    import pytz
+                    kst = pytz.timezone('Asia/Seoul')
+                    now_kst = datetime.now(kst)
+
                     self.db.update_content_metadata(content_id, {
                         'auto_published': True,
-                        'published_at': datetime.now().isoformat(),
+                        'published_at': now_kst.isoformat(),
                         'publish_url': result,
                         'site': site
                     })
@@ -385,25 +412,33 @@ class DailyAutoPublisher:
             # content_files 테이블에 저장 (수동발행과 동일한 구조)
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
+                # 한국 시간으로 저장
+                import pytz
+                kst = pytz.timezone('Asia/Seoul')
+                now_kst = datetime.now(kst)
+
+                # metadata를 JSON 문자열로 변환
+                import json
+                metadata_dict = {
+                    'category': topic_data['category'],
+                    'auto_generated': True,
+                    'schedule_id': topic_data.get('id'),
+                    'tags': content.get('tags', []),
+                    'keywords': topic_data['keywords']
+                }
+
                 cursor.execute(f"""
-                    INSERT INTO {self.db.schema}.content_files 
-                    (site, title, file_path, file_type, metadata, created_at, updated_at, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    INSERT INTO {self.db.schema}.content_files
+                    (site, title, file_path, file_type, metadata, created_at, status)
+                    VALUES (%s, %s, %s, %s, %s::jsonb, %s, %s)
                     RETURNING id
                 """, (
                     site,
                     content['title'],
                     filepath,
                     'tistory' if site == 'tistory' else 'wordpress',
-                    {
-                        'category': topic_data['category'],
-                        'auto_generated': True,
-                        'schedule_id': topic_data.get('id'),
-                        'tags': content.get('tags', []),
-                        'keywords': topic_data['keywords']
-                    },
-                    datetime.now(),
-                    datetime.now(),
+                    json.dumps(metadata_dict, ensure_ascii=False),
+                    now_kst,
                     'published'  # 초기상태는 published로 설정
                 ))
                 
@@ -422,20 +457,29 @@ class DailyAutoPublisher:
         try:
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
+                # 한국 시간으로 기록
+                import pytz
+                kst = pytz.timezone('Asia/Seoul')
+                now_kst = datetime.now(kst)
+
+                # response_data를 JSON 문자열로 변환
+                import json
+                response_dict = {'auto_publish': True, 'timestamp': now_kst.isoformat()}
+
                 cursor.execute(f"""
-                    INSERT INTO {self.db.schema}.publish_history 
-                    (site, content_file_id, publish_type, publish_status, error_message, 
+                    INSERT INTO {self.db.schema}.publish_history
+                    (site, content_file_id, publish_type, publish_status, error_message,
                      published_at, publish_url, response_data)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb)
                 """, (
                     site,
                     content_id,
                     'auto',
                     status,
                     error_msg,
-                    datetime.now(),
+                    now_kst,
                     publish_url,
-                    {'auto_publish': True, 'timestamp': datetime.now().isoformat()}
+                    json.dumps(response_dict, ensure_ascii=False)
                 ))
                 
                 conn.commit()
