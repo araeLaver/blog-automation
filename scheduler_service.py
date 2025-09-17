@@ -53,13 +53,15 @@ class BlogAutoPublisher:
         self.content_generator = ContentGenerator()
         self.scheduler = BackgroundScheduler(timezone=pytz.UTC)
         
-        # 발행기 초기화
-        self.publishers = {
-            'unpre': WordPressPublisher('unpre'),
-            'untab': WordPressPublisher('untab'),
-            'skewese': WordPressPublisher('skewese'),
-            'tistory': TistoryPublisher()
-        }
+        # 발행기 초기화 - DB에서 사이트 설정 가져오기
+        site_configs = self.db.get_site_configs()
+        self.publishers = {}
+
+        for site_code in ['unpre', 'untab', 'skewese']:
+            if site_code in site_configs:
+                self.publishers[site_code] = WordPressPublisher(site_configs[site_code])
+
+        self.publishers['tistory'] = TistoryPublisher()
         
         self.sites = ['unpre', 'untab', 'skewese', 'tistory']
         
@@ -78,8 +80,8 @@ class BlogAutoPublisher:
                 primary, secondary = self.schedule_manager.get_today_dual_topics(site)
                 
                 if not primary:
-                    logger.warning(f"❌ {site}: 오늘 발행할 주제가 없습니다")
-                    continue
+                    logger.error(f"❌ {site}: 오늘({datetime.now().date()}) 발행할 주제가 없습니다 - 자동발행 중단")
+                    raise Exception(f"계획된 주제가 없어서 {site} 자동발행 불가")
                 
                 # 각 주제별로 콘텐츠 생성 및 발행
                 topics = [primary]

@@ -39,7 +39,7 @@ class TrendCollector:
     """실시간 트렌드 수집기"""
     
     def __init__(self):
-        self.pytrends = TrendReq(hl='ko-KR', tz=540)  # 한국 시간대
+        self.pytrends = TrendReq(hl='ko-KR', tz=540, timeout=(10,25))  # 한국 시간대
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'

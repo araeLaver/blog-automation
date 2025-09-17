@@ -29,7 +29,7 @@ class RealtimeTrends:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         if PYTRENDS_AVAILABLE:
-            self.pytrends = TrendReq(hl='ko-KR', tz=540)  # 한국 시간대
+            self.pytrends = TrendReq(hl='ko-KR', tz=540, timeout=(10,25))  # 한국 시간대
         
     def get_google_trends(self, timeframe='now 1-d') -> List[Dict]:
         """구글 트렌드 데이터 수집"""

@@ -36,7 +36,7 @@ class KeywordResearcher:
     """키워드 리서치 도구"""
     
     def __init__(self):
-        self.pytrends = TrendReq(hl='ko-KR', tz=540, timeout=(10,25), retries=2, backoff_factor=0.1)
+        self.pytrends = TrendReq(hl='ko-KR', tz=540, timeout=(10,25))
         
         # 실제 검색량이 높고 구체적인 키워드들 (롱테일 키워드 포함)
         self.categories = {
