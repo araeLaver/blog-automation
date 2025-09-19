@@ -603,7 +603,7 @@
                 const statusClass = content.status === 'published' ? 'success' : 'secondary';
                 
                 html += `
-                    <div class="content-card" data-content-id="${content.id}" data-file-path="${content.file_path}">
+                    <div class="content-card" data-content-id="${content.id}" data-file-path="${content.file_path}" data-site="${content.site}">
                         <input type="checkbox" class="content-checkbox" onchange="updateSelectedCount()">
                         <div class="d-flex justify-content-between align-items-start mb-2" style="padding-left: 30px;">
                             <span class="site-badge site-${content.site}">${content.site.toUpperCase()}</span>
@@ -1851,11 +1851,13 @@
             // 사이트별로 카드 그룹핑
             const siteGroups = {};
             allCards.forEach(card => {
-                const site = card.dataset.site || card.querySelector('.badge')?.textContent?.toLowerCase() || 'unknown';
-                if (!siteGroups[site]) {
-                    siteGroups[site] = [];
+                const site = card.dataset.site;
+                if (site && site !== 'undefined') {
+                    if (!siteGroups[site]) {
+                        siteGroups[site] = [];
+                    }
+                    siteGroups[site].push(card);
                 }
-                siteGroups[site].push(card);
             });
 
             const sites = Object.keys(siteGroups);
