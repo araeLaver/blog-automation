@@ -2329,70 +2329,122 @@ def get_monthly_schedule():
 # 새 대시보드용 API 엔드포인트들
 @app.route('/api/content/<site>')
 def get_content_list(site):
-    """사이트별 콘텐츠 목록 조회 - 운영환경 안정화"""
+    """사이트별 콘텐츠 목록 조회 - DB 기반 안정성 강화"""
     try:
         import os
         import json
-        
+        from datetime import datetime
+
         # 로깅으로 디버깅 정보 추가
         logger.info(f"콘텐츠 목록 조회 요청: {site}")
-        
-        site_map = {
-            'skewese': 'wordpress_posts/skewese',
-            'tistory': 'tistory_posts',  # 티스토리는 별도 경로
-            'unpre': 'wordpress_posts/unpre', 
-            'untab': 'wordpress_posts/untab'
-        }
-        
-        if site not in site_map:
+
+        # 사이트 유효성 검사
+        valid_sites = ['skewese', 'tistory', 'unpre', 'untab']
+        if site not in valid_sites:
             logger.warning(f"지원하지 않는 사이트: {site}")
             return jsonify([])
-        
-        # 절대 경로로 변경하여 운영환경 호환성 향상
+
+        contents = []
+
+        # 먼저 DB에서 콘텐츠 조회 (우선)
+        try:
+            from src.utils.postgresql_database import PostgreSQLDatabase
+            db = PostgreSQLDatabase()
+            conn = db.get_connection()
+
+            if conn:
+                with conn.cursor() as cursor:
+                    cursor.execute('''
+                        SELECT id, site, title, file_path, created_at, status, metadata
+                        FROM blog_automation.content_files
+                        WHERE site = %s
+                        ORDER BY created_at DESC
+                        LIMIT 50
+                    ''', (site,))
+
+                    db_results = cursor.fetchall()
+
+                    for row in db_results:
+                        content_data = {
+                            'id': row[0],
+                            'site': row[1],
+                            'title': row[2],
+                            'file_path': row[3],
+                            'created_at': row[4].isoformat() if row[4] else datetime.now().isoformat(),
+                            'status': row[5],
+                            'metadata': row[6] if row[6] else {}
+                        }
+
+                        # 운영 환경에서 경로 정규화
+                        if os.getenv('KOYEB_SERVICE') and content_data.get('file_path'):
+                            content_data['file_path'] = content_data['file_path'].replace('\\', '/')
+
+                        contents.append(content_data)
+
+                    logger.info(f"{site} DB에서 {len(contents)}개 콘텐츠 조회 완료")
+
+                    if contents:
+                        return jsonify(contents)
+
+        except Exception as db_error:
+            logger.warning(f"DB 조회 실패, 파일시스템 폴백 사용: {db_error}")
+            # 시스템 로그에 DB 오류 기록
+            try:
+                add_system_log('WARNING', f'콘텐츠 목록 DB 조회 실패: {db_error}', 'DB_ERROR')
+            except:
+                pass
+
+        # DB 조회 실패 시 파일시스템 폴백
+        site_map = {
+            'skewese': 'wordpress_posts/skewese',
+            'tistory': 'tistory_posts',
+            'unpre': 'wordpress_posts/unpre',
+            'untab': 'wordpress_posts/untab'
+        }
+
         current_dir = os.path.dirname(os.path.abspath(__file__))
         content_dir = os.path.join(current_dir, 'data', site_map[site])
-        
-        logger.info(f"콘텐츠 디렉토리 경로: {content_dir}")
-        
+
+        logger.info(f"파일시스템 폴백 - 콘텐츠 디렉토리: {content_dir}")
+
         if not os.path.exists(content_dir):
             logger.info(f"콘텐츠 디렉토리 없음: {content_dir}")
             return jsonify([])
-        
-        contents = []
-        
+
         # 안전한 파일 검색
         try:
             for filename in os.listdir(content_dir):
-                # 티스토리는 _meta.json, 나머지는 .json 파일 찾기
                 if (site == 'tistory' and filename.endswith('_meta.json')) or \
                    (site != 'tistory' and filename.endswith('.json') and not filename.endswith('_meta.json')):
                     json_file_path = os.path.join(content_dir, filename)
                     try:
                         with open(json_file_path, 'r', encoding='utf-8') as f:
                             content_data = json.load(f)
-                            
-                            # 운영 환경에서 경로 정규화 (백슬래시를 슬래시로 변환)
-                            if 'file_path' in content_data:
-                                if os.getenv('KOYEB_SERVICE'):
-                                    # Koyeb 환경에서는 슬래시로 변환
-                                    content_data['file_path'] = content_data['file_path'].replace('\\', '/')
-                            
+
+                            # 경로 정규화
+                            if 'file_path' in content_data and os.getenv('KOYEB_SERVICE'):
+                                content_data['file_path'] = content_data['file_path'].replace('\\', '/')
+
                             contents.append(content_data)
-                            logger.debug(f"JSON 파일 로드 성공: {filename}")
                     except Exception as e:
                         logger.warning(f"JSON 파일 로드 오류 {filename}: {e}")
         except Exception as e:
             logger.error(f"디렉토리 읽기 오류 {content_dir}: {e}")
             return jsonify([])
-                
+
         # 최신순 정렬
         contents.sort(key=lambda x: x.get('created_at', ''), reverse=True)
-        logger.info(f"{site} 콘텐츠 {len(contents)}개 조회 완료")
-        return jsonify(contents[:50])  # 최근 50개만
-        
+        logger.info(f"{site} 파일시스템에서 {len(contents)}개 콘텐츠 조회 완료")
+        return jsonify(contents[:50])
+
     except Exception as e:
         logger.error(f"콘텐츠 목록 조회 오류 {site}: {e}")
-        return jsonify({'error': f'콘텐츠 조회 실패: {str(e)}'}), 500
+        # 시스템 로그에 에러 기록
+        try:
+            add_system_log('ERROR', f'콘텐츠 목록 조회 실패 ({site}): {e}', 'API_ERROR')
+        except:
+            pass
+        return jsonify({'error': f'콘텐츠 조회 실패: {str(e)}', 'site': site}), 500
 
 @app.route('/api/content/<site>/preview')
 def get_content_preview(site):
@@ -2899,9 +2951,10 @@ def quick_publish():
                                 
                                 # 발행 상태 업데이트
                                 db.update_file_status(file_id, 'published', datetime.now())
-                                
+
                                 # WordPress 업로드 (WordPress 사이트만)
                                 upload_result = None
+                                publish_url = None
                                 if upload_to_wordpress and site in ['unpre', 'untab', 'skewese']:
                                     try:
                                         from src.publishers.wordpress_publisher import WordPressPublisher
@@ -2925,12 +2978,41 @@ def quick_publish():
                                                 
                                                 upload_result = publisher.publish_post(wp_content)
                                                 if upload_result and upload_result.get('success'):
-                                                    add_system_log('INFO', f'{site} WordPress 업로드 성공: {upload_result.get("url")}', 'SUCCESS')
+                                                    publish_url = upload_result.get('url')
+                                                    add_system_log('INFO', f'{site} WordPress 업로드 성공: {publish_url}', 'SUCCESS')
                                                 else:
                                                     add_system_log('ERROR', f'{site} WordPress 업로드 실패: {upload_result.get("error")}', 'ERROR')
                                     except Exception as wp_error:
                                         add_system_log('ERROR', f'{site} WordPress 업로드 오류: {wp_error}', 'ERROR')
-                                
+
+                                # 발행 이력 기록 (publish_history 테이블)
+                                try:
+                                    from datetime import timezone, timedelta
+                                    kst = timezone(timedelta(hours=9))
+                                    publish_status_val = 'success' if (not upload_to_wordpress or site == 'tistory' or upload_result.get('success')) else 'partial'
+                                    error_msg = None if publish_status_val == 'success' else upload_result.get('error') if upload_result else None
+
+                                    conn = db.get_connection()
+                                    with conn.cursor() as cursor:
+                                        cursor.execute(f'''
+                                            INSERT INTO {db.schema}.publish_history
+                                            (site, content_file_id, publish_type, publish_status, error_message,
+                                             published_at, publish_url, response_data)
+                                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s::jsonb)
+                                        ''', (
+                                            site,
+                                            file_id,
+                                            'manual',
+                                            publish_status_val,
+                                            error_msg,
+                                            datetime.now(kst),
+                                            publish_url,
+                                            json.dumps({'manual_publish': True, 'upload_to_wordpress': upload_to_wordpress}, ensure_ascii=False)
+                                        ))
+                                        conn.commit()
+                                except Exception as history_error:
+                                    add_system_log('WARNING', f'{site} 발행 이력 기록 실패: {history_error}', 'WARNING')
+
                                 # 결과에 WordPress 업로드 정보 포함
                                 result_message = f'{site} 발행 성공'
                                 if upload_result:

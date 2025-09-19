@@ -36,12 +36,12 @@ class ProfitWeeklyPlanner:
         }
         
     def get_trending_topics(self) -> List[Dict]:
-        """🔥 수익성 100% 최우선 주제 수집 - 사이트 컨셉 완전 무시"""
+        """🔥 2025년 실시간 검색 트렌드 + SEO 최적화 키워드 수집"""
         all_topics = []
-        
+
         try:
-            # 1. 최고 수익성 키워드 우선 (CPC $10-50, profit_score 90+)
-            ultra_profit_keywords = self.profit_manager.get_ultra_profit_keywords(12)
+            # 1. 최고 수익성 + 트렌드 키워드 (2025 검색 트렌드 반영)
+            ultra_profit_keywords = self.profit_manager.get_ultra_profit_keywords(15)
             for kw in ultra_profit_keywords:
                 all_topics.append({
                     'title': kw['keyword'],
@@ -52,73 +52,85 @@ class ProfitWeeklyPlanner:
                     'cpc': kw['cpc'],
                     'profit_score': kw['profit_score']
                 })
-            logger.info(f"초고수익 키워드 {len(ultra_profit_keywords)}개 수집 (CPC 평균 ${sum([kw['cpc'] for kw in ultra_profit_keywords])//len(ultra_profit_keywords)/1000:.1f}K)")
+            logger.info(f"2025 트렌드 키워드 {len(ultra_profit_keywords)}개 수집 (평균 검색량: {sum([kw['volume'] for kw in ultra_profit_keywords])//len(ultra_profit_keywords)//1000}K)")
             
-            # 2. 현재 월 고수익 계절성 키워드
-            month_profit_keywords = self.profit_manager.get_current_month_profit_keywords(8)
+            # 2. 실시간 검색 급상승 키워드 (현재 월 특화)
+            month_profit_keywords = self.profit_manager.get_current_month_profit_keywords(10)
             for kw in month_profit_keywords:
                 all_topics.append({
                     'title': kw['keyword'],
-                    'category': 'monthly_profit',
+                    'category': 'trending_monthly',
                     'score': kw['profit_score'],
-                    'source': 'monthly_profit',
+                    'source': 'monthly_trending',
                     'volume': kw['volume'],
                     'cpc': kw['cpc'],
                     'profit_score': kw['profit_score']
                 })
-            logger.info(f"월별 고수익 키워드 {len(month_profit_keywords)}개 수집")
+            logger.info(f"1월 트렌드 키워드 {len(month_profit_keywords)}개 수집")
             
-            # 3. 제휴 수익 키워드 (commission 높은 순)
+            # 3. 롭테일 키워드 + 제휴 가능 상품
             for category in ['금융', '쇼핑', '여행', '교육']:
-                affiliate_keywords = self.profit_manager.get_affiliate_keywords_by_category(category, 2)
+                affiliate_keywords = self.profit_manager.get_affiliate_keywords_by_category(category, 3)
                 for kw in affiliate_keywords:
                     all_topics.append({
                         'title': kw['keyword'],
-                        'category': 'affiliate_profit',
-                        'score': min(99, kw['total_profit'] // 1000),  # 총 수익을 점수로 변환
-                        'source': f'affiliate_{category}',
+                        'category': 'longtail_seo',
+                        'score': min(99, kw['total_profit'] // 1000),
+                        'source': f'longtail_{category}',
                         'volume': kw['volume'],
                         'cpc': kw['cpc'],
-                        'commission': kw['commission'],
+                        'commission': kw.get('commission', 0),
                         'profit_score': min(99, kw['total_profit'] // 1000)
                     })
-            logger.info(f"제휴 수익 키워드 추가 완료")
+            logger.info(f"롭테일 SEO 키워드 추가 완료")
             
-            # 4. 실시간 트렌드는 최후 보완용으로만 (수익성이 떨어질 경우에만)
-            if len(all_topics) < 20:
-                logger.warning("수익성 키워드가 부족하여 트렌드로 보완")
+            # 4. Google/네이버 실시간 트렌드 병합
+            try:
                 trends = self.trend_collector.collect_all_trends()
-                korean_trends = []
-                for trend in trends[:5]:  # 최소한만
-                    korean_trends.append({
-                        'title': trend.title,
-                        'category': 'low_profit_trend',
-                        'score': 30,  # 낮은 수익성 점수
-                        'source': 'trend_fallback',
-                        'volume': 50000,  # 추정치
-                        'profit_score': 30
+                for trend in trends[:10]:  # 실시간 트렌드 활용
+                    # 트렌드에 SEO 키워드 결합
+                    seo_title = self._enhance_with_seo_keywords(trend.title)
+                    all_topics.append({
+                        'title': seo_title,
+                        'category': 'realtime_trend',
+                        'score': 85,  # 실시간 트렌드 점수
+                        'source': 'realtime_search',
+                        'volume': 200000,  # 트렌드 기본 검색량
+                        'profit_score': 85
                     })
-                all_topics.extend(korean_trends)
+                logger.info(f"실시간 트렌드 {len(trends[:10])}개 추가")
+            except:
+                logger.warning("실시간 트렌드 수집 실패")
             
-            # 🔥 수익성 점수 기준으로만 정렬 (volume, 트렌드 점수 무시)
-            all_topics.sort(key=lambda x: x.get('profit_score', 0), reverse=True)
-            logger.info(f"총 {len(all_topics)}개 주제 수익성 기준 정렬 완료")
-            
-            # 상위 25개만 선택 (모두 고수익)
-            return all_topics[:25]
+            # 🔥 SEO 점수 + 검색량 기준 정렬 (실제 트래픽 예상)
+            all_topics.sort(key=lambda x: (x.get('profit_score', 0) * 0.7 + min(x.get('volume', 0)/10000, 100) * 0.3), reverse=True)
+            logger.info(f"총 {len(all_topics)}개 주제 SEO 최적화 정렬 완료")
+
+            # 중복 제거 후 상위 30개 선택
+            unique_topics = []
+            seen_keywords = set()
+            for topic in all_topics:
+                base_keyword = topic['title'].split()[0]
+                if base_keyword not in seen_keywords:
+                    unique_topics.append(topic)
+                    seen_keywords.add(base_keyword)
+                    if len(unique_topics) >= 30:
+                        break
+
+            return unique_topics
             
         except Exception as e:
             logger.error(f"수익성 키워드 수집 실패: {e}")
             return self._get_profit_fallback_topics()
     
     def _get_profit_fallback_topics(self) -> List[Dict]:
-        """수익성 키워드 수집 실패시 최소한의 수익성 보장 주제"""
+        """2025년 기본 SEO 키워드 (실패 시 대체용)"""
         return [
-            {'title': '신용대출 금리 비교', 'category': 'profit', 'score': 85, 'volume': 400000, 'profit_score': 85},
-            {'title': '부업 추천 순위', 'category': 'profit', 'score': 90, 'volume': 300000, 'profit_score': 90},
-            {'title': '자동차보험 비교견적', 'category': 'profit', 'score': 80, 'volume': 350000, 'profit_score': 80},
-            {'title': '다이어트 보조제 추천', 'category': 'profit', 'score': 85, 'volume': 250000, 'profit_score': 85},
-            {'title': '토익 인강 추천', 'category': 'profit', 'score': 75, 'volume': 200000, 'profit_score': 75},
+            {'title': '무직자 대출 가능한 곳 TOP 10', 'category': 'seo', 'score': 92, 'volume': 850000, 'profit_score': 92},
+            {'title': '부업 추천 순위 2025 월 100만원', 'category': 'seo', 'score': 95, 'volume': 920000, 'profit_score': 95},
+            {'title': 'ChatGPT 활용법 돈버는 방법', 'category': 'seo', 'score': 90, 'volume': 780000, 'profit_score': 90},
+            {'title': '테슬라 주식 전망 2025 매수타이밍', 'category': 'seo', 'score': 88, 'volume': 650000, 'profit_score': 88},
+            {'title': '다이어트 보조제 순위 효과 있는', 'category': 'seo', 'score': 85, 'volume': 540000, 'profit_score': 85},
         ]
     
     def _get_fallback_topics(self) -> List[Dict]:
@@ -229,25 +241,25 @@ class ProfitWeeklyPlanner:
                     
                     for site in sites_for_day:
                         try:
-                            # 🔥 사이트 구분 완전 무시, 수익성 최우선 주제만 사용
+                            # 🔥 SEO 최적화 주제 선택 (모든 사이트 공통)
                             if topic_idx >= len(trending_topics):
-                                topic_idx = 0  # 수익성 주제 순환
-                            
+                                topic_idx = 0  # 주제 순환
+
                             topic = trending_topics[topic_idx]
-                            
-                            # 수익성 최적화 카테고리로 통일 (사이트별 카테고리 무시)
-                            if topic.get('profit_score', 0) >= 90:
-                                category = 'ultra_profit'
+
+                            # SEO 카테고리 분류 (검색 트렌드 반영)
+                            if 'realtime' in topic.get('source', ''):
+                                category = 'trending_now'
+                            elif topic.get('profit_score', 0) >= 90:
+                                category = 'top_search'
                             elif topic.get('profit_score', 0) >= 80:
-                                category = 'high_profit' 
-                            elif topic.get('profit_score', 0) >= 70:
-                                category = 'medium_profit'
+                                category = 'popular'
                             else:
-                                category = 'profit_optimized'
-                            
-                            logger.info(f"{site} 수익성 주제 적용 (점수: {topic.get('profit_score', 0)}): {topic['title'][:50]}...")
-                            
-                            # 수익성 최적화 제목 생성 (사이트별 구분 없이)
+                                category = 'seo_optimized'
+
+                            logger.info(f"{site} SEO 주제 적용 (검색량: {topic.get('volume', 0)//1000}K): {topic['title'][:50]}...")
+
+                            # SEO 최적화 제목 생성
                             try:
                                 title = self._create_profit_optimized_title(topic['title'], topic.get('profit_score', 0))
                             except Exception as title_error:
@@ -438,61 +450,88 @@ class ProfitWeeklyPlanner:
         return title
     
     def _create_profit_optimized_title(self, keyword: str, profit_score: int) -> str:
-        """🔥 수익성 최적화 제목 생성 - CTR과 수익성 최대화"""
-        
-        # 초고수익 키워드용 강력한 제목 (profit_score 90+)
+        """🔥 SEO 최적화 제목 생성 - 2025년 검색 트렌드 반영"""
+
+        # 초고수익 키워드용 SEO 최적화 제목 (profit_score 90+)
         if profit_score >= 90:
             ultra_templates = [
-                f"{keyword} 완벽 비교 2025년 TOP 순위 숨겨진 혜택까지 총정리",
-                f"{keyword} 실제 후기 전문가가 인정한 베스트 선택과 할인 혜택",
-                f"{keyword} 가격 비교 최저가 보장과 특별 할인 받는 완벽 가이드",
-                f"{keyword} 추천 순위 실사용자 만족도 1위 업체와 혜택 정보",
-                f"{keyword} 완전 분석 숨겨진 수수료까지 투명하게 공개",
+                f"{keyword} TOP 10 순위 (실시간 업데이트) 꼭 알아야 할 팁",
+                f"{keyword} 최신 정보 2025년 1월 버전 (전문가 검증)",
+                f"{keyword} 가격비교 총정리 | 최대 90% 할인받는 방법",
+                f"{keyword} 실사용 후기 모음 (장단점 비교분석) 2025",
+                f"{keyword} 완벽가이드 | 10분만에 이해하는 핵심정리",
+                f"{keyword} 추천순위 BEST 7 | 실패없는 선택법",
             ]
             return random.choice(ultra_templates)
         
-        # 고수익 키워드용 (profit_score 80-89)  
+        # 고수익 키워드용 SEO 제목 (profit_score 80-89)
         elif profit_score >= 80:
             high_templates = [
-                f"{keyword} 순위 비교 2025년 베스트 추천과 할인 혜택",
-                f"{keyword} 완벽 가이드 실제 이용자 후기와 특가 정보",
-                f"{keyword} 추천 리스트 전문가 선정 TOP 5와 할인 받기",
-                f"{keyword} 비교 분석 장단점 정리와 최대 혜택 방법",
+                f"{keyword} 비교분석 2025 | 가성비 1위는?",
+                f"{keyword} 완벽정리 | 초보자도 이해하는 A to Z",
+                f"{keyword} 추천 TOP 5 (실패없는 선택) 2025년",
+                f"{keyword} 총정리 | 장점 단점 솔직한 비교",
+                f"{keyword} 가이드 2025 | 5분만에 마스터하기",
             ]
             return random.choice(high_templates)
         
-        # 중간 수익 키워드용 (profit_score 70-79)
+        # 중간 수익 키워드용 SEO 제목 (profit_score 70-79)
         elif profit_score >= 70:
             medium_templates = [
-                f"{keyword} 추천 2025년 인기 순위와 할인 정보",
-                f"{keyword} 비교 가이드 실제 후기와 혜택 정리", 
-                f"{keyword} 선택 가이드 전문가 추천과 팁",
-                f"{keyword} 완벽 정리 2025년 최신 정보",
+                f"{keyword} 정리 | 꼭 알아야 할 핵심 5가지",
+                f"{keyword} 비교 2025 | 어떤게 선택하면 좋을까?",
+                f"{keyword} 가이드 | 처음이라면 이것만 알아도 OK",
+                f"{keyword} 추천 2025 | 실패하지 않는 팁",
             ]
             return random.choice(medium_templates)
         
-        # 기본 수익성 키워드용 (profit_score 70 미만)
+        # 기본 수익성 키워드용 SEO 제목 (profit_score 70 미만)
         else:
             basic_templates = [
-                f"{keyword} 가이드 2025년 최신 정보",
-                f"{keyword} 추천 정리",
-                f"{keyword} 완벽 분석",
-                f"{keyword} 총정리",
+                f"{keyword} 기초가이드 | 처음 시작하는 분들을 위해",
+                f"{keyword} 정보 2025 | 꼭 알아야 할 것들",
+                f"{keyword} 이해하기 | 5분 요약정리",
+                f"{keyword} 실전가이드 | 바로 적용하는 팁",
             ]
             return random.choice(basic_templates)
     
     def _extract_keywords(self, title: str) -> List[str]:
-        """제목에서 키워드 추출"""
-        # 간단한 키워드 추출 (실제로는 더 정교한 NLP 사용 가능)
+        """SEO 최적화 키워드 추출"""
         import re
-        words = re.findall(r'[가-힣a-zA-Z]+', title)
-        
-        # 불용어 제거
-        stopwords = ['이', '가', '을', '를', '의', '에', '와', '과', '로', '으로', '은', '는', '입니다', '습니다']
-        keywords = [word for word in words if len(word) > 1 and word not in stopwords]
-        
-        return keywords[:5]  # 상위 5개
+        words = re.findall(r'[가-힣a-zA-Z0-9]+', title)
+
+        # SEO 핵심 키워드 우선 추출
+        seo_keywords = []
+        priority_words = ['2025', 'TOP', 'BEST', '순위', '비교', '추천', '가이드', '후기', '정리']
+
+        # 우선 키워드 먼저 추가
+        for word in words:
+            if word in priority_words:
+                seo_keywords.append(word)
+
+        # 나머지 주요 키워드
+        stopwords = ['이', '가', '을', '를', '의', '에', '와', '과', '로', '으로', '은', '는']
+        for word in words:
+            if len(word) > 1 and word not in stopwords and word not in seo_keywords:
+                seo_keywords.append(word)
+
+        return seo_keywords[:7]  # SEO 키워드 7개
     
+    def _enhance_with_seo_keywords(self, title: str) -> str:
+        """SEO 키워드로 타이틀 강화"""
+        seo_enhancers = ['2025', '최신', '실시간', '업데이트', '총정리']
+
+        # 이미 SEO 키워드가 있는지 확인
+        has_seo = any(enhancer in title for enhancer in seo_enhancers)
+
+        if not has_seo:
+            # SEO 키워드 추가
+            import random
+            enhancer = random.choice(['2025 최신', '실시간 업데이트', '2025년 1월'])
+            return f"{title} {enhancer}"
+
+        return title
+
     def save_weekly_plan(self, weekly_plan: Dict) -> bool:
         """주간계획을 데이터베이스에 저장 - 강력한 에러 방지"""
         max_retries = 3

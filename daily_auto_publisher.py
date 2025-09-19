@@ -162,15 +162,21 @@ class DailyAutoPublisher:
         logger.info(f"[AUTO_PUBLISH] {site.upper()} 자동발행 시작")
 
         try:
-            # 한국 시간 기준 오늘 날짜로 스케줄된 주제 조회
+            # 한국 시간 기준 오늘 날짜로 스코줄된 주제 조회
             import pytz
             kst = pytz.timezone('Asia/Seoul')
             today = datetime.now(kst)
             topics = self.get_today_topics(site, today.year, today.month, today.day)
-            
+
             if not topics:
                 logger.warning(f"[NO_TOPIC] {site.upper()}: 오늘({today.date()}) 예정된 주제가 없습니다")
-                return False
+                # 주간계획이 없으면 자동 생성 시도
+                self._check_and_create_weekly_plan(today)
+                # 다시 조회
+                topics = self.get_today_topics(site, today.year, today.month, today.day)
+                if not topics:
+                    logger.warning(f"[NO_TOPIC] {site.upper()}: 주간계획 생성 후에도 주제가 없음")
+                    return False
             
             # 각 주제별로 발행 실행
             all_success = True
@@ -178,8 +184,9 @@ class DailyAutoPublisher:
                 success = self.create_and_publish_content(site, topic_data)
                 
                 if success:
-                    # 스케줄 상태를 'completed'로 업데이트
-                    self.mark_schedule_completed(topic_data['id'])
+                    # 스케줄 상태를 'completed'로 업데이트 (월간계획인 경우에만)
+                    if isinstance(topic_data.get('id'), int):  # 정수 ID면 월간계획
+                        self.mark_schedule_completed(topic_data['id'])
                     logger.info(f"[SUCCESS] {site.upper()}: '{topic_data['specific_topic']}' 발행 완료")
                 else:
                     logger.error(f"[FAILED] {site.upper()}: '{topic_data['specific_topic']}' 발행 실패")
@@ -204,16 +211,57 @@ class DailyAutoPublisher:
             return False
     
     def get_today_topics(self, site: str, year: int, month: int, day: int) -> list:
-        """오늘 발행 예정인 주제 조회"""
+        """오늘 발행 예정인 주제 조회 - 주간계획표 우선 사용"""
         try:
             conn = self.db.get_connection()
             with conn.cursor() as cursor:
                 # 한국 시간 기준으로 조회
                 import pytz
-                kst = pytz.timezone('Asia/Seoul')
-                now_kst = datetime.now(kst)
+                import json
+                from datetime import datetime, timedelta
 
-                # 오늘 날짜 기준으로 조회
+                kst = pytz.timezone('Asia/Seoul')
+                today = datetime(year, month, day)
+                today_str = today.strftime('%Y-%m-%d')
+
+                # 먼저 주간계획(weekly_plans)에서 조회
+                weekday = today.weekday()
+                week_start = today - timedelta(days=weekday)
+                week_start_str = week_start.strftime('%Y-%m-%d')
+
+                cursor.execute(f"""
+                    SELECT plan_data
+                    FROM {self.db.schema}.weekly_plans
+                    WHERE week_start = %s
+                """, (week_start_str,))
+
+                result = cursor.fetchone()
+
+                if result and result[0]:
+                    # 주간계획이 존재하면 해당 계획 사용
+                    plan_data = result[0]
+                    topics = []
+
+                    # 오늘 날짜와 사이트에 해당하는 계획 찾기
+                    for plan in plan_data.get('plans', []):
+                        if plan.get('date') == today_str and plan.get('site') == site:
+                            # 주간계획의 형식을 기존 형식으로 변환
+                            topics.append({
+                                'id': hash(f"{site}_{today_str}_{plan.get('title')}"),  # 고유 ID 생성
+                                'category': plan.get('category', 'profit_optimized'),
+                                'specific_topic': plan.get('title'),
+                                'keywords': plan.get('keywords', []),
+                                'profit_score': plan.get('profit_score', 0),
+                                'priority': plan.get('priority', 'medium')
+                            })
+
+                    if topics:
+                        logger.info(f"[TOPICS] {site.upper()}: {today_str} 주간계획에서 {len(topics)}개 주제 조회")
+                        return topics
+                    else:
+                        logger.info(f"[TOPICS] {site.upper()}: 주간계획에 오늘 주제가 없음, 월간계획 확인")
+
+                # 주간계획이 없거나 오늘 주제가 없으면 기존 월간계획에서 조회 (폴백)
                 cursor.execute(f"""
                     SELECT id, topic_category, specific_topic, keywords
                     FROM {self.db.schema}.monthly_publishing_schedule
@@ -221,10 +269,10 @@ class DailyAutoPublisher:
                     AND status = 'pending'
                     ORDER BY id
                 """, (site, year, month, day))
-                
+
                 results = cursor.fetchall()
                 topics = []
-                
+
                 for row in results:
                     topics.append({
                         'id': row[0],
@@ -232,10 +280,14 @@ class DailyAutoPublisher:
                         'specific_topic': row[2],
                         'keywords': row[3] or []
                     })
-                
-                logger.info(f"[TOPICS] {site.upper()}: {year}-{month:02d}-{day:02d} 예정 주제 {len(topics)}개 조회")
+
+                if topics:
+                    logger.info(f"[TOPICS] {site.upper()}: {year}-{month:02d}-{day:02d} 월간계획에서 {len(topics)}개 주제 조회")
+                else:
+                    logger.warning(f"[NO_TOPICS] {site.upper()}: {today_str} 발행할 주제가 없음")
+
                 return topics
-                
+
         except Exception as e:
             logger.error(f"오늘 주제 조회 오류: {e}")
             return []
@@ -568,8 +620,39 @@ class DailyAutoPublisher:
                 else:
                     cleaned_content[key] = value
             return cleaned_content
-        
+
         return content
+
+    def _check_and_create_weekly_plan(self, today):
+        """주간계획이 없으면 자동 생성"""
+        try:
+            from datetime import timedelta
+            weekday = today.weekday()
+            week_start = today - timedelta(days=weekday)
+            week_start_str = week_start.strftime('%Y-%m-%d')
+
+            # 주간계획 존재 여부 확인
+            conn = self.db.get_connection()
+            with conn.cursor() as cursor:
+                cursor.execute(f"""
+                    SELECT id FROM {self.db.schema}.weekly_plans
+                    WHERE week_start = %s
+                """, (week_start_str,))
+
+                if not cursor.fetchone():
+                    logger.info(f"[주간계획] 이번주({week_start_str}) 계획이 없어 자동 생성 시작")
+                    # auto_weekly_planner 실행
+                    from auto_weekly_planner import ProfitWeeklyPlanner
+                    planner = ProfitWeeklyPlanner()
+                    weekly_plan = planner.generate_weekly_plan(target_week='current')
+                    if weekly_plan and weekly_plan.get('plans'):
+                        planner.save_weekly_plan(weekly_plan)
+                        logger.info(f"[주간계획] 이번주 계획 생성 완료: {len(weekly_plan['plans'])}개 항목")
+                    else:
+                        logger.error("[주간계획] 계획 생성 실패")
+
+        except Exception as e:
+            logger.error(f"[주간계획] 자동 생성 오류: {e}")
 
 if __name__ == "__main__":
     import argparse
