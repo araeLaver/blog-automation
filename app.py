@@ -2149,6 +2149,113 @@ def bulk_delete_files():
             'error': str(e)
         }), 500
 
+@app.route('/api/content/<site>/delete-all', methods=['DELETE'])
+def delete_all_content(site):
+    """사이트별 전체 콘텐츠 삭제"""
+    try:
+        # 사이트 유효성 검사
+        valid_sites = ['skewese', 'tistory', 'unpre', 'untab']
+        if site not in valid_sites:
+            return jsonify({
+                'success': False,
+                'error': f'지원하지 않는 사이트: {site}'
+            }), 400
+
+        logger.info(f"[DELETE_ALL] {site.upper()} 전체 콘텐츠 삭제 시작")
+
+        # DB에서 콘텐츠 목록 조회
+        from src.utils.postgresql_database import PostgreSQLDatabase
+        db = PostgreSQLDatabase()
+        conn = db.get_connection()
+
+        deleted_count = 0
+        failed_files = []
+
+        if conn:
+            with conn.cursor() as cursor:
+                # 해당 사이트의 모든 콘텐츠 조회
+                cursor.execute('''
+                    SELECT id, file_path
+                    FROM blog_automation.content_files
+                    WHERE site = %s
+                ''', (site,))
+
+                content_files = cursor.fetchall()
+                logger.info(f"[DELETE_ALL] {site.upper()}: {len(content_files)}개 콘텐츠 처리 예정")
+
+                for content_id, file_path in content_files:
+                    try:
+                        # 1. DB에서 콘텐츠 삭제
+                        cursor.execute('''
+                            DELETE FROM blog_automation.content_files
+                            WHERE id = %s
+                        ''', (content_id,))
+
+                        # 2. 발행 이력도 삭제
+                        cursor.execute('''
+                            DELETE FROM blog_automation.publish_history
+                            WHERE content_file_id = %s
+                        ''', (content_id,))
+
+                        # 3. 실제 파일 삭제
+                        if file_path and os.path.exists(file_path):
+                            try:
+                                os.remove(file_path)
+                                logger.debug(f"[DELETE_ALL] 파일 삭제: {file_path}")
+
+                                # JSON 메타데이터 파일도 삭제
+                                json_paths = [
+                                    file_path.replace('.html', '.json'),
+                                    file_path.replace('.html', '_meta.json')
+                                ]
+
+                                for json_path in json_paths:
+                                    if os.path.exists(json_path):
+                                        os.remove(json_path)
+                                        logger.debug(f"[DELETE_ALL] 메타 파일 삭제: {json_path}")
+
+                            except Exception as file_error:
+                                logger.warning(f"[DELETE_ALL] 파일 삭제 실패: {file_path} - {file_error}")
+                                failed_files.append(file_path)
+
+                        deleted_count += 1
+
+                    except Exception as content_error:
+                        logger.error(f"[DELETE_ALL] 콘텐츠 {content_id} 삭제 실패: {content_error}")
+                        failed_files.append(f"ID:{content_id}")
+
+                # 변경사항 커밋
+                conn.commit()
+
+        # 시스템 로그 기록
+        try:
+            add_system_log('INFO', f'{site.upper()} 전체 콘텐츠 삭제 완료: {deleted_count}개', 'DELETE_ALL')
+        except:
+            pass
+
+        logger.info(f"[DELETE_ALL] {site.upper()} 삭제 완료: {deleted_count}개 성공, {len(failed_files)}개 실패")
+
+        return jsonify({
+            'success': True,
+            'message': f'{site.upper()} 사이트의 모든 콘텐츠({deleted_count}개)가 삭제되었습니다.',
+            'deleted_count': deleted_count,
+            'failed_files': failed_files,
+            'site': site
+        })
+
+    except Exception as e:
+        logger.error(f"[DELETE_ALL] {site} 전체 삭제 오류: {e}")
+        # 시스템 로그 기록
+        try:
+            add_system_log('ERROR', f'{site} 전체 콘텐츠 삭제 실패: {e}', 'DELETE_ALL_ERROR')
+        except:
+            pass
+        return jsonify({
+            'success': False,
+            'error': f'전체 삭제 실패: {str(e)}',
+            'site': site
+        }), 500
+
 @app.route('/api/schedule')
 def get_schedule():
     """발행 일정 조회"""
