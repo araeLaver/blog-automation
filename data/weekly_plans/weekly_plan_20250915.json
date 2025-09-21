@@ -1,0 +1,260 @@
+{
+  "week_start": "2025-09-15",
+  "week_end": "2025-09-21",
+  "trending_issues": [
+    "전세대출",
+    "신용카드",
+    "보험",
+    "부동산투자",
+    "재테크",
+    "부업",
+    "대출상담"
+  ],
+  "total_expected_revenue": 102.0,
+  "days": [
+    {
+      "day": "월요일",
+      "date": "2025-09-15",
+      "sites": {
+        "tistory": {
+          "keyword": "전세대출 한도 조회",
+          "title": "전세대출 한도 조회 완벽가이드 | 2025년 최신 정보",
+          "search_volume": 8900,
+          "revenue_score": 85,
+          "estimated_revenue": "$4.50"
+        },
+        "untab": {
+          "keyword": "신용카드 추천",
+          "title": "신용카드 추천 BEST 10 | 2025년 9월 최신 혜택",
+          "search_volume": 12500,
+          "revenue_score": 90,
+          "estimated_revenue": "$5.20"
+        },
+        "unpre": {
+          "keyword": "운전자보험 추천",
+          "title": "운전자보험 추천 TOP 5 | 가격비교 완벽가이드",
+          "search_volume": 9800,
+          "revenue_score": 88,
+          "estimated_revenue": "$4.80"
+        },
+        "skewese": {
+          "keyword": "부업 추천",
+          "title": "부업 추천 BEST 12 | 월 100만원 벌기 실전 가이드",
+          "search_volume": 15200,
+          "revenue_score": 92,
+          "estimated_revenue": "$6.10"
+        }
+      }
+    },
+    {
+      "day": "화요일",
+      "date": "2025-09-16",
+      "sites": {
+        "tistory": {
+          "keyword": "적금 추천",
+          "title": "적금 추천 2025년 9월 | 고금리 상품 완벽 비교",
+          "search_volume": 7800,
+          "revenue_score": 82,
+          "estimated_revenue": "$3.90"
+        },
+        "untab": {
+          "keyword": "주식 투자 방법",
+          "title": "주식 투자 방법 완벽 가이드 | 초보자도 쉽게 따라하기",
+          "search_volume": 11200,
+          "revenue_score": 87,
+          "estimated_revenue": "$4.70"
+        },
+        "unpre": {
+          "keyword": "펀드 추천",
+          "title": "펀드 추천 2025년 9월 | 수익률 높은 상품 BEST 8",
+          "search_volume": 6700,
+          "revenue_score": 79,
+          "estimated_revenue": "$3.20"
+        },
+        "skewese": {
+          "keyword": "대출 한도 조회",
+          "title": "대출 한도 조회 총정리 | 신용대출부터 주택담보까지",
+          "search_volume": 10500,
+          "revenue_score": 86,
+          "estimated_revenue": "$4.60"
+        }
+      }
+    },
+    {
+      "day": "수요일",
+      "date": "2025-09-17",
+      "sites": {
+        "tistory": {
+          "keyword": "자동차보험 비교",
+          "title": "자동차보험 비교 2025 | 최저가 찾는 완벽 가이드",
+          "search_volume": 13200,
+          "revenue_score": 91,
+          "estimated_revenue": "$5.50"
+        },
+        "untab": {
+          "keyword": "암보험 추천",
+          "title": "암보험 추천 TOP 7 | 보장내용 완벽 분석",
+          "search_volume": 8700,
+          "revenue_score": 84,
+          "estimated_revenue": "$4.20"
+        },
+        "unpre": {
+          "keyword": "실비보험 추천",
+          "title": "실비보험 추천 2025 | 가격 비교 총정리",
+          "search_volume": 9400,
+          "revenue_score": 87,
+          "estimated_revenue": "$4.50"
+        },
+        "skewese": {
+          "keyword": "청년 전세대출",
+          "title": "청년 전세대출 조건 | 최대 2억원 대출 받는 법",
+          "search_volume": 7600,
+          "revenue_score": 83,
+          "estimated_revenue": "$3.80"
+        }
+      }
+    },
+    {
+      "day": "목요일",
+      "date": "2025-09-18",
+      "sites": {
+        "tistory": {
+          "keyword": "ISA 계좌 추천",
+          "title": "ISA 계좌 추천 2025 | 세금 절약 완벽 가이드",
+          "search_volume": 6900,
+          "revenue_score": 80,
+          "estimated_revenue": "$3.40"
+        },
+        "untab": {
+          "keyword": "퇴직연금 IRP",
+          "title": "퇴직연금 IRP 완벽정리 | 세액공제 최대로 받기",
+          "search_volume": 8300,
+          "revenue_score": 84,
+          "estimated_revenue": "$4.10"
+        },
+        "unpre": {
+          "keyword": "연금저축펀드",
+          "title": "연금저축펀드 추천 | 노후자금 준비 완벽 가이드",
+          "search_volume": 7100,
+          "revenue_score": 81,
+          "estimated_revenue": "$3.50"
+        },
+        "skewese": {
+          "keyword": "주택청약 가점",
+          "title": "주택청약 가점 계산법 | 당첨확률 높이는 전략",
+          "search_volume": 11800,
+          "revenue_score": 88,
+          "estimated_revenue": "$5.00"
+        }
+      }
+    },
+    {
+      "day": "금요일",
+      "date": "2025-09-19",
+      "sites": {
+        "tistory": {
+          "keyword": "신용점수 올리기",
+          "title": "신용점수 올리기 | 1000점 만들기 완벽 가이드",
+          "search_volume": 9600,
+          "revenue_score": 86,
+          "estimated_revenue": "$4.40"
+        },
+        "untab": {
+          "keyword": "비상금 대출",
+          "title": "비상금 대출 추천 | 당일 300만원 받는 방법",
+          "search_volume": 10200,
+          "revenue_score": 87,
+          "estimated_revenue": "$4.60"
+        },
+        "unpre": {
+          "keyword": "카카오뱅크 대출",
+          "title": "카카오뱅크 대출 총정리 | 한도 조회부터 신청까지",
+          "search_volume": 14500,
+          "revenue_score": 92,
+          "estimated_revenue": "$6.20"
+        },
+        "skewese": {
+          "keyword": "토스 신용대출",
+          "title": "토스 신용대출 후기 | 최저금리 받는 꿀팁",
+          "search_volume": 12300,
+          "revenue_score": 89,
+          "estimated_revenue": "$5.30"
+        }
+      }
+    },
+    {
+      "day": "토요일",
+      "date": "2025-09-20",
+      "sites": {
+        "tistory": {
+          "keyword": "ETF 투자",
+          "title": "ETF 투자 입문 가이드 | 초보자 추천 종목 TOP 10",
+          "search_volume": 10800,
+          "revenue_score": 87,
+          "estimated_revenue": "$4.80"
+        },
+        "untab": {
+          "keyword": "리츠 투자",
+          "title": "리츠(REITs) 투자 가이드 | 월배당 받는 방법",
+          "search_volume": 7400,
+          "revenue_score": 82,
+          "estimated_revenue": "$3.60"
+        },
+        "unpre": {
+          "keyword": "달러 투자",
+          "title": "달러 투자 방법 | 환율 상승기 수익 내는 법",
+          "search_volume": 8900,
+          "revenue_score": 85,
+          "estimated_revenue": "$4.30"
+        },
+        "skewese": {
+          "keyword": "금 투자",
+          "title": "금 투자 방법 총정리 | 골드바부터 ETF까지",
+          "search_volume": 9200,
+          "revenue_score": 86,
+          "estimated_revenue": "$4.40"
+        }
+      }
+    },
+    {
+      "day": "일요일",
+      "date": "2025-09-21",
+      "sites": {
+        "tistory": {
+          "keyword": "연말정산 환급",
+          "title": "연말정산 환급 최대로 받기 | 2025 체크리스트",
+          "search_volume": 16800,
+          "revenue_score": 93,
+          "estimated_revenue": "$7.20"
+        },
+        "untab": {
+          "keyword": "세액공제 항목",
+          "title": "세액공제 항목 총정리 | 놓치기 쉬운 공제 15가지",
+          "search_volume": 11500,
+          "revenue_score": 88,
+          "estimated_revenue": "$5.00"
+        },
+        "unpre": {
+          "keyword": "근로소득 세금",
+          "title": "근로소득 세금 계산법 | 실수령액 미리 알아보기",
+          "search_volume": 8100,
+          "revenue_score": 83,
+          "estimated_revenue": "$3.90"
+        },
+        "skewese": {
+          "keyword": "종합소득세 신고",
+          "title": "종합소득세 신고 가이드 | 프리랜서 필독",
+          "search_volume": 13700,
+          "revenue_score": 90,
+          "estimated_revenue": "$5.80"
+        }
+      }
+    }
+  ],
+  "weekly_goals": {
+    "traffic_target": 600,
+    "revenue_target": "$102.00",
+    "posts_count": 28,
+    "engagement_target": "댓글 30개 이상/글"
+  }
+}
