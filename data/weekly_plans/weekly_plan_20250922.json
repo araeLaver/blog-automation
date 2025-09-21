@@ -10,405 +10,251 @@
     "부업",
     "대출상담"
   ],
-  "total_expected_revenue": 25.5,
+  "total_expected_revenue": 102.0,
   "days": [
     {
       "day": "월요일",
       "date": "2025-09-22",
-      "keyword": "전세대출 한도 조회",
-      "title": "전세대출 한도 조회 완벽가이드 | 2025년 최신 정보",
-      "search_volume": 8900,
-      "revenue_score": 85,
-      "estimated_revenue": "$4.50",
-      "content_strategy": {
-        "main_keyword": "전세대출 한도 조회",
-        "related_keywords": [
-          "전세대출 한도계산기",
-          "전세대출 조건",
-          "전세대출 금리"
-        ],
-        "trending_angle": "2025년 금리 인상 대응법",
-        "content_type": "가이드 (실용형)",
-        "target_length": "3000-4000자",
-        "images_needed": 5
-      },
-      "seo_checklist": {
-        "title_keyword": true,
-        "meta_description": "전세대출 한도 조회 방법과 최대한도 계산기. 2025년 최신 금리 정보까지",
-        "h2_tags": "최소 4개, '전세대출 한도' 포함",
-        "keyword_density": "1.5-2.5%",
-        "internal_links": "5개 이상",
-        "external_links": "은행 공식사이트 3-4개"
-      },
-      "monetization": {
-        "primary": [
-          "대출상담 플랫폼 (핀다, 뱅크샐러드)",
-          "부동산 앱 제휴 (직방, 다방)"
-        ],
-        "secondary": [
-          "보험비교사이트",
-          "신용카드 추천"
-        ],
-        "placement": {
-          "상단": "대출한도 계산기 링크",
-          "중간": "대출상담 CTA 버튼",
-          "하단": "부동산 앱 다운로드",
-          "사이드바": "금리비교 위젯"
+      "sites": {
+        "tistory": {
+          "keyword": "전세대출 한도 조회",
+          "title": "전세대출 한도 조회 완벽가이드 | 2025년 최신 정보",
+          "search_volume": 8900,
+          "revenue_score": 85,
+          "estimated_revenue": "$4.50"
+        },
+        "untab": {
+          "keyword": "신용카드 추천",
+          "title": "신용카드 추천 BEST 10 | 2025년 9월 최신 혜택",
+          "search_volume": 12500,
+          "revenue_score": 90,
+          "estimated_revenue": "$5.20"
+        },
+        "unpre": {
+          "keyword": "운전자보험 추천",
+          "title": "운전자보험 추천 TOP 5 | 가격비교 완벽가이드",
+          "search_volume": 9800,
+          "revenue_score": 88,
+          "estimated_revenue": "$4.80"
+        },
+        "skewese": {
+          "keyword": "부업 추천",
+          "title": "부업 추천 BEST 12 | 월 100만원 벌기 실전 가이드",
+          "search_volume": 15200,
+          "revenue_score": 92,
+          "estimated_revenue": "$6.10"
         }
-      },
-      "publishing_time": "오전 9시 (골든타임)",
-      "promotion": {
-        "naver_blog": true,
-        "facebook": true,
-        "instagram": true,
-        "community": [
-          "82COOK 부동산방",
-          "네이버 부동산카페",
-          "펨코 부동산방"
-        ]
       }
     },
     {
       "day": "화요일",
       "date": "2025-09-23",
-      "keyword": "신용카드 추천",
-      "title": "신용카드 추천 BEST 10 | 2025년 9월 최신 혜택",
-      "search_volume": 12500,
-      "revenue_score": 90,
-      "estimated_revenue": "$5.20",
-      "content_strategy": {
-        "main_keyword": "신용카드 추천",
-        "related_keywords": [
-          "신용카드 혜택",
-          "연회비 무료 카드",
-          "포인트 적립 카드"
-        ],
-        "trending_angle": "2025년 9월 신규 출시 카드",
-        "content_type": "리스티클 (순위형)",
-        "target_length": "4000-5000자",
-        "images_needed": 8
-      },
-      "seo_checklist": {
-        "title_keyword": true,
-        "meta_description": "2025년 9월 신용카드 추천 순위. 연회비 무료부터 프리미엄까지 완벽 분석",
-        "h2_tags": "최소 5개, '신용카드 추천' 포함",
-        "keyword_density": "2-3%",
-        "internal_links": "7개 이상",
-        "external_links": "카드사 공식사이트 5-6개"
-      },
-      "monetization": {
-        "primary": [
-          "신용카드 제휴 (삼성카드, 현대카드)",
-          "카드비교사이트 (카드고릴라)"
-        ],
-        "secondary": [
-          "금융상품 비교",
-          "포인트몰 제휴"
-        ],
-        "placement": {
-          "상단": "카드 신청 바로가기",
-          "중간": "혜택 비교 테이블",
-          "하단": "추천 카드 신청 링크",
-          "사이드바": "실시간 인기 카드"
+      "sites": {
+        "tistory": {
+          "keyword": "적금 추천",
+          "title": "적금 추천 2025년 9월 | 고금리 상품 완벽 비교",
+          "search_volume": 7800,
+          "revenue_score": 82,
+          "estimated_revenue": "$3.90"
+        },
+        "untab": {
+          "keyword": "주식 투자 방법",
+          "title": "주식 투자 방법 완벽 가이드 | 초보자도 쉽게 따라하기",
+          "search_volume": 11200,
+          "revenue_score": 87,
+          "estimated_revenue": "$4.70"
+        },
+        "unpre": {
+          "keyword": "펀드 추천",
+          "title": "펀드 추천 2025년 9월 | 수익률 높은 상품 BEST 8",
+          "search_volume": 6700,
+          "revenue_score": 79,
+          "estimated_revenue": "$3.20"
+        },
+        "skewese": {
+          "keyword": "대출 한도 조회",
+          "title": "대출 한도 조회 총정리 | 신용대출부터 주택담보까지",
+          "search_volume": 10500,
+          "revenue_score": 86,
+          "estimated_revenue": "$4.60"
         }
-      },
-      "publishing_time": "오전 10시",
-      "promotion": {
-        "naver_blog": true,
-        "facebook": true,
-        "instagram": true,
-        "community": [
-          "클리앙 알뜰구매",
-          "뽐뿌 신용카드",
-          "네이버 신용카드카페"
-        ]
       }
     },
     {
       "day": "수요일",
       "date": "2025-09-24",
-      "keyword": "운전자보험 추천",
-      "title": "운전자보험 추천 TOP 5 | 가격비교 완벽가이드",
-      "search_volume": 9800,
-      "revenue_score": 88,
-      "estimated_revenue": "$4.80",
-      "content_strategy": {
-        "main_keyword": "운전자보험 추천",
-        "related_keywords": [
-          "운전자보험 비교",
-          "운전자보험 가격",
-          "자동차보험 차이점"
-        ],
-        "trending_angle": "2025년 교통법규 개정 반영",
-        "content_type": "비교분석 (실용형)",
-        "target_length": "3500-4500자",
-        "images_needed": 6
-      },
-      "seo_checklist": {
-        "title_keyword": true,
-        "meta_description": "운전자보험 추천 순위와 가격비교. 자동차보험과 차이점까지 한번에",
-        "h2_tags": "최소 4개, '운전자보험' 포함",
-        "keyword_density": "1.8-2.5%",
-        "internal_links": "5개 이상",
-        "external_links": "보험사 공식사이트 4-5개"
-      },
-      "monetization": {
-        "primary": [
-          "보험비교사이트 (보험다모아, 굿초이스)",
-          "보험사 직접 제휴"
-        ],
-        "secondary": [
-          "자동차용품 쇼핑몰",
-          "중고차 플랫폼"
-        ],
-        "placement": {
-          "상단": "보험료 계산기",
-          "중간": "무료 상담 신청",
-          "하단": "추천 상품 비교",
-          "사이드바": "실시간 가입 현황"
+      "sites": {
+        "tistory": {
+          "keyword": "자동차보험 비교",
+          "title": "자동차보험 비교 2025 | 최저가 찾는 완벽 가이드",
+          "search_volume": 13200,
+          "revenue_score": 91,
+          "estimated_revenue": "$5.50"
+        },
+        "untab": {
+          "keyword": "암보험 추천",
+          "title": "암보험 추천 TOP 7 | 보장내용 완벽 분석",
+          "search_volume": 8700,
+          "revenue_score": 84,
+          "estimated_revenue": "$4.20"
+        },
+        "unpre": {
+          "keyword": "실비보험 추천",
+          "title": "실비보험 추천 2025 | 가격 비교 총정리",
+          "search_volume": 9400,
+          "revenue_score": 87,
+          "estimated_revenue": "$4.50"
+        },
+        "skewese": {
+          "keyword": "청년 전세대출",
+          "title": "청년 전세대출 조건 | 최대 2억원 대출 받는 법",
+          "search_volume": 7600,
+          "revenue_score": 83,
+          "estimated_revenue": "$3.80"
         }
-      },
-      "publishing_time": "오후 2시",
-      "promotion": {
-        "naver_blog": true,
-        "facebook": true,
-        "instagram": true,
-        "community": [
-          "보배드림",
-          "클리앙 자동차",
-          "네이버 자동차카페"
-        ]
       }
     },
     {
       "day": "목요일",
       "date": "2025-09-25",
-      "keyword": "부업 추천",
-      "title": "부업 추천 BEST 12 | 월 100만원 벌기 실전 가이드",
-      "search_volume": 15200,
-      "revenue_score": 92,
-      "estimated_revenue": "$6.10",
-      "content_strategy": {
-        "main_keyword": "부업 추천",
-        "related_keywords": [
-          "재택 부업",
-          "투잡 추천",
-          "온라인 부업"
-        ],
-        "trending_angle": "2025년 경기불황 대비 부업",
-        "content_type": "가이드 (수익형)",
-        "target_length": "5000-6000자",
-        "images_needed": 10
-      },
-      "seo_checklist": {
-        "title_keyword": true,
-        "meta_description": "2025년 부업 추천 완벽 가이드. 재택부업부터 투잡까지 월 100만원 벌기",
-        "h2_tags": "최소 6개, '부업 추천' 포함",
-        "keyword_density": "2-3%",
-        "internal_links": "8개 이상",
-        "external_links": "구인구직 사이트 3-4개"
-      },
-      "monetization": {
-        "primary": [
-          "온라인 교육 플랫폼 (패스트캠퍼스)",
-          "부업 관련 서적 추천"
-        ],
-        "secondary": [
-          "재테크 강의",
-          "창업 컨설팅"
-        ],
-        "placement": {
-          "상단": "부업 성공 사례",
-          "중간": "교육과정 추천",
-          "하단": "무료 상담 신청",
-          "사이드바": "부업 수익 계산기"
+      "sites": {
+        "tistory": {
+          "keyword": "ISA 계좌 추천",
+          "title": "ISA 계좌 추천 2025 | 세금 절약 완벽 가이드",
+          "search_volume": 6900,
+          "revenue_score": 80,
+          "estimated_revenue": "$3.40"
+        },
+        "untab": {
+          "keyword": "퇴직연금 IRP",
+          "title": "퇴직연금 IRP 완벽정리 | 세액공제 최대로 받기",
+          "search_volume": 8300,
+          "revenue_score": 84,
+          "estimated_revenue": "$4.10"
+        },
+        "unpre": {
+          "keyword": "연금저축펀드",
+          "title": "연금저축펀드 추천 | 노후자금 준비 완벽 가이드",
+          "search_volume": 7100,
+          "revenue_score": 81,
+          "estimated_revenue": "$3.50"
+        },
+        "skewese": {
+          "keyword": "주택청약 가점",
+          "title": "주택청약 가점 계산법 | 당첨확률 높이는 전략",
+          "search_volume": 11800,
+          "revenue_score": 88,
+          "estimated_revenue": "$5.00"
         }
-      },
-      "publishing_time": "오후 7시 (퇴근시간)",
-      "promotion": {
-        "naver_blog": true,
-        "facebook": true,
-        "instagram": true,
-        "community": [
-          "82COOK 알뜰살림",
-          "워킹맘 카페",
-          "직장인 부업 카페"
-        ]
       }
     },
     {
       "day": "금요일",
       "date": "2025-09-26",
-      "keyword": "적금 추천",
-      "title": "적금 추천 2025년 9월 | 고금리 상품 완벽 비교",
-      "search_volume": 7800,
-      "revenue_score": 82,
-      "estimated_revenue": "$3.90",
-      "content_strategy": {
-        "main_keyword": "적금 추천",
-        "related_keywords": [
-          "고금리 적금",
-          "적금 금리 비교",
-          "자유적금"
-        ],
-        "trending_angle": "2025년 9월 금리 인상 반영",
-        "content_type": "비교분석 (실용형)",
-        "target_length": "3000-4000자",
-        "images_needed": 5
-      },
-      "seo_checklist": {
-        "title_keyword": true,
-        "meta_description": "2025년 9월 적금 추천 완벽 가이드. 고금리 적금부터 자유적금까지",
-        "h2_tags": "최소 4개, '적금 추천' 포함",
-        "keyword_density": "1.5-2.5%",
-        "internal_links": "5개 이상",
-        "external_links": "은행 공식사이트 4-5개"
-      },
-      "monetization": {
-        "primary": [
-          "은행 제휴 (카카오뱅크, 토스뱅크)",
-          "금융상품 비교사이트"
-        ],
-        "secondary": [
-          "투자상품 추천",
-          "보험상품 연계"
-        ],
-        "placement": {
-          "상단": "적금 계산기",
-          "중간": "상품 신청 링크",
-          "하단": "관련 상품 추천",
-          "사이드바": "실시간 금리 정보"
+      "sites": {
+        "tistory": {
+          "keyword": "신용점수 올리기",
+          "title": "신용점수 올리기 | 1000점 만들기 완벽 가이드",
+          "search_volume": 9600,
+          "revenue_score": 86,
+          "estimated_revenue": "$4.40"
+        },
+        "untab": {
+          "keyword": "비상금 대출",
+          "title": "비상금 대출 추천 | 당일 300만원 받는 방법",
+          "search_volume": 10200,
+          "revenue_score": 87,
+          "estimated_revenue": "$4.60"
+        },
+        "unpre": {
+          "keyword": "카카오뱅크 대출",
+          "title": "카카오뱅크 대출 총정리 | 한도 조회부터 신청까지",
+          "search_volume": 14500,
+          "revenue_score": 92,
+          "estimated_revenue": "$6.20"
+        },
+        "skewese": {
+          "keyword": "토스 신용대출",
+          "title": "토스 신용대출 후기 | 최저금리 받는 꿀팁",
+          "search_volume": 12300,
+          "revenue_score": 89,
+          "estimated_revenue": "$5.30"
         }
-      },
-      "publishing_time": "오전 11시",
-      "promotion": {
-        "naver_blog": true,
-        "facebook": true,
-        "instagram": true,
-        "community": [
-          "네이버 재테크카페",
-          "클리앙 재정관리",
-          "펨코 재테크방"
-        ]
       }
     },
     {
       "day": "토요일",
       "date": "2025-09-27",
-      "keyword": "주식 투자 방법",
-      "title": "주식 투자 방법 완벽 가이드 | 초보자도 쉽게 따라하기",
-      "search_volume": 11200,
-      "revenue_score": 87,
-      "estimated_revenue": "$4.70",
-      "content_strategy": {
-        "main_keyword": "주식 투자 방법",
-        "related_keywords": [
-          "주식 초보 가이드",
-          "주식 투자 전략",
-          "주식 매매 방법"
-        ],
-        "trending_angle": "2025년 하반기 투자 전략",
-        "content_type": "교육 (가이드형)",
-        "target_length": "4500-5500자",
-        "images_needed": 8
-      },
-      "seo_checklist": {
-        "title_keyword": true,
-        "meta_description": "주식 투자 방법 완벽 가이드. 초보자도 쉽게 따라할 수 있는 실전 투자법",
-        "h2_tags": "최소 5개, '주식 투자' 포함",
-        "keyword_density": "2-3%",
-        "internal_links": "6개 이상",
-        "external_links": "증권사 사이트 3-4개"
-      },
-      "monetization": {
-        "primary": [
-          "증권사 계좌개설 (키움증권, 미래에셋)",
-          "투자 교육 서적"
-        ],
-        "secondary": [
-          "투자 강의 추천",
-          "주식 분석 툴"
-        ],
-        "placement": {
-          "상단": "계좌개설 혜택",
-          "중간": "투자 교육과정",
-          "하단": "추천 도서 링크",
-          "사이드바": "실시간 시황"
+      "sites": {
+        "tistory": {
+          "keyword": "ETF 투자",
+          "title": "ETF 투자 입문 가이드 | 초보자 추천 종목 TOP 10",
+          "search_volume": 10800,
+          "revenue_score": 87,
+          "estimated_revenue": "$4.80"
+        },
+        "untab": {
+          "keyword": "리츠 투자",
+          "title": "리츠(REITs) 투자 가이드 | 월배당 받는 방법",
+          "search_volume": 7400,
+          "revenue_score": 82,
+          "estimated_revenue": "$3.60"
+        },
+        "unpre": {
+          "keyword": "달러 투자",
+          "title": "달러 투자 방법 | 환율 상승기 수익 내는 법",
+          "search_volume": 8900,
+          "revenue_score": 85,
+          "estimated_revenue": "$4.30"
+        },
+        "skewese": {
+          "keyword": "금 투자",
+          "title": "금 투자 방법 총정리 | 골드바부터 ETF까지",
+          "search_volume": 9200,
+          "revenue_score": 86,
+          "estimated_revenue": "$4.40"
         }
-      },
-      "publishing_time": "오전 10시",
-      "promotion": {
-        "naver_blog": true,
-        "facebook": true,
-        "instagram": true,
-        "community": [
-          "네이버 주식카페",
-          "팍스넷 커뮤니티",
-          "38커뮤니티"
-        ]
       }
     },
     {
       "day": "일요일",
       "date": "2025-09-28",
-      "keyword": "펀드 추천",
-      "title": "펀드 추천 2025년 9월 | 수익률 높은 상품 BEST 8",
-      "search_volume": 6700,
-      "revenue_score": 79,
-      "estimated_revenue": "$3.20",
-      "content_strategy": {
-        "main_keyword": "펀드 추천",
-        "related_keywords": [
-          "펀드 수익률",
-          "펀드 종류",
-          "ETF 추천"
-        ],
-        "trending_angle": "2025년 9월 시장 상황 반영",
-        "content_type": "리스티클 (순위형)",
-        "target_length": "3500-4500자",
-        "images_needed": 6
-      },
-      "seo_checklist": {
-        "title_keyword": true,
-        "meta_description": "2025년 9월 펀드 추천 완벽 가이드. 수익률 높은 펀드부터 ETF까지",
-        "h2_tags": "최소 4개, '펀드 추천' 포함",
-        "keyword_density": "1.8-2.5%",
-        "internal_links": "5개 이상",
-        "external_links": "자산운용사 사이트 3-4개"
-      },
-      "monetization": {
-        "primary": [
-          "증권사 펀드 가입",
-          "로보어드바이저 추천"
-        ],
-        "secondary": [
-          "투자 분석 툴",
-          "금융 뉴스레터"
-        ],
-        "placement": {
-          "상단": "펀드 수익률 비교",
-          "중간": "가입 혜택 안내",
-          "하단": "투자 상담 신청",
-          "사이드바": "추천 포트폴리오"
+      "sites": {
+        "tistory": {
+          "keyword": "연말정산 환급",
+          "title": "연말정산 환급 최대로 받기 | 2025 체크리스트",
+          "search_volume": 16800,
+          "revenue_score": 93,
+          "estimated_revenue": "$7.20"
+        },
+        "untab": {
+          "keyword": "세액공제 항목",
+          "title": "세액공제 항목 총정리 | 놓치기 쉬운 공제 15가지",
+          "search_volume": 11500,
+          "revenue_score": 88,
+          "estimated_revenue": "$5.00"
+        },
+        "unpre": {
+          "keyword": "근로소득 세금",
+          "title": "근로소득 세금 계산법 | 실수령액 미리 알아보기",
+          "search_volume": 8100,
+          "revenue_score": 83,
+          "estimated_revenue": "$3.90"
+        },
+        "skewese": {
+          "keyword": "종합소득세 신고",
+          "title": "종합소득세 신고 가이드 | 프리랜서 필독",
+          "search_volume": 13700,
+          "revenue_score": 90,
+          "estimated_revenue": "$5.80"
         }
-      },
-      "publishing_time": "오후 3시",
-      "promotion": {
-        "naver_blog": true,
-        "facebook": true,
-        "instagram": true,
-        "community": [
-          "네이버 펀드카페",
-          "클리앙 투자",
-          "증권 커뮤니티"
-        ]
       }
     }
   ],
   "weekly_goals": {
-    "traffic_target": 150,
-    "revenue_target": "$25.50",
-    "posts_count": 7,
-    "engagement_target": "댓글 20개 이상/글"
+    "traffic_target": 600,
+    "revenue_target": "$102.00",
+    "posts_count": 28,
+    "engagement_target": "댓글 30개 이상/글"
   }
 }

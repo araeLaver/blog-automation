@@ -245,15 +245,28 @@ class DailyAutoPublisher:
 
                         for day_plan in plan_data.get('days', []):
                             if day_plan.get('day') == today_name:
-                                # 새로운 계획표 형식을 기존 형식으로 변환
-                                topics.append({
-                                    'id': hash(f"{site}_{today_str}_{day_plan.get('title')}"),
-                                    'category': 'profit_optimized',
-                                    'specific_topic': day_plan.get('title'),
-                                    'keywords': day_plan.get('content_strategy', {}).get('related_keywords', []),
-                                    'profit_score': day_plan.get('revenue_score', 90),
-                                    'priority': 'high'
-                                })
+                                # 사이트별 주제 찾기
+                                sites_data = day_plan.get('sites', {})
+                                if site in sites_data:
+                                    site_plan = sites_data[site]
+                                    topics.append({
+                                        'id': hash(f"{site}_{today_str}_{site_plan.get('title')}"),
+                                        'category': 'profit_optimized',
+                                        'specific_topic': site_plan.get('title'),
+                                        'keywords': [site_plan.get('keyword')],
+                                        'profit_score': site_plan.get('revenue_score', 90),
+                                        'priority': 'high'
+                                    })
+                                # 구버전 계획표 호환성 유지
+                                elif day_plan.get('title'):
+                                    topics.append({
+                                        'id': hash(f"{site}_{today_str}_{day_plan.get('title')}"),
+                                        'category': 'profit_optimized',
+                                        'specific_topic': day_plan.get('title'),
+                                        'keywords': day_plan.get('content_strategy', {}).get('related_keywords', []),
+                                        'profit_score': day_plan.get('revenue_score', 90),
+                                        'priority': 'high'
+                                    })
                                 break
 
                         if topics:
