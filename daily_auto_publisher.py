@@ -224,42 +224,49 @@ class DailyAutoPublisher:
                 today = datetime(year, month, day)
                 today_str = today.strftime('%Y-%m-%d')
 
-                # 먼저 주간계획(weekly_plans)에서 조회
+                # 먼저 주간계획 JSON 파일에서 조회
+                import os
                 weekday = today.weekday()
                 week_start = today - timedelta(days=weekday)
-                week_start_str = week_start.strftime('%Y-%m-%d')
+                week_start_str = week_start.strftime('%Y%m%d')
 
-                cursor.execute(f"""
-                    SELECT plan_data
-                    FROM {self.db.schema}.weekly_plans
-                    WHERE week_start = %s
-                """, (week_start_str,))
+                # 주간계획 파일 경로
+                plan_file = f"data/weekly_plans/weekly_plan_{week_start_str}.json"
 
-                result = cursor.fetchone()
+                if os.path.exists(plan_file):
+                    try:
+                        with open(plan_file, 'r', encoding='utf-8') as f:
+                            plan_data = json.load(f)
 
-                if result and result[0]:
-                    # 주간계획이 존재하면 해당 계획 사용
-                    plan_data = result[0]
-                    topics = []
+                        topics = []
+                        # 오늘 요일에 해당하는 주제 찾기
+                        day_names = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일']
+                        today_name = day_names[weekday]
 
-                    # 오늘 날짜와 사이트에 해당하는 계획 찾기
-                    for plan in plan_data.get('plans', []):
-                        if plan.get('date') == today_str and plan.get('site') == site:
-                            # 주간계획의 형식을 기존 형식으로 변환
-                            topics.append({
-                                'id': hash(f"{site}_{today_str}_{plan.get('title')}"),  # 고유 ID 생성
-                                'category': plan.get('category', 'profit_optimized'),
-                                'specific_topic': plan.get('title'),
-                                'keywords': plan.get('keywords', []),
-                                'profit_score': plan.get('profit_score', 0),
-                                'priority': plan.get('priority', 'medium')
-                            })
+                        for day_plan in plan_data.get('days', []):
+                            if day_plan.get('day') == today_name:
+                                # 새로운 계획표 형식을 기존 형식으로 변환
+                                topics.append({
+                                    'id': hash(f"{site}_{today_str}_{day_plan.get('title')}"),
+                                    'category': 'profit_optimized',
+                                    'specific_topic': day_plan.get('title'),
+                                    'keywords': day_plan.get('content_strategy', {}).get('related_keywords', []),
+                                    'profit_score': day_plan.get('revenue_score', 90),
+                                    'priority': 'high'
+                                })
+                                break
 
-                    if topics:
-                        logger.info(f"[TOPICS] {site.upper()}: {today_str} 주간계획에서 {len(topics)}개 주제 조회")
-                        return topics
-                    else:
-                        logger.info(f"[TOPICS] {site.upper()}: 주간계획에 오늘 주제가 없음, 월간계획 확인")
+                        if topics:
+                            logger.info(f"[TOPICS] {site.upper()}: {today_str} 주간계획에서 {len(topics)}개 주제 조회 - {topics[0]['specific_topic']}")
+                            return topics
+                        else:
+                            logger.info(f"[TOPICS] {site.upper()}: 주간계획에 오늘 주제가 없음, 월간계획 확인")
+
+                    except Exception as e:
+                        logger.error(f"[TOPICS] 주간계획 파일 읽기 오류: {e}")
+
+                else:
+                    logger.info(f"[TOPICS] 주간계획 파일 없음: {plan_file}, 월간계획 확인")
 
                 # 주간계획이 없거나 오늘 주제가 없으면 기존 월간계획에서 조회 (폴백)
                 cursor.execute(f"""

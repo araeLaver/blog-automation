@@ -2163,69 +2163,107 @@ def delete_all_content(site):
 
         logger.info(f"[DELETE_ALL] {site.upper()} 전체 콘텐츠 삭제 시작")
 
-        # DB에서 콘텐츠 목록 조회
-        from src.utils.postgresql_database import PostgreSQLDatabase
-        db = PostgreSQLDatabase()
-        conn = db.get_connection()
-
+        # get_database 함수 사용으로 통일
+        database = get_database()
         deleted_count = 0
         failed_files = []
 
-        if conn:
-            with conn.cursor() as cursor:
-                # 해당 사이트의 모든 콘텐츠 조회
-                cursor.execute('''
-                    SELECT id, file_path
-                    FROM blog_automation.content_files
-                    WHERE site = %s
-                ''', (site,))
+        if not database.is_connected:
+            logger.error(f"[DELETE_ALL] 데이터베이스 연결 실패")
+            # DB 연결 실패시에도 파일 시스템에서 삭제 시도
+            data_dirs = {
+                'tistory': os.path.join('data', 'tistory_posts'),
+                'skewese': os.path.join('data', 'skewese_posts'),
+                'unpre': os.path.join('data', 'unpre_posts'),
+                'untab': os.path.join('data', 'untab_posts')
+            }
 
-                content_files = cursor.fetchall()
-                logger.info(f"[DELETE_ALL] {site.upper()}: {len(content_files)}개 콘텐츠 처리 예정")
+            target_dir = data_dirs.get(site)
+            if target_dir and os.path.exists(target_dir):
+                for filename in os.listdir(target_dir):
+                    if filename.endswith('.html'):
+                        file_path = os.path.join(target_dir, filename)
+                        try:
+                            os.remove(file_path)
+                            # 메타 파일도 삭제
+                            for ext in ['.json', '_meta.json']:
+                                meta_path = file_path.replace('.html', ext)
+                                if os.path.exists(meta_path):
+                                    os.remove(meta_path)
+                            deleted_count += 1
+                        except Exception as e:
+                            logger.error(f"[DELETE_ALL] 파일 삭제 실패: {file_path} - {e}")
+                            failed_files.append(file_path)
+        else:
+            # DB 연결 성공시
+            conn = database.get_connection()
+            try:
+                with conn.cursor() as cursor:
+                    # 해당 사이트의 모든 콘텐츠 조회
+                    cursor.execute('''
+                        SELECT id, file_path
+                        FROM blog_automation.content_files
+                        WHERE site = %s
+                    ''', (site,))
 
-                for content_id, file_path in content_files:
-                    try:
-                        # 1. DB에서 콘텐츠 삭제
-                        cursor.execute('''
-                            DELETE FROM blog_automation.content_files
-                            WHERE id = %s
-                        ''', (content_id,))
+                    content_files = cursor.fetchall()
+                    logger.info(f"[DELETE_ALL] {site.upper()}: {len(content_files)}개 콘텐츠 처리 예정")
 
-                        # 2. 발행 이력도 삭제
-                        cursor.execute('''
-                            DELETE FROM blog_automation.publish_history
-                            WHERE content_file_id = %s
-                        ''', (content_id,))
+                    for content_id, file_path in content_files:
+                        try:
+                            # 1. 발행 이력 먼저 삭제 (외래 키 제약)
+                            cursor.execute('''
+                                DELETE FROM blog_automation.publish_history
+                                WHERE content_file_id = %s
+                            ''', (content_id,))
 
-                        # 3. 실제 파일 삭제
-                        if file_path and os.path.exists(file_path):
-                            try:
-                                os.remove(file_path)
-                                logger.debug(f"[DELETE_ALL] 파일 삭제: {file_path}")
+                            # 2. DB에서 콘텐츠 삭제
+                            cursor.execute('''
+                                DELETE FROM blog_automation.content_files
+                                WHERE id = %s
+                            ''', (content_id,))
 
-                                # JSON 메타데이터 파일도 삭제
-                                json_paths = [
-                                    file_path.replace('.html', '.json'),
-                                    file_path.replace('.html', '_meta.json')
-                                ]
+                            # 3. 실제 파일 삭제
+                            if file_path:
+                                # 파일 경로 정규화
+                                if not os.path.isabs(file_path):
+                                    file_path = os.path.join(os.getcwd(), file_path)
 
-                                for json_path in json_paths:
-                                    if os.path.exists(json_path):
-                                        os.remove(json_path)
-                                        logger.debug(f"[DELETE_ALL] 메타 파일 삭제: {json_path}")
+                                if os.path.exists(file_path):
+                                    try:
+                                        os.remove(file_path)
+                                        logger.debug(f"[DELETE_ALL] 파일 삭제: {file_path}")
 
-                            except Exception as file_error:
-                                logger.warning(f"[DELETE_ALL] 파일 삭제 실패: {file_path} - {file_error}")
-                                failed_files.append(file_path)
+                                        # JSON 메타데이터 파일도 삭제
+                                        json_paths = [
+                                            file_path.replace('.html', '.json'),
+                                            file_path.replace('.html', '_meta.json')
+                                        ]
 
-                        deleted_count += 1
+                                        for json_path in json_paths:
+                                            if os.path.exists(json_path):
+                                                os.remove(json_path)
+                                                logger.debug(f"[DELETE_ALL] 메타 파일 삭제: {json_path}")
 
-                    except Exception as content_error:
-                        logger.error(f"[DELETE_ALL] 콘텐츠 {content_id} 삭제 실패: {content_error}")
-                        failed_files.append(f"ID:{content_id}")
+                                    except Exception as file_error:
+                                        logger.warning(f"[DELETE_ALL] 파일 삭제 실패: {file_path} - {file_error}")
+                                        # 파일 삭제 실패는 경고만, DB 삭제는 계속 진행
 
-                # 변경사항 커밋
-                conn.commit()
+                            deleted_count += 1
+
+                        except Exception as content_error:
+                            logger.error(f"[DELETE_ALL] 콘텐츠 {content_id} 삭제 실패: {content_error}")
+                            failed_files.append(f"ID:{content_id}")
+                            # 개별 실패는 롤백하지 않고 계속 진행
+
+                    # 변경사항 커밋
+                    conn.commit()
+                    logger.info(f"[DELETE_ALL] 데이터베이스 커밋 완료")
+
+            except Exception as db_error:
+                logger.error(f"[DELETE_ALL] DB 작업 중 오류: {db_error}")
+                conn.rollback()
+                raise
 
         # 시스템 로그 기록
         try:
@@ -2239,12 +2277,12 @@ def delete_all_content(site):
             'success': True,
             'message': f'{site.upper()} 사이트의 모든 콘텐츠({deleted_count}개)가 삭제되었습니다.',
             'deleted_count': deleted_count,
-            'failed_files': failed_files,
+            'failed_files': failed_files if failed_files else None,
             'site': site
         })
 
     except Exception as e:
-        logger.error(f"[DELETE_ALL] {site} 전체 삭제 오류: {e}")
+        logger.error(f"[DELETE_ALL] {site} 전체 삭제 오류: {e}", exc_info=True)
         # 시스템 로그 기록
         try:
             add_system_log('ERROR', f'{site} 전체 콘텐츠 삭제 실패: {e}', 'DELETE_ALL_ERROR')
