@@ -339,16 +339,27 @@
             `;
 
             try {
+                console.log('Fetching weekly plan...');
                 const response = await fetch('/api/weekly-plan/current');
+                console.log('Response received:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const data = await response.json();
+                console.log('Data parsed:', data);
 
                 if (data.success && data.data) {
+                    console.log('Processing plan data...');
                     // 정적 HTML로 바로 표시
                     const plan = data.data;
                     let htmlContent = '<div class="weekly-plan">';
 
+                    console.log('Plan days:', plan.days ? plan.days.length : 'undefined');
                     if (plan.days && plan.days.length > 0) {
-                        plan.days.forEach(day => {
+                        plan.days.forEach((day, dayIndex) => {
+                            console.log(`Processing day ${dayIndex}:`, day.day, day.date);
                             htmlContent += `
                                 <div class="day-card">
                                     <div class="day-header">
@@ -359,8 +370,10 @@
                                     </div>
                             `;
 
+                            console.log(`Day ${dayIndex} sites:`, day.sites ? Object.keys(day.sites) : 'none');
                             if (day.sites) {
                                 Object.keys(day.sites).forEach(site => {
+                                    console.log(`Processing site: ${site}`);
                                     const siteData = day.sites[site];
                                     const siteColors = {
                                         'tistory': '#007bff',
@@ -394,7 +407,10 @@
                     }
 
                     htmlContent += '</div>';
+                    console.log('Final HTML content length:', htmlContent.length);
+                    console.log('Setting innerHTML...');
                     planContent.innerHTML = htmlContent;
+                    console.log('HTML set successfully');
 
                     // 통계 업데이트
                     if (plan.total_expected_revenue !== undefined) {
