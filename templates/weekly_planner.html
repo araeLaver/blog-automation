@@ -269,10 +269,7 @@
     <script>
         // 페이지 로드 시 현재 계획 자동 로드
         document.addEventListener('DOMContentLoaded', function() {
-            alert('JavaScript가 동작합니다!');
-            // 일단 정적 데이터로 테스트
-            showTestData();
-            // loadCurrentPlan();
+            loadCurrentPlan();
         });
 
         function showTestData() {
@@ -333,35 +330,96 @@
         async function loadCurrentPlan() {
             const planContent = document.getElementById('plan-content');
             const summaryStats = document.getElementById('summary-stats');
-            
+
             planContent.innerHTML = `
                 <div class="loading">
                     <div class="spinner"></div>
                     <div>현재 주간 계획을 불러오는 중...</div>
                 </div>
             `;
-            
+
             try {
-                console.log('Loading current plan...');
                 const response = await fetch('/api/weekly-plan/current');
-                console.log('Response status:', response.status);
                 const data = await response.json();
-                console.log('API Response:', JSON.stringify(data, null, 2));
 
                 if (data.success && data.data) {
-                    console.log('Plan data found, displaying...');
-                    displayWeeklyPlan(data.data, data.summary);
-                    updateSummaryStats(data.data);
+                    // 정적 HTML로 바로 표시
+                    const plan = data.data;
+                    let htmlContent = '<div class="weekly-plan">';
+
+                    if (plan.days && plan.days.length > 0) {
+                        plan.days.forEach(day => {
+                            htmlContent += `
+                                <div class="day-card">
+                                    <div class="day-header">
+                                        <div class="day-title">
+                                            <i class="bi bi-calendar-day"></i>
+                                            ${day.day} (${day.date})
+                                        </div>
+                                    </div>
+                            `;
+
+                            if (day.sites) {
+                                Object.keys(day.sites).forEach(site => {
+                                    const siteData = day.sites[site];
+                                    const siteColors = {
+                                        'tistory': '#007bff',
+                                        'untab': '#28a745',
+                                        'unpre': '#dc3545',
+                                        'skewese': '#ffc107'
+                                    };
+                                    const color = siteColors[site] || '#6c757d';
+
+                                    htmlContent += `
+                                        <div class="site-section" style="border-left: 3px solid ${color}; padding-left: 10px; margin-bottom: 15px;">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <strong style="color: ${color}; text-transform: uppercase;">${site}</strong>
+                                                <div class="revenue-badge">${siteData.estimated_revenue}</div>
+                                            </div>
+                                            <div class="mb-2">
+                                                <strong><i class="bi bi-key"></i> 키워드:</strong>
+                                                <span class="keyword-tag">${siteData.keyword}</span>
+                                            </div>
+                                            <div class="mb-2">
+                                                <strong><i class="bi bi-file-text"></i> 제목:</strong><br>
+                                                <span style="color: #333; font-weight: 500; font-size: 0.9rem;">${siteData.title}</span>
+                                            </div>
+                                        </div>
+                                    `;
+                                });
+                            }
+
+                            htmlContent += '</div>';
+                        });
+                    }
+
+                    htmlContent += '</div>';
+                    planContent.innerHTML = htmlContent;
+
+                    // 통계 업데이트
+                    if (plan.total_expected_revenue !== undefined) {
+                        document.getElementById('weekly-revenue').textContent = '$' + plan.total_expected_revenue.toFixed(2);
+                    }
+                    if (plan.days) {
+                        let totalPosts = 0;
+                        plan.days.forEach(day => {
+                            if (day.sites) {
+                                totalPosts += Object.keys(day.sites).length;
+                            }
+                        });
+                        document.getElementById('post-count').textContent = totalPosts;
+                    }
+                    if (plan.weekly_goals && plan.weekly_goals.traffic_target) {
+                        document.getElementById('traffic-target').textContent = plan.weekly_goals.traffic_target;
+                    }
                     summaryStats.style.display = 'grid';
+
                 } else if (data.success && !data.data) {
                     planContent.innerHTML = `
                         <div class="alert alert-info">
                             <i class="bi bi-info-circle"></i>
                             <strong>계획이 없습니다</strong><br>
-                            이번 주에 대한 블로그 계획이 아직 생성되지 않았습니다. 
-                            <button class="btn btn-primary btn-sm ms-2" onclick="createWeeklyPlan()">
-                                새 계획 생성
-                            </button>
+                            이번 주에 대한 블로그 계획이 아직 생성되지 않았습니다.
                         </div>
                     `;
                     summaryStats.style.display = 'none';
@@ -428,116 +486,7 @@
             }
         }
 
-        function displayWeeklyPlan(plan, summary = null) {
-            console.log('displayWeeklyPlan called with:', plan);
-            const planContent = document.getElementById('plan-content');
-
-            let content = '';
-
-            // 요약 정보 표시 (텍스트 형태가 있는 경우)
-            if (summary) {
-                content += `
-                    <div class="alert alert-info mb-4">
-                        <h6><i class="bi bi-info-circle"></i> 주간 계획 요약</h6>
-                        <pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">${summary}</pre>
-                    </div>
-                `;
-            }
-
-            // 일별 계획 카드 - 새로운 사이트별 구조
-            console.log('Checking plan.days:', plan.days ? plan.days.length : 'undefined');
-            if (plan.days && plan.days.length > 0) {
-                content += '<div class="weekly-plan">';
-
-                plan.days.forEach(day => {
-                    content += `
-                        <div class="day-card">
-                            <div class="day-header">
-                                <div class="day-title">
-                                    <i class="bi bi-calendar-day"></i>
-                                    ${day.day} (${day.date})
-                                </div>
-                            </div>
-                    `;
-
-                    // 각 사이트별 정보 표시
-                    if (day.sites) {
-                        Object.keys(day.sites).forEach(site => {
-                            const siteData = day.sites[site];
-                            content += `
-                                <div class="site-section" style="border-left: 3px solid #${getSiteColor(site)}; padding-left: 10px; margin-bottom: 15px;">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <strong style="color: #${getSiteColor(site)}; text-transform: uppercase;">${site}</strong>
-                                        <div class="revenue-badge">${siteData.estimated_revenue}</div>
-                                    </div>
-
-                                    <div class="mb-2">
-                                        <strong><i class="bi bi-key"></i> 키워드:</strong>
-                                        <span class="keyword-tag">${siteData.keyword}</span>
-                                    </div>
-
-                                    <div class="mb-2">
-                                        <strong><i class="bi bi-file-text"></i> 제목:</strong><br>
-                                        <span style="color: #333; font-weight: 500; font-size: 0.9rem;">${siteData.title}</span>
-                                    </div>
-
-                                    <div class="mb-2">
-                                        <small class="text-muted">
-                                            <i class="bi bi-search"></i> 검색량: ${siteData.search_volume?.toLocaleString() || 'N/A'} |
-                                            <i class="bi bi-star"></i> 수익점수: ${siteData.revenue_score || 'N/A'}
-                                        </small>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                    }
-
-                    content += '</div>';
-                });
-
-                content += '</div>';
-            } else {
-                content += `
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle"></i>
-                        주간 계획 데이터를 찾을 수 없습니다.
-                    </div>
-                `;
-            }
-
-            planContent.innerHTML = content;
-        }
-
-        function getSiteColor(site) {
-            const colors = {
-                'tistory': '007bff',
-                'untab': '28a745',
-                'unpre': 'dc3545',
-                'skewese': 'ffc107'
-            };
-            return colors[site] || '6c757d';
-        }
-
-        function updateSummaryStats(plan) {
-            if (plan.total_expected_revenue !== undefined) {
-                document.getElementById('weekly-revenue').textContent = '$' + plan.total_expected_revenue.toFixed(2);
-            }
-
-            if (plan.days) {
-                // 전체 포스트 수는 사이트 수 x 일수
-                let totalPosts = 0;
-                plan.days.forEach(day => {
-                    if (day.sites) {
-                        totalPosts += Object.keys(day.sites).length;
-                    }
-                });
-                document.getElementById('post-count').textContent = totalPosts;
-            }
-
-            if (plan.weekly_goals && plan.weekly_goals.traffic_target) {
-                document.getElementById('traffic-target').textContent = plan.weekly_goals.traffic_target;
-            }
-        }
+        // 삭제된 함수들 - loadCurrentPlan에서 직접 처리
 
         function showToast(message, type = 'info') {
             // Toast 알림을 표시하는 함수
