@@ -269,8 +269,49 @@
     <script>
         // 페이지 로드 시 현재 계획 자동 로드
         document.addEventListener('DOMContentLoaded', function() {
-            loadCurrentPlan();
+            // 일단 정적 데이터로 테스트
+            showTestData();
+            // loadCurrentPlan();
         });
+
+        function showTestData() {
+            const testData = {
+                "week_start": "2025-09-22",
+                "week_end": "2025-09-28",
+                "total_expected_revenue": 102.0,
+                "days": [
+                    {
+                        "day": "월요일",
+                        "date": "2025-09-22",
+                        "sites": {
+                            "tistory": {
+                                "keyword": "전세대출 한도 조회",
+                                "title": "전세대출 한도 조회 완벽가이드 | 2025년 최신 정보",
+                                "search_volume": 8900,
+                                "revenue_score": 85,
+                                "estimated_revenue": "$4.50"
+                            },
+                            "untab": {
+                                "keyword": "신용카드 추천",
+                                "title": "신용카드 추천 BEST 10 | 2025년 9월 최신 혜택",
+                                "search_volume": 12500,
+                                "revenue_score": 90,
+                                "estimated_revenue": "$5.20"
+                            }
+                        }
+                    }
+                ],
+                "weekly_goals": {
+                    "traffic_target": 600,
+                    "revenue_target": "$102.00",
+                    "posts_count": 28
+                }
+            };
+
+            displayWeeklyPlan(testData);
+            updateSummaryStats(testData);
+            document.getElementById('summary-stats').style.display = 'grid';
+        }
 
         async function loadCurrentPlan() {
             const planContent = document.getElementById('plan-content');
