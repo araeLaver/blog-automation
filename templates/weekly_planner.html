@@ -269,48 +269,65 @@
     <script>
         // 페이지 로드 시 현재 계획 자동 로드
         document.addEventListener('DOMContentLoaded', function() {
+            alert('JavaScript가 동작합니다!');
             // 일단 정적 데이터로 테스트
             showTestData();
             // loadCurrentPlan();
         });
 
         function showTestData() {
-            const testData = {
-                "week_start": "2025-09-22",
-                "week_end": "2025-09-28",
-                "total_expected_revenue": 102.0,
-                "days": [
-                    {
-                        "day": "월요일",
-                        "date": "2025-09-22",
-                        "sites": {
-                            "tistory": {
-                                "keyword": "전세대출 한도 조회",
-                                "title": "전세대출 한도 조회 완벽가이드 | 2025년 최신 정보",
-                                "search_volume": 8900,
-                                "revenue_score": 85,
-                                "estimated_revenue": "$4.50"
-                            },
-                            "untab": {
-                                "keyword": "신용카드 추천",
-                                "title": "신용카드 추천 BEST 10 | 2025년 9월 최신 혜택",
-                                "search_volume": 12500,
-                                "revenue_score": 90,
-                                "estimated_revenue": "$5.20"
-                            }
-                        }
-                    }
-                ],
-                "weekly_goals": {
-                    "traffic_target": 600,
-                    "revenue_target": "$102.00",
-                    "posts_count": 28
-                }
-            };
+            const planContent = document.getElementById('plan-content');
+            const summaryStats = document.getElementById('summary-stats');
 
-            displayWeeklyPlan(testData);
-            updateSummaryStats(testData);
-            document.getElementById('summary-stats').style.display = 'grid';
+            // 직접 HTML 생성
+            planContent.innerHTML = `
+                <div class="weekly-plan">
+                    <div class="day-card">
+                        <div class="day-header">
+                            <div class="day-title">
+                                <i class="bi bi-calendar-day"></i>
+                                월요일 (2025-09-22)
+                            </div>
+                        </div>
+
+                        <div class="site-section" style="border-left: 3px solid #007bff; padding-left: 10px; margin-bottom: 15px;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong style="color: #007bff; text-transform: uppercase;">TISTORY</strong>
+                                <div class="revenue-badge">$4.50</div>
+                            </div>
+                            <div class="mb-2">
+                                <strong><i class="bi bi-key"></i> 키워드:</strong>
+                                <span class="keyword-tag">전세대출 한도 조회</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong><i class="bi bi-file-text"></i> 제목:</strong><br>
+                                <span style="color: #333; font-weight: 500; font-size: 0.9rem;">전세대출 한도 조회 완벽가이드 | 2025년 최신 정보</span>
+                            </div>
+                        </div>
+
+                        <div class="site-section" style="border-left: 3px solid #28a745; padding-left: 10px; margin-bottom: 15px;">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong style="color: #28a745; text-transform: uppercase;">UNTAB</strong>
+                                <div class="revenue-badge">$5.20</div>
+                            </div>
+                            <div class="mb-2">
+                                <strong><i class="bi bi-key"></i> 키워드:</strong>
+                                <span class="keyword-tag">신용카드 추천</span>
+                            </div>
+                            <div class="mb-2">
+                                <strong><i class="bi bi-file-text"></i> 제목:</strong><br>
+                                <span style="color: #333; font-weight: 500; font-size: 0.9rem;">신용카드 추천 BEST 10 | 2025년 9월 최신 혜택</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 통계 업데이트
+            document.getElementById('weekly-revenue').textContent = '$102.00';
+            document.getElementById('post-count').textContent = '28';
+            document.getElementById('traffic-target').textContent = '600';
+            summaryStats.style.display = 'grid';
         }
 
         async function loadCurrentPlan() {
