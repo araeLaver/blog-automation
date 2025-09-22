@@ -458,6 +458,8 @@ def trending_page():
 @app.route('/weekly-planner')
 def weekly_planner_page():
     """주간 계획 페이지"""
+    logger.info("=========== WEEKLY PLANNER 페이지 요청됨!!! ===========")
+    print("=========== WEEKLY PLANNER 페이지 요청됨!!! ===========")
     return render_template('weekly_planner.html')
 
 @app.route('/api/trending')
