@@ -4791,47 +4791,44 @@ def generate_dynamic_schedule(start_date):
 
 @app.route('/api/weekly-plan/current')
 def get_current_weekly_plan():
-    """현재 주간 계획표 조회"""
+    """현재 주간 계획표 조회 - JSON 파일에서 읽기"""
     try:
         from datetime import datetime, timedelta
         import json
-        
+        import os
+
         # 현재 주의 월요일 구하기
         today = datetime.now().date()
         days_since_monday = today.weekday()
         week_start = today - timedelta(days=days_since_monday)
-        
-        database = get_database()
-        conn = database.get_connection()
-        
-        with conn.cursor() as cursor:
-            cursor.execute('''
-            SELECT plan_data FROM blog_automation.weekly_plans 
-            WHERE week_start = %s
-            ORDER BY created_at DESC
-            LIMIT 1
-            ''', (week_start,))
-            
-            result = cursor.fetchone()
-            
-            if result:
-                plan_data = result[0]  # JSONB 데이터
+        week_start_str = week_start.strftime('%Y%m%d')
+
+        # JSON 파일 경로
+        plan_file = f"data/weekly_plans/weekly_plan_{week_start_str}.json"
+
+        if os.path.exists(plan_file):
+            try:
+                with open(plan_file, 'r', encoding='utf-8') as f:
+                    plan_data = json.load(f)
+
                 return jsonify({
                     'success': True,
                     'data': plan_data
                 })
-            else:
-                # 주간계획이 없으면 빈 데이터 반환
-                return jsonify({
-                    'success': True,
-                    'data': {
-                        'week_start': week_start.strftime('%Y-%m-%d'),
-                        'week_end': (week_start + timedelta(days=6)).strftime('%Y-%m-%d'),
-                        'plans': [],
-                        'message': '주간계획이 없습니다. 자동 생성을 실행해주세요.'
-                    }
-                })
-                
+            except Exception as file_error:
+                logger.error(f"주간계획 파일 읽기 오류: {file_error}")
+
+        # 파일이 없으면 빈 데이터 반환
+        return jsonify({
+            'success': True,
+            'data': {
+                'week_start': week_start.strftime('%Y-%m-%d'),
+                'week_end': (week_start + timedelta(days=6)).strftime('%Y-%m-%d'),
+                'days': [],
+                'message': f'주간계획이 없습니다. 파일: {plan_file}'
+            }
+        })
+
     except Exception as e:
         logger.error(f"주간계획 조회 오류: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
