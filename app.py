@@ -455,6 +455,11 @@ def trending_page():
     """트렌딩 페이지"""
     return render_template('trending.html')
 
+@app.route('/weekly-planner')
+def weekly_planner_page():
+    """주간 계획 페이지"""
+    return render_template('weekly_planner.html')
+
 @app.route('/api/trending')
 @app.route('/api/trending/<period>')
 def get_trending(period='current'):
