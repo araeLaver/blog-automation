@@ -284,10 +284,14 @@
             `;
             
             try {
+                console.log('Loading current plan...');
                 const response = await fetch('/api/weekly-plan/current');
+                console.log('Response status:', response.status);
                 const data = await response.json();
+                console.log('API Response:', JSON.stringify(data, null, 2));
 
                 if (data.success && data.data) {
+                    console.log('Plan data found, displaying...');
                     displayWeeklyPlan(data.data, data.summary);
                     updateSummaryStats(data.data);
                     summaryStats.style.display = 'grid';
@@ -367,6 +371,7 @@
         }
 
         function displayWeeklyPlan(plan, summary = null) {
+            console.log('displayWeeklyPlan called with:', plan);
             const planContent = document.getElementById('plan-content');
 
             let content = '';
@@ -382,6 +387,7 @@
             }
 
             // 일별 계획 카드 - 새로운 사이트별 구조
+            console.log('Checking plan.days:', plan.days ? plan.days.length : 'undefined');
             if (plan.days && plan.days.length > 0) {
                 content += '<div class="weekly-plan">';
 
