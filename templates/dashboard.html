@@ -244,7 +244,7 @@
             <div class="control-panel">
                 <div class="control-card">
                     <div class="control-buttons">
-                        <button class="control-btn btn-schedule" onclick="window.location.href='/weekly-planner'">
+                        <button class="control-btn btn-schedule" onclick="showSchedule()">
                             <i class="bi bi-calendar-week"></i>
                             <span>주간계획표</span>
                         </button>
@@ -548,6 +548,17 @@
 
         // 전역 변수
         let currentSite = 'all';  // 현재 선택된 사이트 ('all' 또는 특정 사이트)
+
+        // 사이트별 색상 함수
+        function getSiteColor(site) {
+            const colors = {
+                'tistory': '#007bff',
+                'untab': '#28a745',
+                'unpre': '#dc3545',
+                'skewese': '#ffc107'
+            };
+            return colors[site] || '#6c757d';
+        }
 
         // 초기화
         document.addEventListener('DOMContentLoaded', function() {
@@ -854,8 +865,50 @@
                     <div class="row">
                 `;
                 
-                // 주간 계획 데이터 형식 처리
-                if (data.plan && data.plan.days) {
+                // 주간 계획 데이터 형식 처리 - 새로운 사이트별 구조 우선 처리
+                if (data.data && data.data.days) {
+                    // 새로운 사이트별 구조: {data: {days: [{day, date, sites: {tistory: {...}, untab: {...}}}]}}
+                    const weeklyDays = data.data.days;
+
+                    weeklyDays.forEach(dayInfo => {
+                        try {
+                            const dayNum = new Date(dayInfo.date).getDate();
+                            const hasSites = dayInfo.sites && Object.keys(dayInfo.sites).length > 0;
+
+                            let dayContent = '';
+                            if (hasSites) {
+                                Object.entries(dayInfo.sites).forEach(([siteName, siteData]) => {
+                                    if (siteData) {
+                                        dayContent += `
+                                            <div class="mb-2 border-start border-3 ps-2" style="border-color: ${getSiteColor(siteName)}!important;">
+                                                <strong class="text-uppercase" style="color: ${getSiteColor(siteName)};">${siteName}</strong>
+                                                <div class="small mt-1"><strong>키워드:</strong> ${siteData.keyword}</div>
+                                                <div class="small mt-1"><strong>제목:</strong> ${siteData.title}</div>
+                                                <div class="small text-success mt-1"><strong>예상수익:</strong> ${siteData.estimated_revenue}</div>
+                                            </div>
+                                        `;
+                                    }
+                                });
+                            }
+
+                            html += `
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card ${hasSites ? 'border-primary' : 'border-light'}">
+                                        <div class="card-header bg-light d-flex justify-content-between">
+                                            <strong>${dayNum}일 (${dayInfo.day})</strong>
+                                            ${hasSites ? '<span class="badge bg-success">고수익계획</span>' : '<span class="badge bg-light text-muted">휴일</span>'}
+                                        </div>
+                                        <div class="card-body p-2 small">
+                                            ${dayContent || '<div class="text-muted">스케줄 없음</div>'}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        } catch (dayError) {
+                            console.error('Day processing error:', dayError, dayInfo);
+                        }
+                    });
+                } else if (data.plan && data.plan.days) {
                     // 주간 계획 데이터: {plan: {days: [...]}}
                     const weeklyDays = data.plan.days;
                     
