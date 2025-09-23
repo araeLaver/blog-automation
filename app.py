@@ -4444,36 +4444,38 @@ def init_scheduler():
             job_defaults={'misfire_grace_time': 3600}  # 1시간 지연까지 허용
         )
         
-        # 매일 새벽 3시에 자동 발행 (월-일 매일)
-        scheduler.add_job(
-            func=auto_publish_task,
-            trigger=CronTrigger(
-                hour=3, 
-                minute=0, 
-                second=0,
-                timezone=kst
-            ),
-            id='daily_auto_publish',
-            name='Daily Auto Publishing at 3AM KST',
-            replace_existing=True,
-            max_instances=1,  # 중복 실행 방지
-            coalesce=True     # 누락된 실행을 하나로 합침
-        )
-        
-        # 추가 안전장치: 매일 오전 9시에도 체크 (발행 안 된 경우)
-        scheduler.add_job(
-            func=check_and_retry_publish,
-            trigger=CronTrigger(
-                hour=9, 
-                minute=0, 
-                second=0,
-                timezone=kst
-            ),
-            id='daily_check_publish',
-            name='Daily Check and Retry at 9AM KST',
-            replace_existing=True,
-            max_instances=1
-        )
+        # 자동 발행 임시 중단 - 주석 처리
+        # scheduler.add_job(
+        #     func=auto_publish_task,
+        #     trigger=CronTrigger(
+        #         hour=3,
+        #         minute=0,
+        #         second=0,
+        #         timezone=kst
+        #     ),
+        #     id='daily_auto_publish',
+        #     name='Daily Auto Publishing at 3AM KST',
+        #     replace_existing=True,
+        #     max_instances=1,  # 중복 실행 방지
+        #     coalesce=True     # 누락된 실행을 하나로 합침
+        # )
+
+        # 자동 발행 재시도도 임시 중단 - 주석 처리
+        # scheduler.add_job(
+        #     func=check_and_retry_publish,
+        #     trigger=CronTrigger(
+        #         hour=9,
+        #         minute=0,
+        #         second=0,
+        #         timezone=kst
+        #     ),
+        #     id='daily_check_publish',
+        #     name='Daily Check and Retry at 9AM KST',
+        #     replace_existing=True,
+        #     max_instances=1
+        # )
+
+        add_system_log('INFO', '🚫 자동 발행 시스템 임시 중단됨 (수동 요청)', 'SCHEDULER')
         
         # 스케줄러 시작
         scheduler.start()
